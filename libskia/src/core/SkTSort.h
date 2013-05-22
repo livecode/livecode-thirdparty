@@ -1,19 +1,11 @@
-/* libs/graphics/sgl/SkTSort.h
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #ifndef SkTSort_DEFINED
 #define SkTSort_DEFINED
@@ -45,6 +37,89 @@ template <typename T> void SkTHeapSort(T array[], int count) {
         SkTSwap<T>(array[0], array[i]);
         SkTHeapSort_SiftDown<T>(array, 0, i-1);
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+static T** SkTQSort_Partition(T** left, T** right, T** pivot) {
+    T* pivotValue = *pivot;
+    SkTSwap(*pivot, *right);
+    T** newPivot = left;
+    while (left < right) {
+        if (**left < *pivotValue) {
+            SkTSwap(*left, *newPivot);
+            newPivot += 1;
+        }
+        left += 1;
+    }
+    SkTSwap(*newPivot, *right);
+    return newPivot;
+}
+
+template <typename T> void SkTQSort(T** left, T** right) {
+    if (left >= right) {
+        return;
+    }
+    T** pivot = left + ((right - left) >> 1);
+    pivot = SkTQSort_Partition(left, right, pivot);
+    SkTQSort(left, pivot - 1);
+    SkTQSort(pivot + 1, right);
+}
+
+template <typename T>
+static T* SkTQSort_Partition(T* left, T* right, T* pivot) {
+    T pivotValue = *pivot;
+    SkTSwap(*pivot, *right);
+    T* newPivot = left;
+    while (left < right) {
+        if (*left < pivotValue) {
+            SkTSwap(*left, *newPivot);
+            newPivot += 1;
+        }
+        left += 1;
+    }
+    SkTSwap(*newPivot, *right);
+    return newPivot;
+}
+
+template <typename T> void SkTQSort(T* left, T* right) {
+    if (left >= right) {
+        return;
+    }
+    T* pivot = left + ((right - left) >> 1);
+    pivot = SkTQSort_Partition(left, right, pivot);
+    SkTQSort(left, pivot - 1);
+    SkTQSort(pivot + 1, right);
+}
+
+template <typename S, typename T>
+static T* SkTQSort_Partition(S& context, T* left, T* right, T* pivot,
+                             bool (*lessThan)(S&, const T, const T)) {
+    T pivotValue = *pivot;
+    SkTSwap(*pivot, *right);
+    T* newPivot = left;
+    while (left < right) {
+        if (lessThan(context, *left, pivotValue)) {
+            SkTSwap(*left, *newPivot);
+            newPivot += 1;
+        }
+        left += 1;
+    }
+    SkTSwap(*newPivot, *right);
+    return newPivot;
+}
+
+template <typename S, typename T>
+void SkQSort(S& context, T* left, T* right,
+             bool (*lessThan)(S& , const T, const T)) {
+    if (left >= right) {
+        return;
+    }
+    T* pivot = left + ((right - left) >> 1);
+    pivot = SkTQSort_Partition(context, left, right, pivot, lessThan);
+    SkQSort(context, left, pivot - 1, lessThan);
+    SkQSort(context, pivot + 1, right, lessThan);
 }
 
 #endif

@@ -1,19 +1,11 @@
-/* libs/graphics/sgl/SkSpriteBlitter_RGB16.cpp
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkSpriteBlitter.h"
 #include "SkBlitRow.h"
@@ -63,8 +55,8 @@ public:
 
     // overrides
     virtual void blitRect(int x, int y, int width, int height) {
-        SK_RESTRICT uint16_t* dst = fDevice->getAddr16(x, y);
-        const SK_RESTRICT uint16_t* src = fSource->getAddr16(x - fLeft,
+        uint16_t* SK_RESTRICT dst = fDevice->getAddr16(x, y);
+        const uint16_t* SK_RESTRICT src = fSource->getAddr16(x - fLeft,
                                                              y - fTop);
         unsigned dstRB = fDevice->rowBytes();
         unsigned srcRB = fSource->rowBytes();
@@ -106,14 +98,14 @@ public:
     } while (0)
 
 #define SkSPRITE_CLASSNAME                  Sprite_D16_S4444_Opaque
-#define SkSPRITE_ARGS                       
-#define SkSPRITE_FIELDS                     
-#define SkSPRITE_INIT                       
+#define SkSPRITE_ARGS
+#define SkSPRITE_FIELDS
+#define SkSPRITE_INIT
 #define SkSPRITE_DST_TYPE                   uint16_t
 #define SkSPRITE_SRC_TYPE                   SkPMColor16
 #define SkSPRITE_DST_GETADDR                getAddr16
 #define SkSPRITE_SRC_GETADDR                getAddr16
-#define SkSPRITE_PREAMBLE(srcBM, x, y)      
+#define SkSPRITE_PREAMBLE(srcBM, x, y)
 #define SkSPRITE_BLIT_PIXEL(dst, src)       D16_S4444_Opaque(dst, src)
 #define SkSPRITE_NEXT_ROW
 #define SkSPRITE_POSTAMBLE(srcBM)
@@ -176,9 +168,9 @@ static intptr_t asint(const void* ptr) {
     return reinterpret_cast<const char*>(ptr) - (const char*)0;
 }
 
-static void blitrow_d16_si8(SK_RESTRICT uint16_t* dst,
-                            SK_RESTRICT const uint8_t* src, int count,
-                            SK_RESTRICT const uint16_t* ctable) {
+static void blitrow_d16_si8(uint16_t* SK_RESTRICT dst,
+                            const uint8_t* SK_RESTRICT src, int count,
+                            const uint16_t* SK_RESTRICT ctable) {
     if (count <= 8) {
         do {
             *dst++ = ctable[*src++];
@@ -268,15 +260,15 @@ class Sprite_D16_S32_BlitRowProc : public SkSpriteBlitter {
 public:
     Sprite_D16_S32_BlitRowProc(const SkBitmap& source)
         : SkSpriteBlitter(source) {}
-    
+
     // overrides
-    
+
     virtual void setup(const SkBitmap& device, int left, int top,
                        const SkPaint& paint) {
         this->INHERITED::setup(device, left, top, paint);
-        
+
         unsigned flags = 0;
-        
+
         if (paint.getAlpha() < 0xFF) {
             flags |= SkBlitRow::kGlobalAlpha_Flag;
         }
@@ -288,27 +280,27 @@ public:
         }
         fProc = SkBlitRow::Factory(flags, SkBitmap::kRGB_565_Config);
     }
-    
+
     virtual void blitRect(int x, int y, int width, int height) {
-        SK_RESTRICT uint16_t* dst = fDevice->getAddr16(x, y);
-        const SK_RESTRICT SkPMColor* src = fSource->getAddr32(x - fLeft,
+        uint16_t* SK_RESTRICT dst = fDevice->getAddr16(x, y);
+        const SkPMColor* SK_RESTRICT src = fSource->getAddr32(x - fLeft,
                                                               y - fTop);
         unsigned dstRB = fDevice->rowBytes();
         unsigned srcRB = fSource->rowBytes();
         SkBlitRow::Proc proc = fProc;
         U8CPU alpha = fPaint->getAlpha();
-        
+
         while (--height >= 0) {
             proc(dst, src, width, alpha, x, y);
             y += 1;
-            dst = (SK_RESTRICT uint16_t*)((char*)dst + dstRB);
-            src = (const SK_RESTRICT SkPMColor*)((const char*)src + srcRB);
+            dst = (uint16_t* SK_RESTRICT)((char*)dst + dstRB);
+            src = (const SkPMColor* SK_RESTRICT)((const char*)src + srcRB);
         }
     }
-    
+
 private:
     SkBlitRow::Proc fProc;
-    
+
     typedef SkSpriteBlitter INHERITED;
 };
 
@@ -383,4 +375,3 @@ SkSpriteBlitter* SkSpriteBlitter::ChooseD16(const SkBitmap& source,
     }
     return blitter;
 }
-

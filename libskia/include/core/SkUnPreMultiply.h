@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright 2008 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 
 
@@ -22,10 +15,10 @@
 
 #include "SkColor.h"
 
-class SkUnPreMultiply {
+class SK_API SkUnPreMultiply {
 public:
     typedef uint32_t Scale;
-    
+
     // index this table with alpha [0..255]
     static const Scale* GetScaleTable() {
         return gTable;
@@ -35,15 +28,15 @@ public:
         SkASSERT(alpha <= 255);
         return gTable[alpha];
     }
-    
+
     /** Usage:
-     
+
         const Scale* table = SkUnPreMultiply::GetScaleTable();
-     
+
         for (...) {
             unsigned a = ...
             SkUnPreMultiply::Scale scale = table[a];
-     
+
             red = SkUnPreMultiply::ApplyScale(scale, red);
             ...
             // now red is unpremultiplied
@@ -53,9 +46,9 @@ public:
         SkASSERT(component <= 255);
         return (scale * component + (1 << 23)) >> 24;
     }
-    
+
     static SkColor PMColorToColor(SkPMColor c);
-    
+
 private:
     static const uint32_t gTable[256];
 };

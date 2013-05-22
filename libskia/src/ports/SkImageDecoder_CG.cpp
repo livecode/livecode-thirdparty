@@ -1,24 +1,29 @@
-/* Copyright 2008, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
 
-#include <Carbon/Carbon.h>
+/*
+ * Copyright 2008 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#include "SkColorPriv.h"
+
 #include "SkImageDecoder.h"
 #include "SkImageEncoder.h"
 #include "SkMovie.h"
 #include "SkStream.h"
 #include "SkTemplates.h"
+#include "SkCGUtils.h"
+
+#ifdef SK_BUILD_FOR_MAC
+#include <ApplicationServices/ApplicationServices.h>
+#endif
+
+#ifdef SK_BUILD_FOR_IOS
+#include <CoreGraphics/CoreGraphics.h>
+#include <ImageIO/ImageIO.h>
+#include <MobileCoreServices/MobileCoreServices.h>
+#endif
 
 static void malloc_release_proc(void* info, const void* data, size_t size) {
     sk_free(info);
@@ -29,7 +34,7 @@ static CGDataProviderRef SkStreamToDataProvider(SkStream* stream) {
     size_t len = stream->getLength();
     void* data = sk_malloc_throw(len);
     stream->read(data, len);
-    
+
     return CGDataProviderCreateWithData(data, data, len, malloc_release_proc);
 }
 
@@ -54,34 +59,51 @@ bool SkImageDecoder_CG::onDecode(SkStream* stream, SkBitmap* bm, Mode mode) {
         return false;
     }
     SkAutoTCallVProc<const void, CFRelease> arsrc(imageSrc);
-    
+
     CGImageRef image = CGImageSourceCreateImageAtIndex(imageSrc, 0, NULL);
     if (NULL == image) {
         return false;
     }
     SkAutoTCallVProc<CGImage, CGImageRelease> arimage(image);
-    
+
     const int width = CGImageGetWidth(image);
     const int height = CGImageGetHeight(image);
     bm->setConfig(SkBitmap::kARGB_8888_Config, width, height);
     if (SkImageDecoder::kDecodeBounds_Mode == mode) {
         return true;
     }
-    
+
     if (!this->allocPixelRef(bm, NULL)) {
         return false;
     }
-    
-    bm->lockPixels();
-    bm->eraseColor(0);
 
-    CGColorSpaceRef cs = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
-    CGContextRef cg = CGBitmapContextCreate(bm->getPixels(), width, height,
-                                            8, bm->rowBytes(), cs, BITMAP_INFO);
+    bm->lockPixels();
+    bm->eraseColor(SK_ColorTRANSPARENT);
+
+    // use the same colorspace, so we don't change the pixels at all
+    CGColorSpaceRef cs = CGImageGetColorSpace(image);
+    CGContextRef cg = CGBitmapContextCreate(bm->getPixels(), width, height, 8, bm->rowBytes(), cs, BITMAP_INFO);
+    if (NULL == cg) {
+        // perhaps the image's colorspace does not work for a context, so try just rgb
+        cs = CGColorSpaceCreateDeviceRGB();
+        cg = CGBitmapContextCreate(bm->getPixels(), width, height, 8, bm->rowBytes(), cs, BITMAP_INFO);
+        CFRelease(cs);
+    }
     CGContextDrawImage(cg, CGRectMake(0, 0, width, height), image);
     CGContextRelease(cg);
-    CGColorSpaceRelease(cs);
 
+    CGImageAlphaInfo info = CGImageGetAlphaInfo(image);
+    switch (info) {
+        case kCGImageAlphaNone:
+        case kCGImageAlphaNoneSkipLast:
+        case kCGImageAlphaNoneSkipFirst:
+            SkASSERT(SkBitmap::ComputeIsOpaque(*bm));
+            bm->setIsOpaque(true);
+            break;
+        default:
+            // we don't know if we're opaque or not, so compute it.
+            bm->computeAndSetOpaquePredicate();
+    }
     bm->unlockPixels();
     return true;
 }
@@ -125,7 +147,7 @@ static CGImageDestinationRef SkStreamToImageDestination(SkWStream* stream,
         return NULL;
     }
     SkAutoTCallVProc<const void, CFRelease> arconsumer(consumer);
-    
+
     return CGImageDestinationCreateWithDataConsumer(consumer, type, 1, NULL);
 }
 
@@ -135,12 +157,10 @@ public:
 
 protected:
     virtual bool onEncode(SkWStream* stream, const SkBitmap& bm, int quality);
-    
+
 private:
     Type fType;
 };
-
-extern CGImageRef SkCreateCGImageRef(const SkBitmap&);
 
 /*  Encode bitmaps via CGImageDestination. We setup a DataConsumer which writes
     to our SkWStream. Since we don't reference/own the SkWStream, our consumer
@@ -148,33 +168,45 @@ extern CGImageRef SkCreateCGImageRef(const SkBitmap&);
  */
 bool SkImageEncoder_CG::onEncode(SkWStream* stream, const SkBitmap& bm,
                                  int quality) {
+    // Used for converting a bitmap to 8888.
+    const SkBitmap* bmPtr = &bm;
+    SkBitmap bitmap8888;
+
     CFStringRef type;
     switch (fType) {
         case kJPEG_Type:
             type = kUTTypeJPEG;
             break;
         case kPNG_Type:
+            // PNG encoding an ARGB_4444 bitmap gives the following errors in GM:
+            // <Error>: CGImageDestinationAddImage image could not be converted to destination
+            // format.
+            // <Error>: CGImageDestinationFinalize image destination does not have enough images
+            // So instead we copy to 8888.
+            if (bm.getConfig() == SkBitmap::kARGB_4444_Config) {
+                bm.copyTo(&bitmap8888, SkBitmap::kARGB_8888_Config);
+                bmPtr = &bitmap8888;
+            }
             type = kUTTypePNG;
             break;
         default:
             return false;
     }
-    
+
     CGImageDestinationRef dst = SkStreamToImageDestination(stream, type);
     if (NULL == dst) {
         return false;
     }
     SkAutoTCallVProc<const void, CFRelease> ardst(dst);
 
-    CGImageRef image = SkCreateCGImageRef(bm);
+    CGImageRef image = SkCreateCGImageRef(*bmPtr);
     if (NULL == image) {
         return false;
     }
     SkAutoTCallVProc<CGImage, CGImageRelease> agimage(image);
-    
-	CGImageDestinationAddImage(dst, image, NULL);
-	CGImageDestinationFinalize(dst);
-    return true;
+
+    CGImageDestinationAddImage(dst, image, NULL);
+    return CGImageDestinationFinalize(dst);
 }
 
 SkImageEncoder* SkImageEncoder::Create(Type t) {

@@ -1,3 +1,10 @@
+
+/*
+ * Copyright 2011 Google Inc.
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
 #include "SkPackBits.h"
 
 #define GATHER_STATSx
@@ -81,7 +88,7 @@ static void register_memset_count(int n) {
     SkASSERT((unsigned)n <= 128);
     gMemSetBuckets[n] += 1;
     gCounter += 1;
-    
+
     if ((gCounter & 0xFF) == 0) {
         SkDebugf("----- packbits memset stats: ");
         for (size_t i = 0; i < SK_ARRAY_COUNT(gMemSetBuckets); i++) {
@@ -95,7 +102,7 @@ static void register_memcpy_count(int n) {
     SkASSERT((unsigned)n <= 128);
     gMemCpyBuckets[n] += 1;
     gCounter += 1;
-    
+
     if ((gCounter & 0x1FF) == 0) {
         SkDebugf("----- packbits memcpy stats: ");
         for (size_t i = 0; i < SK_ARRAY_COUNT(gMemCpyBuckets); i++) {
@@ -151,8 +158,8 @@ static uint8_t* flush_same8(uint8_t dst[], uint8_t value, int count) {
     return dst;
 }
 
-static uint8_t* flush_diff16(uint8_t SK_RESTRICT dst[],
-                             const uint16_t SK_RESTRICT src[], int count) {
+static uint8_t* flush_diff16(uint8_t* SK_RESTRICT dst,
+                             const uint16_t* SK_RESTRICT src, int count) {
     while (count > 0) {
         int n = count;
         if (n > 128) {
@@ -167,8 +174,8 @@ static uint8_t* flush_diff16(uint8_t SK_RESTRICT dst[],
     return dst;
 }
 
-static uint8_t* flush_diff8(uint8_t SK_RESTRICT dst[],
-                            const uint8_t SK_RESTRICT src[], int count) {
+static uint8_t* flush_diff8(uint8_t* SK_RESTRICT dst,
+                            const uint8_t* SK_RESTRICT src, int count) {
     while (count > 0) {
         int n = count;
         if (n > 128) {
@@ -183,8 +190,8 @@ static uint8_t* flush_diff8(uint8_t SK_RESTRICT dst[],
     return dst;
 }
 
-size_t SkPackBits::Pack16(const uint16_t SK_RESTRICT src[], int count,
-                          uint8_t SK_RESTRICT dst[]) {
+size_t SkPackBits::Pack16(const uint16_t* SK_RESTRICT src, int count,
+                          uint8_t* SK_RESTRICT dst) {
     uint8_t* origDst = dst;
     const uint16_t* stop = src + count;
 
@@ -200,10 +207,10 @@ size_t SkPackBits::Pack16(const uint16_t SK_RESTRICT src[], int count,
             *dst++ = (uint8_t)*src;
             return dst - origDst;
         }
-        
+
         unsigned value = *src;
         const uint16_t* s = src + 1;
-        
+
         if (*s == value) { // accumulate same values...
             do {
                 s++;
@@ -226,8 +233,8 @@ size_t SkPackBits::Pack16(const uint16_t SK_RESTRICT src[], int count,
     }
 }
 
-size_t SkPackBits::Pack8(const uint8_t SK_RESTRICT src[], int count,
-                         uint8_t SK_RESTRICT dst[]) {
+size_t SkPackBits::Pack8(const uint8_t* SK_RESTRICT src, int count,
+                         uint8_t* SK_RESTRICT dst) {
     uint8_t* origDst = dst;
     const uint8_t* stop = src + count;
 
@@ -242,10 +249,10 @@ size_t SkPackBits::Pack8(const uint8_t SK_RESTRICT src[], int count,
             *dst++ = *src;
             return dst - origDst;
         }
-        
+
         unsigned value = *src;
         const uint8_t* s = src + 1;
-        
+
         if (*s == value) { // accumulate same values...
             do {
                 s++;
@@ -272,11 +279,11 @@ size_t SkPackBits::Pack8(const uint8_t SK_RESTRICT src[], int count,
 
 #include "SkUtils.h"
 
-int SkPackBits::Unpack16(const uint8_t SK_RESTRICT src[], size_t srcSize,
-                         uint16_t SK_RESTRICT dst[]) {
+int SkPackBits::Unpack16(const uint8_t* SK_RESTRICT src, size_t srcSize,
+                         uint16_t* SK_RESTRICT dst) {
     uint16_t* origDst = dst;
     const uint8_t* stop = src + srcSize;
-    
+
     while (src < stop) {
         unsigned n = *src++;
         if (n <= 127) {   // repeat count (n + 1)
@@ -294,11 +301,11 @@ int SkPackBits::Unpack16(const uint8_t SK_RESTRICT src[], size_t srcSize,
     return dst - origDst;
 }
 
-int SkPackBits::Unpack8(const uint8_t SK_RESTRICT src[], size_t srcSize,
-                        uint8_t SK_RESTRICT dst[]) {
+int SkPackBits::Unpack8(const uint8_t* SK_RESTRICT src, size_t srcSize,
+                        uint8_t* SK_RESTRICT dst) {
     uint8_t* origDst = dst;
     const uint8_t* stop = src + srcSize;
-    
+
     while (src < stop) {
         unsigned n = *src++;
         if (n <= 127) {   // repeat count (n + 1)
@@ -321,15 +328,15 @@ enum UnpackState {
     COPY_SRC_STATE
 };
 
-void SkPackBits::Unpack8(uint8_t SK_RESTRICT dst[], size_t dstSkip,
-                         size_t dstWrite, const uint8_t SK_RESTRICT src[]) {
+void SkPackBits::Unpack8(uint8_t* SK_RESTRICT dst, size_t dstSkip,
+                         size_t dstWrite, const uint8_t* SK_RESTRICT src) {
     if (dstWrite == 0) {
         return;
     }
 
     UnpackState state = CLEAN_STATE;
     size_t      stateCount = 0;
-    
+
     // state 1: do the skip-loop
     while (dstSkip > 0) {
         unsigned n = *src++;
@@ -354,7 +361,7 @@ void SkPackBits::Unpack8(uint8_t SK_RESTRICT dst[], size_t dstSkip,
         }
         dstSkip -= n;
     }
-    
+
     // stage 2: perform any catchup from the skip-stage
     if (stateCount > dstWrite) {
         stateCount = dstWrite;
@@ -402,6 +409,3 @@ void SkPackBits::Unpack8(uint8_t SK_RESTRICT dst[], size_t dstSkip,
     }
     SkASSERT(0 == dstWrite);
 }
-
-
-

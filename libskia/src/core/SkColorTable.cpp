@@ -1,23 +1,18 @@
+
 /*
- * Copyright (C) 2006-2009 The Android Open Source Project
+ * Copyright 2009 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
 
-#include "SkBitmap.h"
-#include "SkFlattenable.h"
+
+#include "SkColorTable.h"
+#include "SkFlattenableBuffers.h"
 #include "SkStream.h"
 #include "SkTemplates.h"
+
+SK_DEFINE_INST_COUNT(SkColorTable)
 
 SkColorTable::SkColorTable(int count)
     : f16BitCache(NULL), fFlags(0)
@@ -35,8 +30,9 @@ SkColorTable::SkColorTable(int count)
     SkDEBUGCODE(f16BitCacheLockCount = 0;)
 }
 
-// call SkRefCnt's constructor explicitly, to avoid warning
-SkColorTable::SkColorTable(const SkColorTable& src) : SkRefCnt() {
+// As copy constructor is hidden in the class hierarchy, we need to call
+// default constructor explicitly to suppress a compiler warning.
+SkColorTable::SkColorTable(const SkColorTable& src) : INHERITED() {
     f16BitCache = NULL;
     fFlags = src.fFlags;
     int count = src.count();
@@ -85,7 +81,7 @@ void SkColorTable::setFlags(unsigned flags)
 void SkColorTable::unlockColors(bool changed)
 {
     SkASSERT(fColorLockCount != 0);
-    SkDEBUGCODE(fColorLockCount -= 1;)
+    SkDEBUGCODE(sk_atomic_dec(&fColorLockCount);)
     if (changed)
         this->inval16BitCache();
 }
@@ -147,19 +143,17 @@ SkColorTable::SkColorTable(SkFlattenableReadBuffer& buffer) {
     SkDEBUGCODE(fColorLockCount = 0;)
     SkDEBUGCODE(f16BitCacheLockCount = 0;)
 
-    fCount = buffer.readU16();
-    SkASSERT((unsigned)fCount <= 256);
-
-    fFlags = buffer.readU8();
-
+    fFlags = buffer.readUInt();
+    fCount = buffer.getArrayCount();
     fColors = (SkPMColor*)sk_malloc_throw(fCount * sizeof(SkPMColor));
-    buffer.read(fColors, fCount * sizeof(SkPMColor));
+    SkDEBUGCODE(const uint32_t countRead =) buffer.readColorArray(fColors);
+#ifdef SK_DEBUG
+    SkASSERT((unsigned)fCount <= 256);
+    SkASSERT(countRead == fCount);
+#endif
 }
 
 void SkColorTable::flatten(SkFlattenableWriteBuffer& buffer) const {
-    int count = this->count();
-    buffer.write16(count);
-    buffer.write8(this->getFlags());
-    buffer.writeMul4(fColors, count * sizeof(SkPMColor));
+    buffer.writeUInt(fFlags);
+    buffer.writeColorArray(fColors, fCount);
 }
-

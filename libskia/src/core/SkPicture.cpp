@@ -1,19 +1,11 @@
+
 /*
-**
-** Copyright 2007, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+ * Copyright 2007 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkPictureFlat.h"
 #include "SkPicturePlayback.h"
@@ -21,6 +13,7 @@
 
 #include "SkCanvas.h"
 #include "SkChunkAlloc.h"
+#include "SkDevice.h"
 #include "SkPicture.h"
 #include "SkRegion.h"
 #include "SkStream.h"
@@ -30,6 +23,10 @@
 
 #include "SkReader32.h"
 #include "SkWriter32.h"
+#include "SkRTree.h"
+#include "SkBBoxHierarchyRecord.h"
+
+SK_DEFINE_INST_COUNT(SkPicture)
 
 #define DUMP_BUFFER_SIZE 65536
 
@@ -37,7 +34,7 @@
 
 
 #ifdef SK_DEBUG
-// enable SK_DEBUG_TRACE to trace DrawType elements when 
+// enable SK_DEBUG_TRACE to trace DrawType elements when
 //     recorded and played back
 // #define SK_DEBUG_TRACE
 // enable SK_DEBUG_SIZE to see the size of picture components
@@ -77,12 +74,12 @@ const char* DrawTypeToString(DrawType drawType) {
         case SCALE: return "SCALE";
         case SKEW: return "SKEW";
         case TRANSLATE: return "TRANSLATE";
-        default: 
-            SkDebugf("DrawType error 0x%08x\n", drawType); 
-            SkASSERT(0); 
+        default:
+            SkDebugf("DrawType error 0x%08x\n", drawType);
+            SkASSERT(0);
             break;
     }
-    SkASSERT(0); 
+    SkASSERT(0);
     return NULL;
 }
 #endif
@@ -133,7 +130,7 @@ SkPicture::SkPicture(const SkPicture& src) : SkRefCnt() {
 }
 
 SkPicture::~SkPicture() {
-    fRecord->safeUnref();
+    SkSafeUnref(fRecord);
     SkDELETE(fPlayback);
 }
 
@@ -142,6 +139,43 @@ void SkPicture::swap(SkPicture& other) {
     SkTSwap(fPlayback, other.fPlayback);
     SkTSwap(fWidth, other.fWidth);
     SkTSwap(fHeight, other.fHeight);
+}
+
+SkPicture* SkPicture::clone() const {
+    SkPicture* clonedPicture = SkNEW(SkPicture);
+    clone(clonedPicture, 1);
+    return clonedPicture;
+}
+
+void SkPicture::clone(SkPicture* pictures, int count) const {
+    SkPictCopyInfo copyInfo;
+
+    for (int i = 0; i < count; i++) {
+        SkPicture* clone = &pictures[i];
+
+        clone->fWidth = fWidth;
+        clone->fHeight = fHeight;
+        clone->fRecord = NULL;
+
+        if (NULL != clone->fRecord) {
+            clone->fRecord->unref();
+            clone->fRecord = NULL;
+        }
+        SkDELETE(clone->fPlayback);
+
+        /*  We want to copy the src's playback. However, if that hasn't been built
+            yet, we need to fake a call to endRecording() without actually calling
+            it (since it is destructive, and we don't want to change src).
+         */
+        if (fPlayback) {
+            clone->fPlayback = SkNEW_ARGS(SkPicturePlayback, (*fPlayback, &copyInfo));
+        } else if (fRecord) {
+            // here we do a fake src.endRecording()
+            clone->fPlayback = SkNEW_ARGS(SkPicturePlayback, (*fRecord, true));
+        } else {
+            clone->fPlayback = NULL;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -158,16 +192,37 @@ SkCanvas* SkPicture::beginRecording(int width, int height,
         fRecord = NULL;
     }
 
-    fRecord = SkNEW_ARGS(SkPictureRecord, (recordingFlags));
+    SkBitmap bm;
+    bm.setConfig(SkBitmap::kNo_Config, width, height);
+    SkAutoTUnref<SkDevice> dev(SkNEW_ARGS(SkDevice, (bm)));
 
+    // Must be set before calling createBBoxHierarchy
     fWidth = width;
     fHeight = height;
 
-    SkBitmap bm;
-    bm.setConfig(SkBitmap::kNo_Config, width, height);
-    fRecord->setBitmapDevice(bm);
-    
+    if (recordingFlags & kOptimizeForClippedPlayback_RecordingFlag) {
+        SkBBoxHierarchy* tree = this->createBBoxHierarchy();
+        SkASSERT(NULL != tree);
+        fRecord = SkNEW_ARGS(SkBBoxHierarchyRecord, (recordingFlags, tree, dev));
+        tree->unref();
+    } else {
+        fRecord = SkNEW_ARGS(SkPictureRecord, (recordingFlags, dev));
+    }
+    fRecord->beginRecording();
+
     return fRecord;
+}
+
+SkBBoxHierarchy* SkPicture::createBBoxHierarchy() const {
+    // These values were empirically determined to produce reasonable
+    // performance in most cases.
+    static const int kRTreeMinChildren = 6;
+    static const int kRTreeMaxChildren = 11;
+
+    SkScalar aspectRatio = SkScalarDiv(SkIntToScalar(fWidth),
+                                       SkIntToScalar(fHeight));
+    return SkRTree::Create(kRTreeMinChildren, kRTreeMaxChildren,
+                           aspectRatio);
 }
 
 SkCanvas* SkPicture::getRecordingCanvas() const {
@@ -178,6 +233,7 @@ SkCanvas* SkPicture::getRecordingCanvas() const {
 void SkPicture::endRecording() {
     if (NULL == fPlayback) {
         if (NULL != fRecord) {
+            fRecord->endRecording();
             fPlayback = SkNEW_ARGS(SkPicturePlayback, (*fRecord));
             fRecord->unref();
             fRecord = NULL;
@@ -197,37 +253,65 @@ void SkPicture::draw(SkCanvas* surface) {
 
 #include "SkStream.h"
 
-#define PICTURE_VERSION     1
-
-SkPicture::SkPicture(SkStream* stream) : SkRefCnt() {
-    if (stream->readU32() != PICTURE_VERSION) {
-        sk_throw();
+SkPicture::SkPicture(SkStream* stream, bool* success, SkSerializationHelpers::DecodeBitmap decoder) : SkRefCnt() {
+    if (success) {
+        *success = false;
     }
-
-    fWidth = stream->readU32();
-    fHeight = stream->readU32();
-
     fRecord = NULL;
     fPlayback = NULL;
+    fWidth = fHeight = 0;
+
+    SkPictInfo info;
+
+    if (!stream->read(&info, sizeof(info))) {
+        return;
+    }
+    if (PICTURE_VERSION != info.fVersion) {
+        return;
+    }
 
     if (stream->readBool()) {
-        fPlayback = SkNEW_ARGS(SkPicturePlayback, (stream));
+        bool isValid = false;
+        fPlayback = SkNEW_ARGS(SkPicturePlayback, (stream, info, &isValid, decoder));
+        if (!isValid) {
+            SkDELETE(fPlayback);
+            fPlayback = NULL;
+            return;
+        }
+    }
+
+    // do this at the end, so that they will be zero if we hit an error.
+    fWidth = info.fWidth;
+    fHeight = info.fHeight;
+    if (success) {
+        *success = true;
     }
 }
 
-void SkPicture::serialize(SkWStream* stream) const {
+void SkPicture::serialize(SkWStream* stream, SkSerializationHelpers::EncodeBitmap encoder) const {
     SkPicturePlayback* playback = fPlayback;
-    
+
     if (NULL == playback && fRecord) {
         playback = SkNEW_ARGS(SkPicturePlayback, (*fRecord));
     }
 
-    stream->write32(PICTURE_VERSION);
-    stream->write32(fWidth);
-    stream->write32(fHeight);
+    SkPictInfo info;
+
+    info.fVersion = PICTURE_VERSION;
+    info.fWidth = fWidth;
+    info.fHeight = fHeight;
+    info.fFlags = SkPictInfo::kCrossProcess_Flag;
+#ifdef SK_SCALAR_IS_FLOAT
+    info.fFlags |= SkPictInfo::kScalarIsFloat_Flag;
+#endif
+    if (8 == sizeof(void*)) {
+        info.fFlags |= SkPictInfo::kPtrIs64Bit_Flag;
+    }
+
+    stream->write(&info, sizeof(info));
     if (playback) {
         stream->writeBool(true);
-        playback->serialize(stream);
+        playback->serialize(stream, encoder);
         // delete playback if it is a local version (i.e. cons'd up just now)
         if (playback != fPlayback) {
             SkDELETE(playback);

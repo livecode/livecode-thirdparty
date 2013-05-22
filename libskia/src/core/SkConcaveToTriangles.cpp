@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2009 The Android Open Source Project
+ * Copyright 2009 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -41,6 +34,7 @@
 // - There is no need to use SkTDArray for everything. Use SkAutoTMalloc for
 //   everything else.
 
+#include "SkConcaveToTriangles.h"
 #include "SkTDArray.h"
 #include "SkGeometry.h"
 #include "SkTSort.h"
@@ -55,7 +49,7 @@
 // Debugging support
 //------------------------------------------------------------------------------
 
-#include <stdio.h>
+#include <cstdio>
 #include <stdarg.h>
 
 static int gDebugLevel = 0;   // This enables debug reporting.
@@ -427,7 +421,7 @@ public:
 };
 
 
-bool operator<(VertexPtr &v0, VertexPtr &v1) {
+static bool operator<(VertexPtr &v0, VertexPtr &v1) {
     // DebugPrintf("< %p %p\n", &v0, &v1);
     if (v0.vt->point().fY < v1.vt->point().fY)  return true;
     if (v0.vt->point().fY > v1.vt->point().fY)  return false;
@@ -436,14 +430,15 @@ bool operator<(VertexPtr &v0, VertexPtr &v1) {
 }
 
 
-bool operator>(VertexPtr &v0, VertexPtr &v1) {
+#if 0 // UNUSED
+static bool operator>(VertexPtr &v0, VertexPtr &v1) {
     // DebugPrintf("> %p %p\n", &v0, &v1);
     if (v0.vt->point().fY > v1.vt->point().fY)  return true;
     if (v0.vt->point().fY < v1.vt->point().fY)  return false;
     if (v0.vt->point().fX > v1.vt->point().fX)  return true;
     else                                        return false;
 }
-
+#endif
 
 static void SetVertexPoints(size_t numPts, const SkPoint *pt, Vertex *vt) {
     for (; numPts-- != 0; ++pt, ++vt)
@@ -682,7 +677,7 @@ static void RemoveDegenerateTrapezoids(size_t numVt, Vertex *vt) {
 
 
 // Enhance the polygon with trapezoids.
-bool ConvertPointsToVertices(size_t numPts, const SkPoint *pts, Vertex *vta) {
+static bool ConvertPointsToVertices(size_t numPts, const SkPoint *pts, Vertex *vta) {
     DebugPrintf("ConvertPointsToVertices()\n");
 
     // Clear everything.
@@ -842,7 +837,7 @@ static size_t CountVertices(const Vertex *first, const Vertex *last) {
 }
 
 
-bool operator<(const SkPoint &p0, const SkPoint &p1) {
+static bool operator<(const SkPoint &p0, const SkPoint &p1) {
     if (p0.fY < p1.fY)  return true;
     if (p0.fY > p1.fY)  return false;
     if (p0.fX < p1.fX)  return true;
@@ -861,7 +856,7 @@ static void PrintLinkedVertices(size_t n, Vertex *vertices) {
 
 
 // Triangulate an unimonotone chain.
-bool TriangulateMonotone(Vertex *first, Vertex *last,
+static bool TriangulateMonotone(Vertex *first, Vertex *last,
                          SkTDArray<SkPoint> *triangles) {
     DebugPrintf("TriangulateMonotone()\n");
 
@@ -922,7 +917,7 @@ bool TriangulateMonotone(Vertex *first, Vertex *last,
 
 // Split the polygon into sets of unimonotone chains, and eventually call
 // TriangulateMonotone() to convert them into triangles.
-bool Triangulate(Vertex *first, Vertex *last, SkTDArray<SkPoint> *triangles) {
+static bool Triangulate(Vertex *first, Vertex *last, SkTDArray<SkPoint> *triangles) {
     DebugPrintf("Triangulate()\n");
     Vertex *currentVertex = first;
     while (!currentVertex->done()) {

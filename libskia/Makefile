@@ -67,12 +67,9 @@ endif
 CUSTOM_INCLUDES=./src \
 		./src/core \
 		./src/image \
-		./include/core \
-		./include/config \
-		./include/effects \
 		/usr/include/freetype2
 
 CUSTOM_CCFLAGS=-fno-exceptions -fno-rtti
 
 
-include ../rules/archive.linux.makefile
+include ../../rules/archive.linux.makefile

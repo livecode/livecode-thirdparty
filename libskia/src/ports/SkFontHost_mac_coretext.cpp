@@ -897,6 +897,10 @@ unsigned SkScalerContext_Mac::generateGlyphCount(void) {
 }
 
 uint16_t SkScalerContext_Mac::generateCharToGlyph(SkUnichar uni) {
+	// IM-2013-06-10: skia + coretext don't handle surrogate pairs so we just return 0 here
+	if (uni > 0x0000FFFF)
+		return 0;
+	
     CGGlyph     cgGlyph;
     UniChar     theChar;
 

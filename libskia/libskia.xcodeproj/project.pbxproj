@@ -1614,6 +1614,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DCDCA240B80890D0040D436 /* Debug.xcconfig */;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(HEADER_SEARCH_PATHS)",
+					"$(PROJECT_DIR)/src/image",
+					"$(PROJECT_DIR)/src/core",
+				);
 				OTHER_CFLAGS = "-mssse3";
 				OWNER = ..;
 			};
@@ -1623,6 +1628,11 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DCDCA230B80890D0040D436 /* Release.xcconfig */;
 			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"$(HEADER_SEARCH_PATHS)",
+					"$(PROJECT_DIR)/src/image",
+					"$(PROJECT_DIR)/src/core",
+				);
 				OTHER_CFLAGS = "-mssse3";
 				OWNER = ..;
 			};

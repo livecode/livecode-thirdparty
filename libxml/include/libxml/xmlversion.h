@@ -273,7 +273,8 @@ XMLPUBFUN void XMLCALL xmlCheckVersion(int version);
  *
  * Whether iconv support is available
  */
-#if 1
+	// MDW 2013-07-02 : disabled this (OSX compiling problem)
+#if 0
 #define LIBXML_ICONV_ENABLED
 #endif
 

@@ -171,7 +171,7 @@ LOCAL_SRC_FILES+=$(addprefix src/opts/, \
 		
 LOCAL_SRC_FILES+=$(addprefix src/ports/, \
 		FontHostConfiguration_android.cpp \
-		SkDebug_stdio.cpp \
+		SkDebug_android.cpp \
 		SkFontDescriptor.cpp \
 		SkFontHost_android.cpp \
 		SkFontHost_FreeType.cpp \

@@ -507,6 +507,90 @@ static void dump_globals() {
 
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+// MM-2012-03-06: Added in synonyms for the Droid * fonts
+static const char* gSansNames[] = {
+    "Droid Sans", "sans-serif", "arial", "helvetica", "tahoma", "verdana", NULL
+};
+
+static const char* gSerifNames[] = {
+    "Droid Serif", "serif", "times", "times new roman", "palatino", "georgia", "baskerville",
+    "goudy", "fantasy", "cursive", "ITC Stone Serif", NULL
+};
+
+static const char* gMonoNames[] = {
+    "Droid Sans Mono", "monospace", "courier", "courier new", "monaco", NULL
+};
+
+/*  Fonts must be grouped by family, with the first font in a family having the
+ list of names (even if that list is empty), and the following members having
+ null for the list. The names list must be NULL-terminated
+ */
+static const FontInitRec gLegacySystemFonts[] = {
+#ifndef WIN32
+	{ "DroidSans.ttf",              gSansNames  },
+    { "DroidSans-Bold.ttf",         NULL        },
+    { "DroidSerif-Regular.ttf",     gSerifNames },
+    { "DroidSerif-Bold.ttf",        NULL        },
+    { "DroidSerif-Italic.ttf",      NULL        },
+    { "DroidSerif-BoldItalic.ttf",  NULL        },
+    { "DroidSansMono.ttf",          gMonoNames  },
+#else
+	{ "Arial.TTF",					gSansNames  },
+	{ "ArialBD.TTF",					NULL        },
+	{ "ArialI.TTF",					NULL        },
+	{ "ArialBI.TTF",					NULL        },
+	{ "Times.TTF",					gSerifNames },
+	{ "TimesBD.TTF",					NULL        },
+	{ "TimesI.TTF",					NULL        },
+	{ "TimesBI.TTF",					NULL        },
+	{ "Cour.TTF",					gMonoNames  },
+	{ "CourBD.TTF",					NULL        },
+	{ "CourI.TTF",					NULL        },
+	{ "CourBI.TTF",					NULL        },
+	
+#endif
+    /*  These are optional, and can be ignored if not found in the file system.
+	 These are appended to gFallbackFonts[] as they are seen, so we list
+	 them in the order we want them to be accessed by NextLogicalFont().
+     */
+    { "DroidSansArabic.ttf",        gFBNames    },
+    { "DroidSansHebrew.ttf",        gFBNames    },
+    { "DroidSansThai.ttf",          gFBNames    },
+    { "DroidSansJapanese.ttf",      gFBNames    },
+    { "DroidSansFallback.ttf",      gFBNames    }
+};
+
+// IM-2013-07-03: [[ RefactorGraphics ]] add hardcoded font families (
+static void getLegacyFontFamilies(SkTDArray<FontFamily*> &fontFamilies)
+{
+	FontFamily *currentFamily = NULL;
+	for (size_t i = 0; i < SK_ARRAY_COUNT(gLegacySystemFonts); i++)
+	{
+		if (gLegacySystemFonts[i].fNames != NULL)
+		{
+			// if we're first in a new family, push currentFamily to fontFamily & create a new one.
+			if (currentFamily != NULL)
+				*fontFamilies.append() = currentFamily;
+			
+			currentFamily = new FontFamily();
+			
+			currentFamily->order = -1;
+			
+			// add family names to currentFamily
+			for (size_t n = 0; gLegacySystemFonts[i].fNames[n] != NULL; n++)
+				*(currentFamily->fNames.append()) = gLegacySystemFonts[i].fNames[n];
+		}
+		
+		*(currentFamily->fFileNames.append()) = gLegacySystemFonts[i].fFileName;
+	}
+	
+	if (currentFamily != NULL)
+		*fontFamilies.append() = currentFamily;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 /*  Load info from a configuration file that populates the system/fallback font structures
 */
@@ -518,6 +602,10 @@ static void load_font_info() {
         getFontFamilies(fontFamilies);
     }
 
+	// IM-2013-07-03: [[ RefactorGraphics ]] fallback to legacy font families if none could be loaded
+	if (fontFamilies.count() == 0)
+		getLegacyFontFamilies(fontFamilies);
+	
     SkTDArray<FontInitRec> fontInfo;
     bool firstInFamily = false;
     for (int i = 0; i < fontFamilies.count(); ++i) {

@@ -1,6 +1,6 @@
 /*************************************************************************
  *
- * $Id: trio.h,v 1.6 2003/04/03 15:28:27 veillard Exp $
+ * $Id$
  *
  * Copyright (C) 1998 Bjorn Reese and Daniel Stenberg.
  *
@@ -28,8 +28,8 @@
  * Use autoconf defines if present. Packages using trio must define
  * HAVE_CONFIG_H as a compiler option themselves.
  */
-#if defined(HAVE_CONFIG_H)
-# include <config.h>
+#if defined(TRIO_HAVE_CONFIG_H)
+# include "config.h"
 #endif
 
 #include "triodef.h"

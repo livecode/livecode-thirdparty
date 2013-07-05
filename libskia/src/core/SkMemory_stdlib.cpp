@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 #ifdef SK_DEBUG
-    #define SK_TAG_BLOCKS
+    // #define SK_TAG_BLOCKS
     // #define SK_TRACK_ALLOC  // enable to see a printf for every alloc/free
     // #define SK_CHECK_TAGS   // enable to double-check debugging link list
 #endif

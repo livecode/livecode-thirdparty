@@ -326,6 +326,14 @@
 		4DD3DF461040B04D00CAC7EF /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../../rules/Debug Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4DD3DF4A1040B13E00CAC7EF /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../../rules/Release Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4DD3E0181040BB5D00CAC7EF /* libskiamobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libskiamobile.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		E8A554991784348200DABC1A /* FontHostConfiguration_android.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FontHostConfiguration_android.cpp; path = src/ports/FontHostConfiguration_android.cpp; sourceTree = "<group>"; };
+		E8A5549A1784348200DABC1A /* FontHostConfiguration_android.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FontHostConfiguration_android.h; path = src/ports/FontHostConfiguration_android.h; sourceTree = "<group>"; };
+		E8A5549B1784348200DABC1A /* SkDebug_android.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SkDebug_android.cpp; path = src/ports/SkDebug_android.cpp; sourceTree = "<group>"; };
+		E8A5549C1784348200DABC1A /* SkFontHost_android.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SkFontHost_android.cpp; path = src/ports/SkFontHost_android.cpp; sourceTree = "<group>"; };
+		E8A5549D1784348200DABC1A /* SkFontHost_FreeType_common.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SkFontHost_FreeType_common.cpp; path = src/ports/SkFontHost_FreeType_common.cpp; sourceTree = "<group>"; };
+		E8A5549E1784348200DABC1A /* SkFontHost_FreeType_common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SkFontHost_FreeType_common.h; path = src/ports/SkFontHost_FreeType_common.h; sourceTree = "<group>"; };
+		E8A5549F1784348200DABC1A /* SkFontHost_FreeType.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SkFontHost_FreeType.cpp; path = src/ports/SkFontHost_FreeType.cpp; sourceTree = "<group>"; };
+		E8A554A01784348200DABC1A /* SkFontHost_tables.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SkFontHost_tables.cpp; path = src/ports/SkFontHost_tables.cpp; sourceTree = "<group>"; };
 		E8C22BE2177AFE24003785D3 /* ARGB32_Clamp_Bilinear_BitmapShader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ARGB32_Clamp_Bilinear_BitmapShader.h; path = src/core/ARGB32_Clamp_Bilinear_BitmapShader.h; sourceTree = "<group>"; };
 		E8C22BE3177AFE24003785D3 /* Sk64.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Sk64.cpp; path = src/core/Sk64.cpp; sourceTree = "<group>"; };
 		E8C22BE4177AFE24003785D3 /* SkAAClip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SkAAClip.cpp; path = src/core/SkAAClip.cpp; sourceTree = "<group>"; };
@@ -691,6 +699,32 @@
 			name = Configurations;
 			sourceTree = "<group>";
 		};
+		E8A554971784340A00DABC1A /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				E8C22C5A177B1CB6003785D3 /* SkDebug_stdio.cpp */,
+				E8C22C5D177B1CB6003785D3 /* SkFontHost_mac_coretext.cpp */,
+				E8C22C5E177B1CB6003785D3 /* SkFontHost_sandbox_none.cpp */,
+				E8C22C5F177B1CB6003785D3 /* SkGlobalInitialization_default.cpp */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		E8A554981784343400DABC1A /* Android */ = {
+			isa = PBXGroup;
+			children = (
+				E8A554991784348200DABC1A /* FontHostConfiguration_android.cpp */,
+				E8A5549A1784348200DABC1A /* FontHostConfiguration_android.h */,
+				E8A5549B1784348200DABC1A /* SkDebug_android.cpp */,
+				E8A5549C1784348200DABC1A /* SkFontHost_android.cpp */,
+				E8A5549D1784348200DABC1A /* SkFontHost_FreeType_common.cpp */,
+				E8A5549E1784348200DABC1A /* SkFontHost_FreeType_common.h */,
+				E8A5549F1784348200DABC1A /* SkFontHost_FreeType.cpp */,
+				E8A554A01784348200DABC1A /* SkFontHost_tables.cpp */,
+			);
+			name = Android;
+			sourceTree = "<group>";
+		};
 		E8C22C44177AFE45003785D3 /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -904,12 +938,10 @@
 		E8C22C59177B1C49003785D3 /* Ports */ = {
 			isa = PBXGroup;
 			children = (
-				E8C22C5A177B1CB6003785D3 /* SkDebug_stdio.cpp */,
+				E8A554981784343400DABC1A /* Android */,
+				E8A554971784340A00DABC1A /* iOS */,
 				E8C22C5B177B1CB6003785D3 /* SkFontDescriptor.cpp */,
 				E8C22C5C177B1CB6003785D3 /* SkFontDescriptor.h */,
-				E8C22C5D177B1CB6003785D3 /* SkFontHost_mac_coretext.cpp */,
-				E8C22C5E177B1CB6003785D3 /* SkFontHost_sandbox_none.cpp */,
-				E8C22C5F177B1CB6003785D3 /* SkGlobalInitialization_default.cpp */,
 				E8C22C60177B1CB6003785D3 /* SkMemory_malloc.cpp */,
 				E8C22C61177B1CB6003785D3 /* SkOSFile_stdio.cpp */,
 				E8C22C62177B1CB6003785D3 /* SkThread_pthread.cpp */,

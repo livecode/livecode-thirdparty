@@ -157,7 +157,7 @@
         #define SK_B32_SHIFT 0
     #endif
 
-#elif defined(SK_BUILD_FOR_MAC)
+#elif defined(SK_BUILD_FOR_MAC) || defined(SK_BUILD_FOR_IOS)
 	#ifndef SK_A32_SHIFT
 		// MM-2013-02-14: Fiddled with byte order.
 		#define SK_R32_SHIFT    16

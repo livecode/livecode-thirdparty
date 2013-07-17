@@ -7060,7 +7060,9 @@ xmlBufferCat(xmlBufferPtr buf, const xmlChar *str) {
         return(-1);
     if (buf->alloc == XML_BUFFER_ALLOC_IMMUTABLE) return -1;
     if (str == NULL) return -1;
-    return xmlBufferAdd(buf, str, -1);
+    // MDW-2013-07-17: [[ xpath ]]
+    xmlBufferAdd(buf, str, -1);
+    return xmlBufferAdd(buf, (xmlChar*)"\n", -1);
 }
 
 /**

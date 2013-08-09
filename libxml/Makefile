@@ -11,7 +11,7 @@ SOURCES= buf.c c14n.c catalog.c chvalid.c debugXML.c dict.c DOCBparser.c encodin
 	xmlreader.c xmlregexp.c xmlsave.c xmlschemas.c xmlschemastypes.c xmlstring.c \
 	xmlunicode.c xmlwriter.c xpath.c xpointer.c SAX2.c
 
-CUSTOM_DEFINES=LIBXML_XPATH_ENABLED
+CUSTOM_DEFINES=
 
 CUSTOM_INCLUDES=./include/libxml ./src
 

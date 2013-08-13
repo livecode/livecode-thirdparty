@@ -1,6 +1,7 @@
 NAME=libskia
 TYPE=archive
 
+include ../../rules/environment.linux.makefile
 ################################################################################
 
 SRC_CORE=Sk64.cpp SkAAClip.cpp \

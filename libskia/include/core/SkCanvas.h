@@ -21,6 +21,9 @@
 #include "SkScalarCompare.h"
 #include "SkXfermode.h"
 
+// MM
+#include "SkMask.h"
+
 class SkBounder;
 class SkDevice;
 class SkDraw;
@@ -846,6 +849,9 @@ public:
         and then play it back later (via another call to drawData).
      */
     virtual void drawData(const void* data, size_t length);
+	
+	// MM
+	virtual void drawDevMask(const SkMask& mask, const SkPaint&);	
 
     //////////////////////////////////////////////////////////////////////////
 

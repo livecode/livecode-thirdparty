@@ -284,6 +284,10 @@ protected:
      */
     virtual void drawDevice(const SkDraw&, SkDevice*, int x, int y,
                             const SkPaint&);
+	
+	// MM
+	virtual void drawDevMask(const SkDraw&, const SkMask&, const SkPaint&);
+
 
     /**
      *  On success (returns true), copy the device pixels into the bitmap.

@@ -490,6 +490,11 @@ void SkDevice::drawDevice(const SkDraw& draw, SkDevice* device,
     draw.drawSprite(src, x, y, paint);
 }
 
+// MM
+void SkDevice::drawDevMask(const SkDraw& draw, const SkMask& mask, const SkPaint& paint) {
+    draw.drawDevMask(mask, paint);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 bool SkDevice::filterTextFlags(const SkPaint& paint, TextFlags* flags) {

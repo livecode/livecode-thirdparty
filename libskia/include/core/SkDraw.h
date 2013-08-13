@@ -97,11 +97,13 @@ public:
      */
     static RectType ComputeRectType(const SkPaint&, const SkMatrix&,
                                     SkPoint* strokeSize);
+	
+	// MM
+	void    drawDevMask(const SkMask& mask, const SkPaint&) const;	
 
 private:
     void    drawText_asPaths(const char text[], size_t byteLength,
                              SkScalar x, SkScalar y, const SkPaint&) const;
-    void    drawDevMask(const SkMask& mask, const SkPaint&) const;
     void    drawBitmapAsMask(const SkBitmap&, const SkPaint&) const;
 
 public:

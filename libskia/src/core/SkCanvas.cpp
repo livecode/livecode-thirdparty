@@ -1954,6 +1954,16 @@ void SkCanvas::drawData(const void* data, size_t length) {
     // do nothing. Subclasses may do something with the data
 }
 
+// MM
+void SkCanvas::drawDevMask(const SkMask& mask, const SkPaint& paint) {
+    LOOPER_BEGIN(paint, SkDrawFilter::kBitmap_Type)	
+    while (iter.next()) {
+        iter.fDevice->drawDevMask(iter, mask, looper.paint());
+    }	
+    LOOPER_END
+}
+
+
 //////////////////////////////////////////////////////////////////////////////
 // These methods are NOT virtual, and therefore must call back into virtual
 // methods, rather than actually drawing themselves.

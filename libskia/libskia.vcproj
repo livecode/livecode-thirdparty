@@ -779,7 +779,31 @@
 				Name="effects"
 				>
 				<File
+					RelativePath=".\src\effects\SkBlurMask.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\effects\SkBlurMaskFilter.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\effects\SkColorFilters.cpp"
+					>
+				</File>
+				<File
 					RelativePath="src\effects\SkDashPathEffect.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\effects\SkLayerDrawLooper.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\effects\SkOffsetImageFilter.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\src\effects\SkSingleInputImageFilter.cpp"
 					>
 				</File>
 				<Filter

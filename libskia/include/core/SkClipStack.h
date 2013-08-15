@@ -155,13 +155,13 @@ public:
             return kPath_Type == fType && fPath.isInverseFillType();
         }
 
+        SkRegion::Op    fOp;
     private:
         friend class SkClipStack;
 
         SkPath          fPath;
         SkRect          fRect;
         int             fSaveCount; // save count of stack when this element was added.
-        SkRegion::Op    fOp;
         Type            fType;
         bool            fDoAA;
 

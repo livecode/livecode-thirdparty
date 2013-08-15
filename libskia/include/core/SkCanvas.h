@@ -851,7 +851,7 @@ public:
     virtual void drawData(const void* data, size_t length);
 	
 	// MM
-	virtual void drawDevMask(const SkMask& mask, const SkPaint&);	
+	virtual void drawDevMask(SkMask& mask, const SkPaint&);	
 
     //////////////////////////////////////////////////////////////////////////
 

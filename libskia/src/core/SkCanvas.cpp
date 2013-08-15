@@ -1955,10 +1955,12 @@ void SkCanvas::drawData(const void* data, size_t length) {
 }
 
 // MM
-void SkCanvas::drawDevMask(const SkMask& mask, const SkPaint& paint) {
+void SkCanvas::drawDevMask(SkMask& mask, const SkPaint& paint) {
     LOOPER_BEGIN(paint, SkDrawFilter::kBitmap_Type)	
     while (iter.next()) {
+		mask . fBounds . offset(-iter.fDevice->getOrigin() . x(), -iter.fDevice -> getOrigin() . y());
         iter.fDevice->drawDevMask(iter, mask, looper.paint());
+		mask . fBounds . offset(iter.fDevice->getOrigin() . x(), iter.fDevice -> getOrigin() . y());
     }	
     LOOPER_END
 }

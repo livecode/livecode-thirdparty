@@ -73,7 +73,8 @@
 
 #ifdef SK_BUILD_FOR_WIN32
     #if !defined(SK_RESTRICT)
-        #define SK_RESTRICT __restrict
+        #define SK_RESTRICT 
+//__restrict
     #endif
     #if !defined(SK_WARN_UNUSED_RESULT)
         #define SK_WARN_UNUSED_RESULT

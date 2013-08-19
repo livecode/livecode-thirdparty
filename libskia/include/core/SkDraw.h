@@ -98,7 +98,7 @@ public:
     static RectType ComputeRectType(const SkPaint&, const SkMatrix&,
                                     SkPoint* strokeSize);
 	
-	// MM
+	// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
 	void    drawDevMask(const SkMask& mask, const SkPaint&) const;	
 
 private:

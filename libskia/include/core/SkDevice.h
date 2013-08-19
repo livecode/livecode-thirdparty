@@ -285,7 +285,7 @@ protected:
     virtual void drawDevice(const SkDraw&, SkDevice*, int x, int y,
                             const SkPaint&);
 	
-	// MM
+	// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
 	virtual void drawDevMask(const SkDraw&, const SkMask&, const SkPaint&);
 
 

@@ -1954,7 +1954,7 @@ void SkCanvas::drawData(const void* data, size_t length) {
     // do nothing. Subclasses may do something with the data
 }
 
-// MM
+// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
 void SkCanvas::drawDevMask(SkMask& mask, const SkPaint& paint) {
     LOOPER_BEGIN(paint, SkDrawFilter::kBitmap_Type)	
     while (iter.next()) {

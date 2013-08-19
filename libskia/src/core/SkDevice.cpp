@@ -490,7 +490,7 @@ void SkDevice::drawDevice(const SkDraw& draw, SkDevice* device,
     draw.drawSprite(src, x, y, paint);
 }
 
-// MM
+// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
 void SkDevice::drawDevMask(const SkDraw& draw, const SkMask& mask, const SkPaint& paint) {
     draw.drawDevMask(mask, paint);
 }

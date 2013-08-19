@@ -149,6 +149,12 @@ LOCAL_SRC_FILES+=$(addprefix src/effects/gradients/, \
 		
 LOCAL_SRC_FILES+=$(addprefix src/effects/, \
 		SkDashPathEffect.cpp \
+		SkColorFilters.cpp \
+		SkSingleInputImageFilter.cpp \
+		SkLayerDrawLooper.cpp \
+		SkBlurMask.cpp \
+		SkBlurMaskFilter.cpp \
+		SkOffsetImageFilter.cpp \
 		)
 
 LOCAL_SRC_FILES+=$(addprefix src/image/, \

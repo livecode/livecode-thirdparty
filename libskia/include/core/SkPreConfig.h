@@ -73,6 +73,7 @@
 
 #ifdef SK_BUILD_FOR_WIN32
     #if !defined(SK_RESTRICT)
+// MM-2013-08-16: [[ RefactorGraphics ]] Define SK_RESTRICT to empty. Causes compilation issues otherwise.
         #define SK_RESTRICT 
 //__restrict
     #endif

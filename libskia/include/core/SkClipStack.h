@@ -155,6 +155,7 @@ public:
             return kPath_Type == fType && fPath.isInverseFillType();
         }
 
+		// MM-2013-08-16: [[ RefactorGraphics ]] Make fOp public in order to appease VC compiler.
         SkRegion::Op    fOp;
     private:
         friend class SkClipStack;

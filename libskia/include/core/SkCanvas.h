@@ -21,7 +21,7 @@
 #include "SkScalarCompare.h"
 #include "SkXfermode.h"
 
-// MM
+// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask.
 #include "SkMask.h"
 
 class SkBounder;
@@ -850,7 +850,7 @@ public:
      */
     virtual void drawData(const void* data, size_t length);
 	
-	// MM
+	// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
 	virtual void drawDevMask(SkMask& mask, const SkPaint&);	
 
     //////////////////////////////////////////////////////////////////////////

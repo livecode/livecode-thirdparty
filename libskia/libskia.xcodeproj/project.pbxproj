@@ -65,12 +65,6 @@
 		4C10DCAE16C1079900D25197 /* SkTableMaskFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DC7F16C1079900D25197 /* SkTableMaskFilter.cpp */; };
 		4C10DCAF16C1079900D25197 /* SkTestImageFilters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DC8016C1079900D25197 /* SkTestImageFilters.cpp */; };
 		4C10DCB016C1079900D25197 /* SkTransparentShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DC8116C1079900D25197 /* SkTransparentShader.cpp */; };
-		4C10DCBE16C1088000D25197 /* opts_check_SSE2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DCB316C1088000D25197 /* opts_check_SSE2.cpp */; };
-		4C10DCC116C1088000D25197 /* SkBitmapProcState_opts_SSE2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DCB816C1088000D25197 /* SkBitmapProcState_opts_SSE2.cpp */; };
-		4C10DCC216C1088000D25197 /* SkBitmapProcState_opts_SSSE3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DCB916C1088000D25197 /* SkBitmapProcState_opts_SSSE3.cpp */; };
-		4C10DCC416C1088000D25197 /* SkBlitRow_opts_SSE2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DCBB16C1088000D25197 /* SkBlitRow_opts_SSE2.cpp */; };
-		4C10DCC716C1095700D25197 /* SkBlitRect_opts_SSE2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DCC516C1095700D25197 /* SkBlitRect_opts_SSE2.cpp */; };
-		4C10DCC816C1095700D25197 /* SkUtils_opts_SSE2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DCC616C1095700D25197 /* SkUtils_opts_SSE2.cpp */; };
 		4C10DD7016C10A4E00D25197 /* SkGPipeRead.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DD6E16C10A4E00D25197 /* SkGPipeRead.cpp */; };
 		4C10DD7116C10A4E00D25197 /* SkGPipeWrite.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DD6F16C10A4E00D25197 /* SkGPipeWrite.cpp */; };
 		4C10DD7B16C10A7E00D25197 /* SkDataPixelRef.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DD7216C10A7E00D25197 /* SkDataPixelRef.cpp */; };
@@ -207,6 +201,9 @@
 		4C10DEC916C10AAF00D25197 /* SkWriter32.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DE4D16C10AAF00D25197 /* SkWriter32.cpp */; };
 		4C10DECA16C10AAF00D25197 /* SkXfermode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C10DE4E16C10AAF00D25197 /* SkXfermode.cpp */; };
 		4C10DF3F16C1151400D25197 /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C10DF3E16C1151400D25197 /* ApplicationServices.framework */; };
+		4D67649517C3D42600EE62C2 /* SkUtils_opts_none.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4D67649217C3D42600EE62C2 /* SkUtils_opts_none.cpp */; };
+		4D67649617C3D42600EE62C2 /* SkBlitRow_opts_none.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4D67649317C3D42600EE62C2 /* SkBlitRow_opts_none.cpp */; };
+		4D67649717C3D42600EE62C2 /* SkBitmapProcState_opts_none.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4D67649417C3D42600EE62C2 /* SkBitmapProcState_opts_none.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -683,6 +680,9 @@
 		4C10DEDF16C10E4500D25197 /* SkImageDecoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkImageDecoder.h; path = include/images/SkImageDecoder.h; sourceTree = "<group>"; };
 		4C10DF1216C1112500D25197 /* SkBitmapProcState_opts_SSSE3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkBitmapProcState_opts_SSSE3.h; path = src/opts/SkBitmapProcState_opts_SSSE3.h; sourceTree = "<group>"; };
 		4C10DF3E16C1151400D25197 /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
+		4D67649217C3D42600EE62C2 /* SkUtils_opts_none.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SkUtils_opts_none.cpp; path = src/opts/SkUtils_opts_none.cpp; sourceTree = "<group>"; };
+		4D67649317C3D42600EE62C2 /* SkBlitRow_opts_none.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SkBlitRow_opts_none.cpp; path = src/opts/SkBlitRow_opts_none.cpp; sourceTree = "<group>"; };
+		4D67649417C3D42600EE62C2 /* SkBitmapProcState_opts_none.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SkBitmapProcState_opts_none.cpp; path = src/opts/SkBitmapProcState_opts_none.cpp; sourceTree = "<group>"; };
 		4DCDCA230B80890D0040D436 /* Release.xcconfig */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = ../../rules/Release.xcconfig; sourceTree = SOURCE_ROOT; };
 		4DCDCA240B80890D0040D436 /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = ../../rules/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		4DCDCA320B8089D00040D436 /* Global.xcconfig */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.xcconfig; name = Global.xcconfig; path = ../../rules/Global.xcconfig; sourceTree = SOURCE_ROOT; };
@@ -917,6 +917,9 @@
 		4C10DBD816C1047D00D25197 /* opts */ = {
 			isa = PBXGroup;
 			children = (
+				4D67649217C3D42600EE62C2 /* SkUtils_opts_none.cpp */,
+				4D67649317C3D42600EE62C2 /* SkBlitRow_opts_none.cpp */,
+				4D67649417C3D42600EE62C2 /* SkBitmapProcState_opts_none.cpp */,
 				4C10DCB316C1088000D25197 /* opts_check_SSE2.cpp */,
 				4C10DCB516C1088000D25197 /* SkBitmapProcState_matrix_clamp_neon.h */,
 				4C10DCB616C1088000D25197 /* SkBitmapProcState_matrix_repeat_neon.h */,
@@ -1449,12 +1452,6 @@
 				4C10DCAE16C1079900D25197 /* SkTableMaskFilter.cpp in Sources */,
 				4C10DCAF16C1079900D25197 /* SkTestImageFilters.cpp in Sources */,
 				4C10DCB016C1079900D25197 /* SkTransparentShader.cpp in Sources */,
-				4C10DCBE16C1088000D25197 /* opts_check_SSE2.cpp in Sources */,
-				4C10DCC116C1088000D25197 /* SkBitmapProcState_opts_SSE2.cpp in Sources */,
-				4C10DCC216C1088000D25197 /* SkBitmapProcState_opts_SSSE3.cpp in Sources */,
-				4C10DCC416C1088000D25197 /* SkBlitRow_opts_SSE2.cpp in Sources */,
-				4C10DCC716C1095700D25197 /* SkBlitRect_opts_SSE2.cpp in Sources */,
-				4C10DCC816C1095700D25197 /* SkUtils_opts_SSE2.cpp in Sources */,
 				4C10DD7016C10A4E00D25197 /* SkGPipeRead.cpp in Sources */,
 				4C10DD7116C10A4E00D25197 /* SkGPipeWrite.cpp in Sources */,
 				4C10DD7B16C10A7E00D25197 /* SkDataPixelRef.cpp in Sources */,
@@ -1590,6 +1587,9 @@
 				4C10DEC816C10AAF00D25197 /* SkUtilsArm.cpp in Sources */,
 				4C10DEC916C10AAF00D25197 /* SkWriter32.cpp in Sources */,
 				4C10DECA16C10AAF00D25197 /* SkXfermode.cpp in Sources */,
+				4D67649517C3D42600EE62C2 /* SkUtils_opts_none.cpp in Sources */,
+				4D67649617C3D42600EE62C2 /* SkBlitRow_opts_none.cpp in Sources */,
+				4D67649717C3D42600EE62C2 /* SkBitmapProcState_opts_none.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1619,7 +1619,6 @@
 					"$(PROJECT_DIR)/src/image",
 					"$(PROJECT_DIR)/src/core",
 				);
-				OTHER_CFLAGS = "-mssse3";
 				OWNER = ..;
 			};
 			name = Debug;
@@ -1633,7 +1632,6 @@
 					"$(PROJECT_DIR)/src/image",
 					"$(PROJECT_DIR)/src/core",
 				);
-				OTHER_CFLAGS = "-mssse3";
 				OWNER = ..;
 			};
 			name = Release;

@@ -159,11 +159,19 @@
 
 #elif defined(SK_BUILD_FOR_MAC) || defined(SK_BUILD_FOR_IOS)
 	#ifndef SK_A32_SHIFT
-		// MM-2013-02-14: Fiddled with byte order.
-		#define SK_R32_SHIFT    16
-		#define SK_G32_SHIFT    8
-		#define SK_B32_SHIFT    0
-		#define SK_A32_SHIFT    24
+		#if defined(SK_BUILD_FOR_MAC)
+			// MM-2013-02-14: Fiddled with byte order.
+			#define SK_R32_SHIFT    16
+			#define SK_G32_SHIFT    8
+			#define SK_B32_SHIFT    0
+			#define SK_A32_SHIFT    24
+		#else
+			// IM-2013-08-21: [[ RefactorGraphics ]] Use GL byte order for iOS
+			#define SK_R32_SHIFT    0
+			#define SK_G32_SHIFT    8
+			#define SK_B32_SHIFT    16
+			#define SK_A32_SHIFT    24
+		#endif
 	#endif
 			
     #ifndef SK_DEBUGBREAK

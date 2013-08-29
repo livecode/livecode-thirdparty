@@ -806,6 +806,10 @@
 					RelativePath=".\src\effects\SkSingleInputImageFilter.cpp"
 					>
 				</File>
+				<File
+					RelativePath=".\src\effects\SkStippleMaskFilter.cpp"
+					>
+				</File>
 				<Filter
 					Name="gradients"
 					>

@@ -18,7 +18,7 @@
 #undef SUPPORT_IP6
 
 /* Define if getaddrinfo is there */
-#undef HAVE_GETADDRINFO
+#define HAVE_GETADDRINFO
 
 /* Define to 1 if you have the <ansidecl.h> header file. */
 #undef HAVE_ANSIDECL_H
@@ -78,7 +78,7 @@
 #undef HAVE_FTIME
 
 /* Define if getaddrinfo is there */
-#undef HAVE_GETADDRINFO
+#define HAVE_GETADDRINFO
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #define HAVE_GETTIMEOFDAY
@@ -132,7 +132,7 @@
 #undef HAVE_NDIR_H
 
 /* Define to 1 if you have the <netdb.h> header file. */
-#undef HAVE_NETDB_H
+#define HAVE_NETDB_H
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #define HAVE_NETINET_IN_H

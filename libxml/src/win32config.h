@@ -28,7 +28,7 @@
 #endif
 
 #ifdef NEED_SOCKETS
-#include <wsockcompat.h>
+#include "wsockcompat.h"
 #endif
 
 /*

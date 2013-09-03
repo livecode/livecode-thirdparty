@@ -24,6 +24,8 @@
 
 #if !defined(WITHOUT_TRIO)
 
+#define TRIO_HAVE_CONFIG_H
+
 /*
  * Use autoconf defines if present. Packages using trio must define
  * HAVE_CONFIG_H as a compiler option themselves.

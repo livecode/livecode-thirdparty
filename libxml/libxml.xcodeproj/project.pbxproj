@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D4546E417D61F380090134E /* buf.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D4546E117D61F380090134E /* buf.c */; };
+		4D4546E517D61F380090134E /* nanoftp.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D4546E217D61F380090134E /* nanoftp.c */; };
+		4D4546E617D61F380090134E /* nanohttp.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D4546E317D61F380090134E /* nanohttp.c */; };
 		4D9C758B0D100130003DE90A /* entities.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D9C75630D100130003DE90A /* entities.c */; };
 		4D9C758C0D100130003DE90A /* DOCBparser.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D9C75640D100130003DE90A /* DOCBparser.c */; };
 		4D9C758D0D100130003DE90A /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D9C75650D100130003DE90A /* list.c */; };
@@ -51,6 +54,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4D4546E117D61F380090134E /* buf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = buf.c; path = src/buf.c; sourceTree = "<group>"; };
+		4D4546E217D61F380090134E /* nanoftp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = nanoftp.c; path = src/nanoftp.c; sourceTree = "<group>"; };
+		4D4546E317D61F380090134E /* nanohttp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = nanohttp.c; path = src/nanohttp.c; sourceTree = "<group>"; };
 		4D9C75040D1000D6003DE90A /* c14n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = c14n.h; sourceTree = "<group>"; };
 		4D9C75050D1000D6003DE90A /* catalog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = catalog.h; sourceTree = "<group>"; };
 		4D9C75060D1000D6003DE90A /* chvalid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chvalid.h; sourceTree = "<group>"; };
@@ -170,6 +176,9 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				4D4546E117D61F380090134E /* buf.c */,
+				4D4546E217D61F380090134E /* nanoftp.c */,
+				4D4546E317D61F380090134E /* nanohttp.c */,
 				4D9C75E20D100286003DE90A /* valid.c */,
 				4D9C75630D100130003DE90A /* entities.c */,
 				4D9C75640D100130003DE90A /* DOCBparser.c */,
@@ -382,6 +391,9 @@
 				4D9C75B10D100130003DE90A /* encoding.c in Sources */,
 				4D9C75B20D100130003DE90A /* c14n.c in Sources */,
 				4D9C75E30D100286003DE90A /* valid.c in Sources */,
+				4D4546E417D61F380090134E /* buf.c in Sources */,
+				4D4546E517D61F380090134E /* nanoftp.c in Sources */,
+				4D4546E617D61F380090134E /* nanohttp.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -481,6 +481,18 @@ extern __typeof (htmlNewDocNoDtD) htmlNewDocNoDtD__internal_alias __attribute((v
 #endif
 #endif
 
+#if defined(LIBXML_HTML_ENABLED)
+#ifdef bottom_HTMLparser
+#undef htmlNewParserCtxt
+extern __typeof (htmlNewParserCtxt) htmlNewParserCtxt __attribute((alias("htmlNewParserCtxt__internal_alias")));
+#else
+#ifndef htmlNewParserCtxt
+extern __typeof (htmlNewParserCtxt) htmlNewParserCtxt__internal_alias __attribute((visibility("hidden")));
+#define htmlNewParserCtxt htmlNewParserCtxt__internal_alias
+#endif
+#endif
+#endif
+
 #if defined(LIBXML_HTML_ENABLED) && defined(LIBXML_OUTPUT_ENABLED)
 #ifdef bottom_HTMLtree
 #undef htmlNodeDump
@@ -1331,6 +1343,68 @@ extern __typeof (xmlBoolToText) xmlBoolToText__internal_alias __attribute((visib
 #endif
 #endif
 
+#ifdef bottom_buf
+#undef xmlBufContent
+extern __typeof (xmlBufContent) xmlBufContent __attribute((alias("xmlBufContent__internal_alias")));
+#else
+#ifndef xmlBufContent
+extern __typeof (xmlBufContent) xmlBufContent__internal_alias __attribute((visibility("hidden")));
+#define xmlBufContent xmlBufContent__internal_alias
+#endif
+#endif
+
+#ifdef bottom_buf
+#undef xmlBufEnd
+extern __typeof (xmlBufEnd) xmlBufEnd __attribute((alias("xmlBufEnd__internal_alias")));
+#else
+#ifndef xmlBufEnd
+extern __typeof (xmlBufEnd) xmlBufEnd__internal_alias __attribute((visibility("hidden")));
+#define xmlBufEnd xmlBufEnd__internal_alias
+#endif
+#endif
+
+#ifdef bottom_tree
+#undef xmlBufGetNodeContent
+extern __typeof (xmlBufGetNodeContent) xmlBufGetNodeContent __attribute((alias("xmlBufGetNodeContent__internal_alias")));
+#else
+#ifndef xmlBufGetNodeContent
+extern __typeof (xmlBufGetNodeContent) xmlBufGetNodeContent__internal_alias __attribute((visibility("hidden")));
+#define xmlBufGetNodeContent xmlBufGetNodeContent__internal_alias
+#endif
+#endif
+
+#if defined(LIBXML_OUTPUT_ENABLED)
+#ifdef bottom_xmlsave
+#undef xmlBufNodeDump
+extern __typeof (xmlBufNodeDump) xmlBufNodeDump __attribute((alias("xmlBufNodeDump__internal_alias")));
+#else
+#ifndef xmlBufNodeDump
+extern __typeof (xmlBufNodeDump) xmlBufNodeDump__internal_alias __attribute((visibility("hidden")));
+#define xmlBufNodeDump xmlBufNodeDump__internal_alias
+#endif
+#endif
+#endif
+
+#ifdef bottom_buf
+#undef xmlBufShrink
+extern __typeof (xmlBufShrink) xmlBufShrink __attribute((alias("xmlBufShrink__internal_alias")));
+#else
+#ifndef xmlBufShrink
+extern __typeof (xmlBufShrink) xmlBufShrink__internal_alias __attribute((visibility("hidden")));
+#define xmlBufShrink xmlBufShrink__internal_alias
+#endif
+#endif
+
+#ifdef bottom_buf
+#undef xmlBufUse
+extern __typeof (xmlBufUse) xmlBufUse __attribute((alias("xmlBufUse__internal_alias")));
+#else
+#ifndef xmlBufUse
+extern __typeof (xmlBufUse) xmlBufUse__internal_alias __attribute((visibility("hidden")));
+#define xmlBufUse xmlBufUse__internal_alias
+#endif
+#endif
+
 #ifdef bottom_tree
 #undef xmlBufferAdd
 extern __typeof (xmlBufferAdd) xmlBufferAdd __attribute((alias("xmlBufferAdd__internal_alias")));
@@ -1408,6 +1482,16 @@ extern __typeof (xmlBufferCreateStatic) xmlBufferCreateStatic __attribute((alias
 #ifndef xmlBufferCreateStatic
 extern __typeof (xmlBufferCreateStatic) xmlBufferCreateStatic__internal_alias __attribute((visibility("hidden")));
 #define xmlBufferCreateStatic xmlBufferCreateStatic__internal_alias
+#endif
+#endif
+
+#ifdef bottom_tree
+#undef xmlBufferDetach
+extern __typeof (xmlBufferDetach) xmlBufferDetach __attribute((alias("xmlBufferDetach__internal_alias")));
+#else
+#ifndef xmlBufferDetach
+extern __typeof (xmlBufferDetach) xmlBufferDetach__internal_alias __attribute((visibility("hidden")));
+#define xmlBufferDetach xmlBufferDetach__internal_alias
 #endif
 #endif
 
@@ -1979,6 +2063,18 @@ extern __typeof (xmlCheckVersion) xmlCheckVersion__internal_alias __attribute((v
 #endif
 #endif
 
+#if defined(LIBXML_TREE_ENABLED)
+#ifdef bottom_tree
+#undef xmlChildElementCount
+extern __typeof (xmlChildElementCount) xmlChildElementCount __attribute((alias("xmlChildElementCount__internal_alias")));
+#else
+#ifndef xmlChildElementCount
+extern __typeof (xmlChildElementCount) xmlChildElementCount__internal_alias __attribute((visibility("hidden")));
+#define xmlChildElementCount xmlChildElementCount__internal_alias
+#endif
+#endif
+#endif
+
 #ifdef bottom_encoding
 #undef xmlCleanupCharEncodingHandlers
 extern __typeof (xmlCleanupCharEncodingHandlers) xmlCleanupCharEncodingHandlers __attribute((alias("xmlCleanupCharEncodingHandlers__internal_alias")));
@@ -2532,6 +2628,16 @@ extern __typeof (xmlDOMWrapAdoptNode) xmlDOMWrapAdoptNode__internal_alias __attr
 #endif
 
 #ifdef bottom_tree
+#undef xmlDOMWrapCloneNode
+extern __typeof (xmlDOMWrapCloneNode) xmlDOMWrapCloneNode __attribute((alias("xmlDOMWrapCloneNode__internal_alias")));
+#else
+#ifndef xmlDOMWrapCloneNode
+extern __typeof (xmlDOMWrapCloneNode) xmlDOMWrapCloneNode__internal_alias __attribute((visibility("hidden")));
+#define xmlDOMWrapCloneNode xmlDOMWrapCloneNode__internal_alias
+#endif
+#endif
+
+#ifdef bottom_tree
 #undef xmlDOMWrapFreeCtxt
 extern __typeof (xmlDOMWrapFreeCtxt) xmlDOMWrapFreeCtxt __attribute((alias("xmlDOMWrapFreeCtxt__internal_alias")));
 #else
@@ -2806,6 +2912,16 @@ extern __typeof (xmlDictFree) xmlDictFree__internal_alias __attribute((visibilit
 #endif
 
 #ifdef bottom_dict
+#undef xmlDictGetUsage
+extern __typeof (xmlDictGetUsage) xmlDictGetUsage __attribute((alias("xmlDictGetUsage__internal_alias")));
+#else
+#ifndef xmlDictGetUsage
+extern __typeof (xmlDictGetUsage) xmlDictGetUsage__internal_alias __attribute((visibility("hidden")));
+#define xmlDictGetUsage xmlDictGetUsage__internal_alias
+#endif
+#endif
+
+#ifdef bottom_dict
 #undef xmlDictLookup
 extern __typeof (xmlDictLookup) xmlDictLookup __attribute((alias("xmlDictLookup__internal_alias")));
 #else
@@ -2842,6 +2958,16 @@ extern __typeof (xmlDictReference) xmlDictReference __attribute((alias("xmlDictR
 #ifndef xmlDictReference
 extern __typeof (xmlDictReference) xmlDictReference__internal_alias __attribute((visibility("hidden")));
 #define xmlDictReference xmlDictReference__internal_alias
+#endif
+#endif
+
+#ifdef bottom_dict
+#undef xmlDictSetLimit
+extern __typeof (xmlDictSetLimit) xmlDictSetLimit __attribute((alias("xmlDictSetLimit__internal_alias")));
+#else
+#ifndef xmlDictSetLimit
+extern __typeof (xmlDictSetLimit) xmlDictSetLimit__internal_alias __attribute((visibility("hidden")));
+#define xmlDictSetLimit xmlDictSetLimit__internal_alias
 #endif
 #endif
 
@@ -3394,6 +3520,18 @@ extern __typeof (xmlFindCharEncodingHandler) xmlFindCharEncodingHandler __attrib
 #ifndef xmlFindCharEncodingHandler
 extern __typeof (xmlFindCharEncodingHandler) xmlFindCharEncodingHandler__internal_alias __attribute((visibility("hidden")));
 #define xmlFindCharEncodingHandler xmlFindCharEncodingHandler__internal_alias
+#endif
+#endif
+
+#if defined(LIBXML_TREE_ENABLED)
+#ifdef bottom_tree
+#undef xmlFirstElementChild
+extern __typeof (xmlFirstElementChild) xmlFirstElementChild __attribute((alias("xmlFirstElementChild__internal_alias")));
+#else
+#ifndef xmlFirstElementChild
+extern __typeof (xmlFirstElementChild) xmlFirstElementChild__internal_alias __attribute((visibility("hidden")));
+#define xmlFirstElementChild xmlFirstElementChild__internal_alias
+#endif
 #endif
 #endif
 
@@ -3989,7 +4127,7 @@ extern __typeof (xmlGetNodePath) xmlGetNodePath__internal_alias __attribute((vis
 #endif
 #endif
 
-#if defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED)
+#if defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED)
 #ifdef bottom_tree
 #undef xmlGetNsList
 extern __typeof (xmlGetNsList) xmlGetNsList __attribute((alias("xmlGetNsList__internal_alias")));
@@ -4555,6 +4693,16 @@ extern __typeof (xmlInitializeCatalog) xmlInitializeCatalog__internal_alias __at
 #endif
 #endif
 
+#ifdef bottom_dict
+#undef xmlInitializeDict
+extern __typeof (xmlInitializeDict) xmlInitializeDict __attribute((alias("xmlInitializeDict__internal_alias")));
+#else
+#ifndef xmlInitializeDict
+extern __typeof (xmlInitializeDict) xmlInitializeDict__internal_alias __attribute((visibility("hidden")));
+#define xmlInitializeDict xmlInitializeDict__internal_alias
+#endif
+#endif
+
 #ifdef bottom_globals
 #undef xmlInitializeGlobalState
 extern __typeof (xmlInitializeGlobalState) xmlInitializeGlobalState __attribute((alias("xmlInitializeGlobalState__internal_alias")));
@@ -4734,6 +4882,18 @@ extern __typeof (xmlKeepBlanksDefault) xmlKeepBlanksDefault __attribute((alias("
 #ifndef xmlKeepBlanksDefault
 extern __typeof (xmlKeepBlanksDefault) xmlKeepBlanksDefault__internal_alias __attribute((visibility("hidden")));
 #define xmlKeepBlanksDefault xmlKeepBlanksDefault__internal_alias
+#endif
+#endif
+
+#if defined(LIBXML_TREE_ENABLED)
+#ifdef bottom_tree
+#undef xmlLastElementChild
+extern __typeof (xmlLastElementChild) xmlLastElementChild __attribute((alias("xmlLastElementChild__internal_alias")));
+#else
+#ifndef xmlLastElementChild
+extern __typeof (xmlLastElementChild) xmlLastElementChild__internal_alias __attribute((visibility("hidden")));
+#define xmlLastElementChild xmlLastElementChild__internal_alias
+#endif
 #endif
 #endif
 
@@ -5136,6 +5296,16 @@ extern __typeof (xmlMemDisplay) xmlMemDisplay __attribute((alias("xmlMemDisplay_
 #ifndef xmlMemDisplay
 extern __typeof (xmlMemDisplay) xmlMemDisplay__internal_alias __attribute((visibility("hidden")));
 #define xmlMemDisplay xmlMemDisplay__internal_alias
+#endif
+#endif
+
+#ifdef bottom_xmlmemory
+#undef xmlMemDisplayLast
+extern __typeof (xmlMemDisplayLast) xmlMemDisplayLast __attribute((alias("xmlMemDisplayLast__internal_alias")));
+#else
+#ifndef xmlMemDisplayLast
+extern __typeof (xmlMemDisplayLast) xmlMemDisplayLast__internal_alias __attribute((visibility("hidden")));
+#define xmlMemDisplayLast xmlMemDisplayLast__internal_alias
 #endif
 #endif
 
@@ -6021,6 +6191,16 @@ extern __typeof (xmlNewElementContent) xmlNewElementContent__internal_alias __at
 #endif
 #endif
 
+#ifdef bottom_entities
+#undef xmlNewEntity
+extern __typeof (xmlNewEntity) xmlNewEntity __attribute((alias("xmlNewEntity__internal_alias")));
+#else
+#ifndef xmlNewEntity
+extern __typeof (xmlNewEntity) xmlNewEntity__internal_alias __attribute((visibility("hidden")));
+#define xmlNewEntity xmlNewEntity__internal_alias
+#endif
+#endif
+
 #ifdef bottom_parserInternals
 #undef xmlNewEntityInputStream
 extern __typeof (xmlNewEntityInputStream) xmlNewEntityInputStream __attribute((alias("xmlNewEntityInputStream__internal_alias")));
@@ -6345,6 +6525,18 @@ extern __typeof (xmlNextChar) xmlNextChar__internal_alias __attribute((visibilit
 #endif
 #endif
 
+#if defined(LIBXML_TREE_ENABLED)
+#ifdef bottom_tree
+#undef xmlNextElementSibling
+extern __typeof (xmlNextElementSibling) xmlNextElementSibling __attribute((alias("xmlNextElementSibling__internal_alias")));
+#else
+#ifndef xmlNextElementSibling
+extern __typeof (xmlNextElementSibling) xmlNextElementSibling__internal_alias __attribute((visibility("hidden")));
+#define xmlNextElementSibling xmlNextElementSibling__internal_alias
+#endif
+#endif
+#endif
+
 #ifdef bottom_xmlIO
 #undef xmlNoNetExternalEntityLoader
 extern __typeof (xmlNoNetExternalEntityLoader) xmlNoNetExternalEntityLoader __attribute((alias("xmlNoNetExternalEntityLoader__internal_alias")));
@@ -6661,6 +6853,30 @@ extern __typeof (xmlOutputBufferFlush) xmlOutputBufferFlush __attribute((alias("
 #ifndef xmlOutputBufferFlush
 extern __typeof (xmlOutputBufferFlush) xmlOutputBufferFlush__internal_alias __attribute((visibility("hidden")));
 #define xmlOutputBufferFlush xmlOutputBufferFlush__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_OUTPUT_ENABLED)
+#ifdef bottom_xmlIO
+#undef xmlOutputBufferGetContent
+extern __typeof (xmlOutputBufferGetContent) xmlOutputBufferGetContent __attribute((alias("xmlOutputBufferGetContent__internal_alias")));
+#else
+#ifndef xmlOutputBufferGetContent
+extern __typeof (xmlOutputBufferGetContent) xmlOutputBufferGetContent__internal_alias __attribute((visibility("hidden")));
+#define xmlOutputBufferGetContent xmlOutputBufferGetContent__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_OUTPUT_ENABLED)
+#ifdef bottom_xmlIO
+#undef xmlOutputBufferGetSize
+extern __typeof (xmlOutputBufferGetSize) xmlOutputBufferGetSize __attribute((alias("xmlOutputBufferGetSize__internal_alias")));
+#else
+#ifndef xmlOutputBufferGetSize
+extern __typeof (xmlOutputBufferGetSize) xmlOutputBufferGetSize__internal_alias __attribute((visibility("hidden")));
+#define xmlOutputBufferGetSize xmlOutputBufferGetSize__internal_alias
 #endif
 #endif
 #endif
@@ -7623,6 +7839,16 @@ extern __typeof (xmlParserWarning) xmlParserWarning__internal_alias __attribute(
 #endif
 #endif
 
+#ifdef bottom_uri
+#undef xmlPathToURI
+extern __typeof (xmlPathToURI) xmlPathToURI __attribute((alias("xmlPathToURI__internal_alias")));
+#else
+#ifndef xmlPathToURI
+extern __typeof (xmlPathToURI) xmlPathToURI__internal_alias __attribute((visibility("hidden")));
+#define xmlPathToURI xmlPathToURI__internal_alias
+#endif
+#endif
+
 #if defined(LIBXML_PATTERN_ENABLED)
 #ifdef bottom_pattern
 #undef xmlPatternFromRoot
@@ -7734,6 +7960,18 @@ extern __typeof (xmlPopInputCallbacks) xmlPopInputCallbacks __attribute((alias("
 #ifndef xmlPopInputCallbacks
 extern __typeof (xmlPopInputCallbacks) xmlPopInputCallbacks__internal_alias __attribute((visibility("hidden")));
 #define xmlPopInputCallbacks xmlPopInputCallbacks__internal_alias
+#endif
+#endif
+
+#if defined(LIBXML_TREE_ENABLED)
+#ifdef bottom_tree
+#undef xmlPreviousElementSibling
+extern __typeof (xmlPreviousElementSibling) xmlPreviousElementSibling __attribute((alias("xmlPreviousElementSibling__internal_alias")));
+#else
+#ifndef xmlPreviousElementSibling
+extern __typeof (xmlPreviousElementSibling) xmlPreviousElementSibling__internal_alias __attribute((visibility("hidden")));
+#define xmlPreviousElementSibling xmlPreviousElementSibling__internal_alias
+#endif
 #endif
 #endif
 
@@ -8419,6 +8657,18 @@ extern __typeof (xmlRelaxNGSetParserErrors) xmlRelaxNGSetParserErrors__internal_
 
 #if defined(LIBXML_SCHEMAS_ENABLED)
 #ifdef bottom_relaxng
+#undef xmlRelaxNGSetParserStructuredErrors
+extern __typeof (xmlRelaxNGSetParserStructuredErrors) xmlRelaxNGSetParserStructuredErrors __attribute((alias("xmlRelaxNGSetParserStructuredErrors__internal_alias")));
+#else
+#ifndef xmlRelaxNGSetParserStructuredErrors
+extern __typeof (xmlRelaxNGSetParserStructuredErrors) xmlRelaxNGSetParserStructuredErrors__internal_alias __attribute((visibility("hidden")));
+#define xmlRelaxNGSetParserStructuredErrors xmlRelaxNGSetParserStructuredErrors__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_SCHEMAS_ENABLED)
+#ifdef bottom_relaxng
 #undef xmlRelaxNGSetValidErrors
 extern __typeof (xmlRelaxNGSetValidErrors) xmlRelaxNGSetValidErrors __attribute((alias("xmlRelaxNGSetValidErrors__internal_alias")));
 #else
@@ -8523,7 +8773,6 @@ extern __typeof (xmlRemoveID) xmlRemoveID__internal_alias __attribute((visibilit
 #endif
 #endif
 
-#if defined(LIBXML_TREE_ENABLED)
 #ifdef bottom_tree
 #undef xmlRemoveProp
 extern __typeof (xmlRemoveProp) xmlRemoveProp __attribute((alias("xmlRemoveProp__internal_alias")));
@@ -8531,7 +8780,6 @@ extern __typeof (xmlRemoveProp) xmlRemoveProp __attribute((alias("xmlRemoveProp_
 #ifndef xmlRemoveProp
 extern __typeof (xmlRemoveProp) xmlRemoveProp__internal_alias __attribute((visibility("hidden")));
 #define xmlRemoveProp xmlRemoveProp__internal_alias
-#endif
 #endif
 #endif
 
@@ -9801,6 +10049,18 @@ extern __typeof (xmlSchemaValidCtxtGetOptions) xmlSchemaValidCtxtGetOptions__int
 
 #if defined(LIBXML_SCHEMAS_ENABLED)
 #ifdef bottom_xmlschemas
+#undef xmlSchemaValidCtxtGetParserCtxt
+extern __typeof (xmlSchemaValidCtxtGetParserCtxt) xmlSchemaValidCtxtGetParserCtxt __attribute((alias("xmlSchemaValidCtxtGetParserCtxt__internal_alias")));
+#else
+#ifndef xmlSchemaValidCtxtGetParserCtxt
+extern __typeof (xmlSchemaValidCtxtGetParserCtxt) xmlSchemaValidCtxtGetParserCtxt__internal_alias __attribute((visibility("hidden")));
+#define xmlSchemaValidCtxtGetParserCtxt xmlSchemaValidCtxtGetParserCtxt__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_SCHEMAS_ENABLED)
+#ifdef bottom_xmlschemas
 #undef xmlSchemaValidateDoc
 extern __typeof (xmlSchemaValidateDoc) xmlSchemaValidateDoc __attribute((alias("xmlSchemaValidateDoc__internal_alias")));
 #else
@@ -9903,6 +10163,30 @@ extern __typeof (xmlSchemaValidatePredefinedType) xmlSchemaValidatePredefinedTyp
 #ifndef xmlSchemaValidatePredefinedType
 extern __typeof (xmlSchemaValidatePredefinedType) xmlSchemaValidatePredefinedType__internal_alias __attribute((visibility("hidden")));
 #define xmlSchemaValidatePredefinedType xmlSchemaValidatePredefinedType__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_SCHEMAS_ENABLED)
+#ifdef bottom_xmlschemas
+#undef xmlSchemaValidateSetFilename
+extern __typeof (xmlSchemaValidateSetFilename) xmlSchemaValidateSetFilename __attribute((alias("xmlSchemaValidateSetFilename__internal_alias")));
+#else
+#ifndef xmlSchemaValidateSetFilename
+extern __typeof (xmlSchemaValidateSetFilename) xmlSchemaValidateSetFilename__internal_alias __attribute((visibility("hidden")));
+#define xmlSchemaValidateSetFilename xmlSchemaValidateSetFilename__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_SCHEMAS_ENABLED)
+#ifdef bottom_xmlschemas
+#undef xmlSchemaValidateSetLocator
+extern __typeof (xmlSchemaValidateSetLocator) xmlSchemaValidateSetLocator __attribute((alias("xmlSchemaValidateSetLocator__internal_alias")));
+#else
+#ifndef xmlSchemaValidateSetLocator
+extern __typeof (xmlSchemaValidateSetLocator) xmlSchemaValidateSetLocator__internal_alias __attribute((visibility("hidden")));
+#define xmlSchemaValidateSetLocator xmlSchemaValidateSetLocator__internal_alias
 #endif
 #endif
 #endif
@@ -10071,6 +10355,18 @@ extern __typeof (xmlSchematronParse) xmlSchematronParse __attribute((alias("xmlS
 #ifndef xmlSchematronParse
 extern __typeof (xmlSchematronParse) xmlSchematronParse__internal_alias __attribute((visibility("hidden")));
 #define xmlSchematronParse xmlSchematronParse__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_SCHEMATRON_ENABLED)
+#ifdef bottom_schematron
+#undef xmlSchematronSetValidStructuredErrors
+extern __typeof (xmlSchematronSetValidStructuredErrors) xmlSchematronSetValidStructuredErrors __attribute((alias("xmlSchematronSetValidStructuredErrors__internal_alias")));
+#else
+#ifndef xmlSchematronSetValidStructuredErrors
+extern __typeof (xmlSchematronSetValidStructuredErrors) xmlSchematronSetValidStructuredErrors__internal_alias __attribute((visibility("hidden")));
+#define xmlSchematronSetValidStructuredErrors xmlSchematronSetValidStructuredErrors__internal_alias
 #endif
 #endif
 #endif
@@ -10455,16 +10751,6 @@ extern __typeof (xmlSplitQName) xmlSplitQName__internal_alias __attribute((visib
 #endif
 #endif
 
-#ifdef bottom_parser
-#undef xmlSplitQNameNoNS
-extern __typeof (xmlSplitQNameNoNS) xmlSplitQNameNoNS __attribute((alias("xmlSplitQNameNoNS__internal_alias")));
-#else
-#ifndef xmlSplitQName
-extern __typeof (xmlSplitQNameNoNS) xmlSplitQNameNoNS__internal_alias __attribute((visibility("hidden")));
-#define xmlSplitQNameNoNS xmlSplitQNameNoNS__internal_alias
-#endif
-#endif
-
 #ifdef bottom_tree
 #undef xmlSplitQName2
 extern __typeof (xmlSplitQName2) xmlSplitQName2 __attribute((alias("xmlSplitQName2__internal_alias")));
@@ -10639,6 +10925,30 @@ extern __typeof (xmlStreamPushAttr) xmlStreamPushAttr __attribute((alias("xmlStr
 #ifndef xmlStreamPushAttr
 extern __typeof (xmlStreamPushAttr) xmlStreamPushAttr__internal_alias __attribute((visibility("hidden")));
 #define xmlStreamPushAttr xmlStreamPushAttr__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_PATTERN_ENABLED)
+#ifdef bottom_pattern
+#undef xmlStreamPushNode
+extern __typeof (xmlStreamPushNode) xmlStreamPushNode __attribute((alias("xmlStreamPushNode__internal_alias")));
+#else
+#ifndef xmlStreamPushNode
+extern __typeof (xmlStreamPushNode) xmlStreamPushNode__internal_alias __attribute((visibility("hidden")));
+#define xmlStreamPushNode xmlStreamPushNode__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_PATTERN_ENABLED)
+#ifdef bottom_pattern
+#undef xmlStreamWantsAnyNode
+extern __typeof (xmlStreamWantsAnyNode) xmlStreamWantsAnyNode __attribute((alias("xmlStreamWantsAnyNode__internal_alias")));
+#else
+#ifndef xmlStreamWantsAnyNode
+extern __typeof (xmlStreamWantsAnyNode) xmlStreamWantsAnyNode__internal_alias __attribute((visibility("hidden")));
+#define xmlStreamWantsAnyNode xmlStreamWantsAnyNode__internal_alias
 #endif
 #endif
 #endif
@@ -11555,6 +11865,18 @@ extern __typeof (xmlTextReaderRelaxNGValidate) xmlTextReaderRelaxNGValidate__int
 
 #if defined(LIBXML_READER_ENABLED) && defined(LIBXML_SCHEMAS_ENABLED)
 #ifdef bottom_xmlreader
+#undef xmlTextReaderRelaxNGValidateCtxt
+extern __typeof (xmlTextReaderRelaxNGValidateCtxt) xmlTextReaderRelaxNGValidateCtxt __attribute((alias("xmlTextReaderRelaxNGValidateCtxt__internal_alias")));
+#else
+#ifndef xmlTextReaderRelaxNGValidateCtxt
+extern __typeof (xmlTextReaderRelaxNGValidateCtxt) xmlTextReaderRelaxNGValidateCtxt__internal_alias __attribute((visibility("hidden")));
+#define xmlTextReaderRelaxNGValidateCtxt xmlTextReaderRelaxNGValidateCtxt__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_READER_ENABLED) && defined(LIBXML_SCHEMAS_ENABLED)
+#ifdef bottom_xmlreader
 #undef xmlTextReaderSchemaValidate
 extern __typeof (xmlTextReaderSchemaValidate) xmlTextReaderSchemaValidate __attribute((alias("xmlTextReaderSchemaValidate__internal_alias")));
 #else
@@ -11621,6 +11943,18 @@ extern __typeof (xmlTextReaderSetStructuredErrorHandler) xmlTextReaderSetStructu
 #ifndef xmlTextReaderSetStructuredErrorHandler
 extern __typeof (xmlTextReaderSetStructuredErrorHandler) xmlTextReaderSetStructuredErrorHandler__internal_alias __attribute((visibility("hidden")));
 #define xmlTextReaderSetStructuredErrorHandler xmlTextReaderSetStructuredErrorHandler__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_READER_ENABLED)
+#ifdef bottom_xmlreader
+#undef xmlTextReaderSetup
+extern __typeof (xmlTextReaderSetup) xmlTextReaderSetup __attribute((alias("xmlTextReaderSetup__internal_alias")));
+#else
+#ifndef xmlTextReaderSetup
+extern __typeof (xmlTextReaderSetup) xmlTextReaderSetup__internal_alias __attribute((visibility("hidden")));
+#define xmlTextReaderSetup xmlTextReaderSetup__internal_alias
 #endif
 #endif
 #endif
@@ -11825,6 +12159,18 @@ extern __typeof (xmlTextWriterSetIndentString) xmlTextWriterSetIndentString __at
 #ifndef xmlTextWriterSetIndentString
 extern __typeof (xmlTextWriterSetIndentString) xmlTextWriterSetIndentString__internal_alias __attribute((visibility("hidden")));
 #define xmlTextWriterSetIndentString xmlTextWriterSetIndentString__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_WRITER_ENABLED)
+#ifdef bottom_xmlwriter
+#undef xmlTextWriterSetQuoteChar
+extern __typeof (xmlTextWriterSetQuoteChar) xmlTextWriterSetQuoteChar __attribute((alias("xmlTextWriterSetQuoteChar__internal_alias")));
+#else
+#ifndef xmlTextWriterSetQuoteChar
+extern __typeof (xmlTextWriterSetQuoteChar) xmlTextWriterSetQuoteChar__internal_alias __attribute((visibility("hidden")));
+#define xmlTextWriterSetQuoteChar xmlTextWriterSetQuoteChar__internal_alias
 #endif
 #endif
 #endif
@@ -15017,7 +15363,7 @@ extern __typeof (xmlValidateElementDecl) xmlValidateElementDecl__internal_alias 
 #endif
 #endif
 
-#if defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED) || defined(LIBXML_DEBUG_ENABLED) || defined (LIBXML_HTML_ENABLED)
+#if defined(LIBXML_TREE_ENABLED) || defined(LIBXML_XPATH_ENABLED) || defined(LIBXML_SCHEMAS_ENABLED) || defined(LIBXML_DEBUG_ENABLED) || defined (LIBXML_HTML_ENABLED) || defined(LIBXML_SAX1_ENABLED) || defined(LIBXML_HTML_ENABLED) || defined(LIBXML_WRITER_ENABLED) || defined(LIBXML_DOCB_ENABLED)
 #ifdef bottom_tree
 #undef xmlValidateNCName
 extern __typeof (xmlValidateNCName) xmlValidateNCName __attribute((alias("xmlValidateNCName__internal_alias")));
@@ -15271,6 +15617,18 @@ extern __typeof (xmlXIncludeProcessFlags) xmlXIncludeProcessFlags__internal_alia
 
 #if defined(LIBXML_XINCLUDE_ENABLED)
 #ifdef bottom_xinclude
+#undef xmlXIncludeProcessFlagsData
+extern __typeof (xmlXIncludeProcessFlagsData) xmlXIncludeProcessFlagsData __attribute((alias("xmlXIncludeProcessFlagsData__internal_alias")));
+#else
+#ifndef xmlXIncludeProcessFlagsData
+extern __typeof (xmlXIncludeProcessFlagsData) xmlXIncludeProcessFlagsData__internal_alias __attribute((visibility("hidden")));
+#define xmlXIncludeProcessFlagsData xmlXIncludeProcessFlagsData__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_XINCLUDE_ENABLED)
+#ifdef bottom_xinclude
 #undef xmlXIncludeProcessNode
 extern __typeof (xmlXIncludeProcessNode) xmlXIncludeProcessNode __attribute((alias("xmlXIncludeProcessNode__internal_alias")));
 #else
@@ -15301,6 +15659,18 @@ extern __typeof (xmlXIncludeProcessTreeFlags) xmlXIncludeProcessTreeFlags __attr
 #ifndef xmlXIncludeProcessTreeFlags
 extern __typeof (xmlXIncludeProcessTreeFlags) xmlXIncludeProcessTreeFlags__internal_alias __attribute((visibility("hidden")));
 #define xmlXIncludeProcessTreeFlags xmlXIncludeProcessTreeFlags__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_XINCLUDE_ENABLED)
+#ifdef bottom_xinclude
+#undef xmlXIncludeProcessTreeFlagsData
+extern __typeof (xmlXIncludeProcessTreeFlagsData) xmlXIncludeProcessTreeFlagsData __attribute((alias("xmlXIncludeProcessTreeFlagsData__internal_alias")));
+#else
+#ifndef xmlXIncludeProcessTreeFlagsData
+extern __typeof (xmlXIncludeProcessTreeFlagsData) xmlXIncludeProcessTreeFlagsData__internal_alias __attribute((visibility("hidden")));
+#define xmlXIncludeProcessTreeFlagsData xmlXIncludeProcessTreeFlagsData__internal_alias
 #endif
 #endif
 #endif
@@ -15571,6 +15941,18 @@ extern __typeof (xmlXPathCompiledEval) xmlXPathCompiledEval__internal_alias __at
 
 #if defined(LIBXML_XPATH_ENABLED)
 #ifdef bottom_xpath
+#undef xmlXPathCompiledEvalToBoolean
+extern __typeof (xmlXPathCompiledEvalToBoolean) xmlXPathCompiledEvalToBoolean __attribute((alias("xmlXPathCompiledEvalToBoolean__internal_alias")));
+#else
+#ifndef xmlXPathCompiledEvalToBoolean
+extern __typeof (xmlXPathCompiledEvalToBoolean) xmlXPathCompiledEvalToBoolean__internal_alias __attribute((visibility("hidden")));
+#define xmlXPathCompiledEvalToBoolean xmlXPathCompiledEvalToBoolean__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_XPATH_ENABLED)
+#ifdef bottom_xpath
 #undef xmlXPathConcatFunction
 extern __typeof (xmlXPathConcatFunction) xmlXPathConcatFunction __attribute((alias("xmlXPathConcatFunction__internal_alias")));
 #else
@@ -15589,6 +15971,18 @@ extern __typeof (xmlXPathContainsFunction) xmlXPathContainsFunction __attribute(
 #ifndef xmlXPathContainsFunction
 extern __typeof (xmlXPathContainsFunction) xmlXPathContainsFunction__internal_alias __attribute((visibility("hidden")));
 #define xmlXPathContainsFunction xmlXPathContainsFunction__internal_alias
+#endif
+#endif
+#endif
+
+#if defined(LIBXML_XPATH_ENABLED)
+#ifdef bottom_xpath
+#undef xmlXPathContextSetCache
+extern __typeof (xmlXPathContextSetCache) xmlXPathContextSetCache __attribute((alias("xmlXPathContextSetCache__internal_alias")));
+#else
+#ifndef xmlXPathContextSetCache
+extern __typeof (xmlXPathContextSetCache) xmlXPathContextSetCache__internal_alias __attribute((visibility("hidden")));
+#define xmlXPathContextSetCache xmlXPathContextSetCache__internal_alias
 #endif
 #endif
 #endif

@@ -118,7 +118,6 @@ LOCAL_SRC_FILES := \
 		SkShader.cpp \
 		SkSpriteBlitter_ARGB32.cpp \
 		SkSpriteBlitter_RGB16.cpp \
-		SkStippleMaskFilter.cpp \
 		SkStream.cpp \
 		SkString.cpp \
 		SkStroke.cpp \
@@ -156,6 +155,7 @@ LOCAL_SRC_FILES+=$(addprefix src/effects/, \
 		SkBlurMask.cpp \
 		SkBlurMaskFilter.cpp \
 		SkOffsetImageFilter.cpp \
+		SkStippleMaskFilter.cpp \
 		)
 
 LOCAL_SRC_FILES+=$(addprefix src/image/, \

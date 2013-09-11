@@ -1,43 +1,45 @@
+
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #ifndef SkRefCnt_DEFINED
 #define SkRefCnt_DEFINED
 
 #include "SkThread.h"
+#include "SkInstCnt.h"
+#include "SkTemplates.h"
 
 /** \class SkRefCnt
 
     SkRefCnt is the base class for objects that may be shared by multiple
-    objects. When a new owner wants a reference, it calls ref(). When an owner
-    wants to release its reference, it calls unref(). When the shared object's
-    reference count goes to zero as the result of an unref() call, its (virtual)
-    destructor is called. It is an error for the destructor to be called
-    explicitly (or via the object going out of scope on the stack or calling
-    delete) if getRefCnt() > 1.
+    objects. When an existing owner wants to share a reference, it calls ref().
+    When an owner wants to release its reference, it calls unref(). When the
+    shared object's reference count goes to zero as the result of an unref()
+    call, its (virtual) destructor is called. It is an error for the
+    destructor to be called explicitly (or via the object going out of scope on
+    the stack or calling delete) if getRefCnt() > 1.
 */
-class SkRefCnt : SkNoncopyable {
+class SK_API SkRefCnt : SkNoncopyable {
 public:
+    SK_DECLARE_INST_COUNT_ROOT(SkRefCnt)
+
     /** Default construct, initializing the reference count to 1.
     */
     SkRefCnt() : fRefCnt(1) {}
 
-    /**  Destruct, asserting that the reference count is 1.
+    /** Destruct, asserting that the reference count is 1.
     */
-    virtual ~SkRefCnt() { SkASSERT(fRefCnt == 1); }
+    virtual ~SkRefCnt() {
+#ifdef SK_DEBUG
+        SkASSERT(fRefCnt == 1);
+        fRefCnt = 0;    // illegal value, to catch us if we reuse after delete
+#endif
+    }
 
     /** Return the reference count.
     */
@@ -47,74 +49,68 @@ public:
     */
     void ref() const {
         SkASSERT(fRefCnt > 0);
-        sk_atomic_inc(&fRefCnt);
+        sk_atomic_inc(&fRefCnt);  // No barrier required.
     }
 
     /** Decrement the reference count. If the reference count is 1 before the
-        decrement, then call delete on the object. Note that if this is the
-        case, then the object needs to have been allocated via new, and not on
-        the stack.
+        decrement, then delete the object. Note that if this is the case, then
+        the object needs to have been allocated via new, and not on the stack.
     */
     void unref() const {
         SkASSERT(fRefCnt > 0);
+        // Release barrier (SL/S), if not provided below.
         if (sk_atomic_dec(&fRefCnt) == 1) {
-            fRefCnt = 1;    // so our destructor won't complain
-            SkDELETE(this);
-        }
-    }
-    
-    /** Helper version of ref(), that first checks to see if this is not null.
-        If this is null, then do nothing.
-    */
-    void safeRef() const {
-        if (this) {
-            this->ref();
+            // Aquire barrier (L/SL), if not provided above.
+            // Prevents code in dispose from happening before the decrement.
+            sk_membar_aquire__after_atomic_dec();
+            internal_dispose();
         }
     }
 
-    /** Helper version of unref(), that first checks to see if this is not null.
-        If this is null, then do nothing.
-    */
-    void safeUnref() const {
-        if (this) {
-            this->unref();
-        }
+    void validate() const {
+        SkASSERT(fRefCnt > 0);
+    }
+
+    /**
+     *  Alias for ref(), for compatibility with scoped_refptr.
+     */
+    void AddRef() { this->ref(); }
+
+    /**
+     *  Alias for unref(), for compatibility with scoped_refptr.
+     */
+    void Release() { this->unref(); }
+
+protected:
+    /**
+     *  Allow subclasses to call this if they've overridden internal_dispose
+     *  so they can reset fRefCnt before the destructor is called. Should only
+     *  be called right before calling through to inherited internal_dispose()
+     *  or before calling the destructor.
+     */
+    void internal_dispose_restore_refcnt_to_1() const {
+#ifdef SK_DEBUG
+        SkASSERT(0 == fRefCnt);
+        fRefCnt = 1;
+#endif
     }
 
 private:
+    /**
+     *  Called when the ref count goes to 0.
+     */
+    virtual void internal_dispose() const {
+        this->internal_dispose_restore_refcnt_to_1();
+        SkDELETE(this);
+    }
+
+    friend class SkWeakRefCnt;
+    friend class GrTexture;     // to allow GrTexture's internal_dispose to
+                                // call SkRefCnt's & directly set fRefCnt (to 1)
+
     mutable int32_t fRefCnt;
-};
 
-/** \class SkAutoUnref
-
-    SkAutoUnref is a stack-helper class that will automatically call unref() on
-    the object it points to when the SkAutoUnref object goes out of scope.
-    If obj is null, do nothing.
-*/
-class SkAutoUnref : SkNoncopyable {
-public:
-    SkAutoUnref(SkRefCnt* obj) : fObj(obj) {}
-    ~SkAutoUnref();
-
-    SkRefCnt*   get() const { return fObj; }
-
-    /** If the hosted object is null, do nothing and return false, else call
-        ref() on it and return true
-    */
-    bool        ref();
-
-    /** If the hosted object is null, do nothing and return false, else call
-        unref() on it, set its reference to null, and return true
-    */
-    bool        unref();
-
-    /** If the hosted object is null, do nothing and return NULL, else call
-        unref() on it, set its reference to null, and return the object
-    */
-    SkRefCnt*   detach();
-
-private:
-    SkRefCnt*   fObj;
+    typedef SkNoncopyable INHERITED;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -122,7 +118,7 @@ private:
 /** Helper macro to safely assign one SkRefCnt[TS]* to another, checking for
     null in on each side of the assignment, and ensuring that ref() is called
     before unref(), in case the two pointers point to the same object.
-*/
+ */
 #define SkRefCnt_SafeAssign(dst, src)   \
     do {                                \
         if (src) src->ref();            \
@@ -131,12 +127,21 @@ private:
     } while (0)
 
 
-/** Check if the argument is non-null, and if so, call obj->ref()
+/** Call obj->ref() and return obj. The obj must not be NULL.
  */
-template <typename T> static inline void SkSafeRef(T* obj) {
+template <typename T> static inline T* SkRef(T* obj) {
+    SkASSERT(obj);
+    obj->ref();
+    return obj;
+}
+
+/** Check if the argument is non-null, and if so, call obj->ref() and return obj.
+ */
+template <typename T> static inline T* SkSafeRef(T* obj) {
     if (obj) {
         obj->ref();
     }
+    return obj;
 }
 
 /** Check if the argument is non-null, and if so, call obj->unref()
@@ -146,6 +151,83 @@ template <typename T> static inline void SkSafeUnref(T* obj) {
         obj->unref();
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ *  Utility class that simply unref's its argument in the destructor.
+ */
+template <typename T> class SkAutoTUnref : SkNoncopyable {
+public:
+    explicit SkAutoTUnref(T* obj = NULL) : fObj(obj) {}
+    ~SkAutoTUnref() { SkSafeUnref(fObj); }
+
+    T* get() const { return fObj; }
+
+    void reset(T* obj) {
+        SkSafeUnref(fObj);
+        fObj = obj;
+    }
+
+    void swap(SkAutoTUnref* other) {
+        T* tmp = fObj;
+        fObj = other->fObj;
+        other->fObj = tmp;
+    }
+
+    /**
+     *  Return the hosted object (which may be null), transferring ownership.
+     *  The reference count is not modified, and the internal ptr is set to NULL
+     *  so unref() will not be called in our destructor. A subsequent call to
+     *  detach() will do nothing and return null.
+     */
+    T* detach() {
+        T* obj = fObj;
+        fObj = NULL;
+        return obj;
+    }
+
+    /**
+     * BlockRef<B> is a type which inherits from B, cannot be created,
+     * and makes ref and unref private.
+     */
+    template<typename B> class BlockRef : public B {
+    private:
+        BlockRef();
+        void ref() const;
+        void unref() const;
+    };
+
+    /** If T is const, the type returned from operator-> will also be const. */
+    typedef typename SkTConstType<BlockRef<T>, SkTIsConst<T>::value>::type BlockRefType;
+
+    /**
+     *  SkAutoTUnref assumes ownership of the ref. As a result, it is an error
+     *  for the user to ref or unref through SkAutoTUnref. Therefore
+     *  SkAutoTUnref::operator-> returns BlockRef<T>*. This prevents use of
+     *  skAutoTUnrefInstance->ref() and skAutoTUnrefInstance->unref().
+     */
+    BlockRefType *operator->() const {
+        return static_cast<BlockRefType*>(fObj);
+    }
+    operator T*() { return fObj; }
+
+private:
+    T*  fObj;
+};
+
+class SkAutoUnref : public SkAutoTUnref<SkRefCnt> {
+public:
+    SkAutoUnref(SkRefCnt* obj) : SkAutoTUnref<SkRefCnt>(obj) {}
+};
+
+class SkAutoRef : SkNoncopyable {
+public:
+    SkAutoRef(SkRefCnt* obj) : fObj(obj) { SkSafeRef(obj); }
+    ~SkAutoRef() { SkSafeUnref(fObj); }
+private:
+    SkRefCnt* fObj;
+};
 
 /** Wrapper class for SkRefCnt pointers. This manages ref/unref of a pointer to
     a SkRefCnt (or subclass) object.
@@ -166,32 +248,18 @@ public:
         return *this;
     }
 
-    bool operator==(const SkRefPtr& rp) const { return fObj == rp.fObj; }
-    bool operator==(const T* obj) const { return fObj == obj; }
-    bool operator!=(const SkRefPtr& rp) const { return fObj != rp.fObj; }
-    bool operator!=(const T* obj) const { return fObj != obj; }
-
     T* get() const { return fObj; }
     T& operator*() const { return *fObj; }
     T* operator->() const { return fObj; }
-    bool operator!() const { return !fObj; }
 
     typedef T* SkRefPtr::*unspecified_bool_type;
-    operator unspecified_bool_type() const { return fObj ? &SkRefPtr::fObj : NULL; }
+    operator unspecified_bool_type() const {
+        return fObj ? &SkRefPtr::fObj : NULL;
+    }
 
 private:
     T* fObj;
 };
-
-template <typename T>
-inline bool operator==(T* obj, const SkRefPtr<T>& rp) {
-    return obj == rp.get();
-}
-
-template <typename T>
-inline bool operator!=(T* obj, const SkRefPtr<T>& rp) {
-    return obj != rp.get();
-}
 
 #endif
 

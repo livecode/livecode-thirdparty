@@ -1,18 +1,11 @@
+
 /*
- ** Copyright 2006, The Android Open Source Project
- **
- ** Licensed under the Apache License, Version 2.0 (the "License"); 
- ** you may not use this file except in compliance with the License. 
- ** You may obtain a copy of the License at 
- **
- **     http://www.apache.org/licenses/LICENSE-2.0 
- **
- ** Unless required by applicable law or agreed to in writing, software 
- ** distributed under the License is distributed on an "AS IS" BASIS, 
- ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- ** See the License for the specific language governing permissions and 
- ** limitations under the License.
-*/
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include <Carbon/Carbon.h>
 #include "SkFontHost.h"
@@ -22,11 +15,8 @@
 #include "SkPaint.h"
 #include "SkPoint.h"
 
-// Give 1MB font cache budget
-#define FONT_CACHE_MEMORY_BUDGET    (1024 * 1024)
-
 const char* gDefaultfont = "Arial"; // hard code for now
-static SkMutex      gFTMutex;
+SK_DECLARE_STATIC_MUTEX(gFTMutex);
 
 static inline SkPoint F32PtToSkPoint(const Float32Point p) {
     SkPoint sp = { SkFloatToScalar(p.x), SkFloatToScalar(p.y) };
@@ -47,7 +37,7 @@ public:
 
 static uint32_t find_from_name(const char name[]) {
     CFStringRef str = CFStringCreateWithCString(NULL, name,
-                                                kCFStringEncodingUTF8); 
+                                                kCFStringEncodingUTF8);
     uint32_t fontID = ::ATSFontFindFromName(str, kATSOptionFlagsDefault);
     CFRelease(str);
     return fontID;
@@ -87,7 +77,7 @@ public:
     virtual ~SkScalerContext_Mac();
 
 protected:
-    virtual unsigned generateGlyphCount() const;
+    virtual unsigned generateGlyphCount();
     virtual uint16_t generateCharToGlyph(SkUnichar uni);
     virtual void generateAdvance(SkGlyph* glyph);
     virtual void generateMetrics(SkGlyph* glyph);
@@ -100,14 +90,14 @@ private:
     ATSUStyle       fStyle;
     CGColorSpaceRef fGrayColorSpace;
     CGAffineTransform   fTransform;
-    
+
     static OSStatus MoveTo(const Float32Point *pt, void *cb);
     static OSStatus Line(const Float32Point *pt, void *cb);
     static OSStatus Curve(const Float32Point *pt1, const Float32Point *pt2, const Float32Point *pt3, void *cb);
     static OSStatus Close(void *cb);
 };
 
-void SkFontHost::FilterRec(SkScalerContext::Rec* rec) {
+void SkFontHost::FilterRec(SkScalerContext::Rec* rec, SkTypeface*) {
     // we only support 2 levels of hinting
     SkPaint::Hinting h = rec->getHinting();
     if (SkPaint::kSlight_Hinting == h) {
@@ -118,7 +108,8 @@ void SkFontHost::FilterRec(SkScalerContext::Rec* rec) {
     rec->setHinting(h);
 
     // we don't support LCD text
-    if (SkMask::FormatIsLCD((SkMask::Format)rec->fMaskFormat)) {
+    if (SkMask::kLCD16_Format == rec->fMaskFormat ||
+        SkMask::kLCD32_Format == rec->fMaskFormat) {
         rec->fMaskFormat = SkMask::kA8_Format;
     }
 }
@@ -128,20 +119,20 @@ SkScalerContext_Mac::SkScalerContext_Mac(const SkDescriptor* desc)
 {
     SkAutoMutexAcquire  ac(gFTMutex);
     OSStatus err;
-    
+
     err = ::ATSUCreateStyle(&fStyle);
     SkASSERT(0 == err);
-            
+
     SkMatrix    m;
     fRec.getSingleMatrix(&m);
-    
+
     fTransform = CGAffineTransformMake(SkScalarToFloat(m[SkMatrix::kMScaleX]),
                                        SkScalarToFloat(m[SkMatrix::kMSkewX]),
                                        SkScalarToFloat(m[SkMatrix::kMSkewY]),
                                        SkScalarToFloat(m[SkMatrix::kMScaleY]),
                                        SkScalarToFloat(m[SkMatrix::kMTransX]),
                                        SkScalarToFloat(m[SkMatrix::kMTransY]));
-                                       
+
     ATSStyleRenderingOptions renderOpts = kATSStyleApplyAntiAliasing;
     switch (fRec.getHinting()) {
         case SkPaint::kNo_Hinting:
@@ -184,7 +175,7 @@ SkScalerContext_Mac::~SkScalerContext_Mac() {
 
 // man, we need to consider caching this, since it is just dependent on
 // fFontID, and not on any of the other settings like matrix or flags
-unsigned SkScalerContext_Mac::generateGlyphCount() const {
+unsigned SkScalerContext_Mac::generateGlyphCount() {
     // The 'maxp' table stores the number of glyphs a offset 4, in 2 bytes
     uint16_t numGlyphs;
     if (SkFontHost::GetTableData(fRec.fFontID,
@@ -198,16 +189,16 @@ unsigned SkScalerContext_Mac::generateGlyphCount() const {
 uint16_t SkScalerContext_Mac::generateCharToGlyph(SkUnichar uni)
 {
     SkAutoMutexAcquire  ac(gFTMutex);
-    
+
     OSStatus err;
     UniChar achar = uni;
     err = ::ATSUSetTextPointerLocation(fLayout,&achar,0,1,1);
     err = ::ATSUSetRunStyle(fLayout,fStyle,kATSUFromTextBeginning,kATSUToTextEnd);
-        
+
     ATSLayoutRecord *layoutPtr;
     ItemCount count;
     ATSGlyphRef glyph;
-    
+
     err = ::ATSUDirectGetLayoutDataArrayPtrFromTextLayout(fLayout,0,kATSUDirectDataLayoutRecordATSLayoutRecordCurrent,(void**)&layoutPtr,&count);
     glyph = layoutPtr->glyphID;
     ::ATSUDirectReleaseLayoutDataArrayPtr(NULL,kATSUDirectDataLayoutRecordATSLayoutRecordCurrent,(void**)&layoutPtr);
@@ -266,7 +257,7 @@ void SkScalerContext_Mac::generateImage(const SkGlyph& glyph)
 {
     SkAutoMutexAcquire  ac(gFTMutex);
     SkASSERT(fLayout);
-    
+
     sk_bzero(glyph.fImage, glyph.fHeight * glyph.rowBytes());
     CGContextRef contextRef = ::CGBitmapContextCreate(glyph.fImage,
                                               glyph.fWidth, glyph.fHeight, 8,
@@ -276,10 +267,10 @@ void SkScalerContext_Mac::generateImage(const SkGlyph& glyph)
         SkASSERT(false);
         return;
     }
-    
+
     ::CGContextSetGrayFillColor(contextRef, 1.0, 1.0);
     ::CGContextSetTextDrawingMode(contextRef, kCGTextFill);
-    
+
     CGGlyph glyphID = glyph.getGlyphID(fBaseGlyphCount);
     CGFontRef fontRef = CGFontCreateWithPlatformFont(&fRec.fFontID);
     CGContextSetFont(contextRef, fontRef);
@@ -287,7 +278,7 @@ void SkScalerContext_Mac::generateImage(const SkGlyph& glyph)
     CGContextSetTextMatrix(contextRef, fTransform);
     CGContextShowGlyphsAtPoint(contextRef, -glyph.fLeft,
                                glyph.fTop + glyph.fHeight, &glyphID, 1);
-    
+
     ::CGContextRelease(contextRef);
 }
 
@@ -365,7 +356,7 @@ static bool init_vertical_metrics(ATSFontRef font, SkPoint pts[5]) {
     for (int i = 0; i < 5; i++) {
         pts[i].set(0, SkIntToScalar(ys[i]) / upem);
     }
-    
+
     sk_free(hhea);
     sk_free(head);
     return true;
@@ -374,7 +365,7 @@ static bool init_vertical_metrics(ATSFontRef font, SkPoint pts[5]) {
 void SkScalerContext_Mac::generateFontMetrics(SkPaint::FontMetrics* mx,
                                               SkPaint::FontMetrics* my) {
     SkPoint pts[5];
-    
+
     if (!init_vertical_metrics(fRec.fFontID, pts)) {
         // these are not as accurate as init_vertical_metrics :(
         ATSFontMetrics metrics;
@@ -386,7 +377,7 @@ void SkScalerContext_Mac::generateFontMetrics(SkPaint::FontMetrics* mx,
         pts[3].set(0, -SkFloatToScalar(metrics.descent));
         pts[4].set(0, SkFloatToScalar(metrics.leading));    //+ or -?
     }
-    
+
     SkMatrix m;
     fRec.getSingleMatrix(&m);
     m.mapPoints(pts, 5);
@@ -421,7 +412,7 @@ void SkScalerContext_Mac::generatePath(const SkGlyph& glyph, SkPath* path)
 {
     SkAutoMutexAcquire  ac(gFTMutex);
     OSStatus err,result;
-    
+
     err = ::ATSUGlyphGetCubicPaths(
             fStyle,glyph.fID,
             &SkScalerContext_Mac::MoveTo,
@@ -463,11 +454,11 @@ OSStatus SkScalerContext_Mac::Close(void *cb)
 #pragma mark -
 
 void SkFontHost::Serialize(const SkTypeface* face, SkWStream* stream) {
-    SkASSERT(!"SkFontHost::Serialize unimplemented");
+    SkDEBUGFAIL("SkFontHost::Serialize unimplemented");
 }
 
 SkTypeface* SkFontHost::Deserialize(SkStream* stream) {
-    SkASSERT(!"SkFontHost::Deserialize unimplemented");
+    SkDEBUGFAIL("SkFontHost::Deserialize unimplemented");
     return NULL;
 }
 
@@ -479,13 +470,23 @@ SkTypeface* SkFontHost::CreateTypefaceFromFile(const char path[]) {
     return NULL;
 }
 
+// static
+SkAdvancedTypefaceMetrics* SkFontHost::GetAdvancedTypefaceMetrics(
+        uint32_t fontID,
+        SkAdvancedTypefaceMetrics::PerGlyphInfo perGlyphInfo,
+        const uint32_t* glyphIDs,
+        uint32_t glyphIDsCount) {
+    SkDEBUGFAIL("SkFontHost::GetAdvancedTypefaceMetrics unimplemented");
+    return NULL;
+}
+
 SkScalerContext* SkFontHost::CreateScalerContext(const SkDescriptor* desc) {
     return new SkScalerContext_Mac(desc);
 }
 
-uint32_t SkFontHost::NextLogicalFont(uint32_t fontID) {
+SkFontID SkFontHost::NextLogicalFont(SkFontID currFontID, SkFontID origFontID) {
     uint32_t newFontID = find_default_fontID();
-    if (newFontID == fontID) {
+    if (newFontID == currFontID) {
         newFontID = 0;
     }
     return newFontID;
@@ -493,7 +494,6 @@ uint32_t SkFontHost::NextLogicalFont(uint32_t fontID) {
 
 SkTypeface* SkFontHost::CreateTypeface(const SkTypeface* familyFace,
                             const char familyName[],
-                            const void* data, size_t bytelength,
                             SkTypeface::Style style) {
     // todo: we don't know how to respect style bits
     if (NULL == familyName && NULL != familyFace) {
@@ -502,22 +502,6 @@ SkTypeface* SkFontHost::CreateTypeface(const SkTypeface* familyFace,
     } else {
         return CreateTypeface_(familyName, style);
     }
-}
-
-size_t SkFontHost::ShouldPurgeFontCache(size_t sizeAllocatedSoFar) {
-    if (sizeAllocatedSoFar > FONT_CACHE_MEMORY_BUDGET)
-        return sizeAllocatedSoFar - FONT_CACHE_MEMORY_BUDGET;
-    else
-        return 0;   // nothing to do
-}
-
-int SkFontHost::ComputeGammaFlag(const SkPaint& paint) {
-    return 0;
-}
-
-void SkFontHost::GetGammaTables(const uint8_t* tables[2]) {
-    tables[0] = NULL;   // black gamma (e.g. exp=1.4)
-    tables[1] = NULL;   // white gamma (e.g. exp= 1/1.4)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -543,33 +527,33 @@ struct SfntHeader {
         if (ATSFontGetTableDirectory(fontID, 0, NULL, &size)) {
             return;
         }
-        
+
         SkAutoMalloc storage(size);
         SkSFNTHeader* header = reinterpret_cast<SkSFNTHeader*>(storage.get());
         if (ATSFontGetTableDirectory(fontID, size, header, &size)) {
             return;
         }
-        
+
         fCount = SkEndian_SwapBE16(header->fNumTables);
         fData = header;
         storage.detach();
     }
-    
+
     ~SfntHeader() {
         sk_free(fData);
     }
-    
+
     int count() const { return fCount; }
     const SkSFNTDirEntry* entries() const {
         return reinterpret_cast<const SkSFNTDirEntry*>
             (reinterpret_cast<char*>(fData) + sizeof(SkSFNTHeader));
     }
-    
+
 private:
     int     fCount;
     void*   fData;
 };
-        
+
 int SkFontHost::CountTables(SkFontID fontID) {
     SfntHeader header(fontID, false);
     return header.count();
@@ -607,4 +591,3 @@ size_t SkFontHost::GetTableData(SkFontID fontID, SkFontTableTag tag,
     }
     return length;
 }
-

@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2009 The Android Open Source Project
+ * Copyright 2009 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #include "SkQuadClipper.h"
 #include "SkGeometry.h"
@@ -29,7 +22,9 @@ static inline void clamp_ge(SkScalar& value, SkScalar min) {
     }
 }
 
-SkQuadClipper::SkQuadClipper() {}
+SkQuadClipper::SkQuadClipper() {
+    fClip.setEmpty();
+}
 
 void SkQuadClipper::setClip(const SkIRect& clip) {
     // conver to scalars, since that's where we'll see the points
@@ -47,7 +42,7 @@ static bool chopMonoQuadAt(SkScalar c0, SkScalar c1, SkScalar c2,
     SkScalar A = c0 - c1 - c1 + c2;
     SkScalar B = 2*(c1 - c0);
     SkScalar C = c0 - target;
-    
+
     SkScalar roots[2];  // we only expect one, but make room for 2 for safety
     int count = SkFindUnitQuadRoots(A, B, C, roots);
     if (count) {
@@ -69,7 +64,7 @@ static bool chopMonoQuadAtY(SkPoint pts[3], SkScalar y, SkScalar* t) {
  */
 bool SkQuadClipper::clipQuad(const SkPoint srcPts[3], SkPoint dst[3]) {
     bool reverse;
-    
+
     // we need the data to be monotonically increasing in Y
     if (srcPts[0].fY > srcPts[2].fY) {
         dst[0] = srcPts[2];
@@ -80,17 +75,17 @@ bool SkQuadClipper::clipQuad(const SkPoint srcPts[3], SkPoint dst[3]) {
         memcpy(dst, srcPts, 3 * sizeof(SkPoint));
         reverse = false;
     }
-    
+
     // are we completely above or below
     const SkScalar ctop = fClip.fTop;
     const SkScalar cbot = fClip.fBottom;
     if (dst[2].fY <= ctop || dst[0].fY >= cbot) {
         return false;
     }
-    
+
     SkScalar t;
     SkPoint tmp[5]; // for SkChopQuadAt
-    
+
     // are we partially above
     if (dst[0].fY < ctop) {
         if (chopMonoQuadAtY(dst, ctop, &t)) {
@@ -108,7 +103,7 @@ bool SkQuadClipper::clipQuad(const SkPoint srcPts[3], SkPoint dst[3]) {
             }
         }
     }
-    
+
     // are we partially below
     if (dst[2].fY > cbot) {
         if (chopMonoQuadAtY(dst, cbot, &t)) {
@@ -125,7 +120,7 @@ bool SkQuadClipper::clipQuad(const SkPoint srcPts[3], SkPoint dst[3]) {
             }
         }
     }
-    
+
     if (reverse) {
         SkTSwap<SkPoint>(dst[0], dst[2]);
     }

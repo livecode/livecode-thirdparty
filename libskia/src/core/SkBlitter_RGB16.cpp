@@ -1,19 +1,11 @@
-/* libs/graphics/sgl/SkBlitter_RGB16.cpp
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkBlitRow.h"
 #include "SkCoreBlitters.h"
@@ -43,14 +35,14 @@ void sk_dither_memset16(uint16_t dst[], uint16_t value, uint16_t other,
             count -= 1;
             SkTSwap(value, other);
         }
-        
+
         // fast way to set [value,other] pairs
 #ifdef SK_CPU_BENDIAN
         sk_memset32((uint32_t*)dst, (value << 16) | other, count >> 1);
 #else
         sk_memset32((uint32_t*)dst, (other << 16) | value, count >> 1);
 #endif
-        
+
         if (count & 1) {
             dst[count - 1] = value;
         }
@@ -63,12 +55,14 @@ class SkRGB16_Blitter : public SkRasterBlitter {
 public:
     SkRGB16_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
+    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
+                           const int16_t* runs);
     virtual void blitV(int x, int y, int height, SkAlpha alpha);
     virtual void blitRect(int x, int y, int width, int height);
-    virtual void blitMask(const SkMask&, const SkIRect&);
+    virtual void blitMask(const SkMask&,
+                          const SkIRect&);
     virtual const SkBitmap* justAnOpaqueColor(uint32_t*);
-    
+
 protected:
     SkPMColor   fSrcColor32;
     uint32_t    fExpandedRaw16;
@@ -77,10 +71,10 @@ protected:
     uint16_t    fRawColor16;    // unscaled
     uint16_t    fRawDither16;   // unscaled
     SkBool8     fDoDither;
-    
+
     // illegal
     SkRGB16_Blitter& operator=(const SkRGB16_Blitter&);
-    
+
     typedef SkRasterBlitter INHERITED;
 };
 
@@ -88,11 +82,13 @@ class SkRGB16_Opaque_Blitter : public SkRGB16_Blitter {
 public:
     SkRGB16_Opaque_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
+    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
+                           const int16_t* runs);
     virtual void blitV(int x, int y, int height, SkAlpha alpha);
     virtual void blitRect(int x, int y, int width, int height);
-    virtual void blitMask(const SkMask&, const SkIRect&);
-    
+    virtual void blitMask(const SkMask&,
+                          const SkIRect&);
+
 private:
     typedef SkRGB16_Blitter INHERITED;
 };
@@ -102,8 +98,9 @@ class SkRGB16_Black_Blitter : public SkRGB16_Opaque_Blitter {
 public:
     SkRGB16_Black_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual void blitMask(const SkMask&, const SkIRect&);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
-    
+    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
+                           const int16_t* runs);
+
 private:
     typedef SkRGB16_Opaque_Blitter INHERITED;
 };
@@ -114,18 +111,19 @@ public:
     SkRGB16_Shader_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual ~SkRGB16_Shader_Blitter();
     virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
+    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
+                           const int16_t* runs);
     virtual void blitRect(int x, int y, int width, int height);
-    
+
 protected:
     SkPMColor*      fBuffer;
     SkBlitRow::Proc fOpaqueProc;
     SkBlitRow::Proc fAlphaProc;
-    
+
 private:
     // illegal
     SkRGB16_Shader_Blitter& operator=(const SkRGB16_Shader_Blitter&);
-    
+
     typedef SkShaderBlitter INHERITED;
 };
 
@@ -134,9 +132,10 @@ class SkRGB16_Shader16_Blitter : public SkRGB16_Shader_Blitter {
 public:
     SkRGB16_Shader16_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
+    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
+                           const int16_t* runs);
     virtual void blitRect(int x, int y, int width, int height);
-    
+
 private:
     typedef SkRGB16_Shader_Blitter INHERITED;
 };
@@ -146,16 +145,17 @@ public:
     SkRGB16_Shader_Xfermode_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual ~SkRGB16_Shader_Xfermode_Blitter();
     virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
-    
+    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
+                           const int16_t* runs);
+
 private:
     SkXfermode* fXfermode;
     SkPMColor*  fBuffer;
     uint8_t*    fAAExpand;
-    
+
     // illegal
     SkRGB16_Shader_Xfermode_Blitter& operator=(const SkRGB16_Shader_Xfermode_Blitter&);
-    
+
     typedef SkShaderBlitter INHERITED;
 };
 
@@ -202,14 +202,13 @@ static inline black_8_pixels(U8CPU mask, uint16_t dst[])
 #define SK_BLITBWMASK_DEVTYPE               uint16_t
 #include "SkBlitBWMaskTemplate.h"
 
-void SkRGB16_Black_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
-                                     const SkIRect& SK_RESTRICT clip)
-                                     SK_RESTRICT {
+void SkRGB16_Black_Blitter::blitMask(const SkMask& mask,
+                                     const SkIRect& clip) {
     if (mask.fFormat == SkMask::kBW_Format) {
         SkRGB16_Black_BlitBW(fDevice, mask, clip);
     } else {
         uint16_t* SK_RESTRICT device = fDevice.getAddr16(clip.fLeft, clip.fTop);
-        const uint8_t* SK_RESTRICT alpha = mask.getAddr(clip.fLeft, clip.fTop);
+        const uint8_t* SK_RESTRICT alpha = mask.getAddr8(clip.fLeft, clip.fTop);
         unsigned width = clip.width();
         unsigned height = clip.height();
         unsigned deviceRB = fDevice.rowBytes() - (width << 1);
@@ -235,8 +234,7 @@ void SkRGB16_Black_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
 
 void SkRGB16_Black_Blitter::blitAntiH(int x, int y,
                                       const SkAlpha* SK_RESTRICT antialias,
-                                      const int16_t* SK_RESTRICT runs)
-                                      SK_RESTRICT {
+                                      const int16_t* SK_RESTRICT runs) {
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
 
     for (;;) {
@@ -273,7 +271,7 @@ SkRGB16_Opaque_Blitter::SkRGB16_Opaque_Blitter(const SkBitmap& device,
                                                const SkPaint& paint)
 : INHERITED(device, paint) {}
 
-void SkRGB16_Opaque_Blitter::blitH(int x, int y, int width) SK_RESTRICT {
+void SkRGB16_Opaque_Blitter::blitH(int x, int y, int width) {
     SkASSERT(width > 0);
     SkASSERT(x + width <= fDevice.width());
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
@@ -293,12 +291,12 @@ void SkRGB16_Opaque_Blitter::blitH(int x, int y, int width) SK_RESTRICT {
 
 // return 1 or 0 from a bool
 static inline int Bool2Int(int value) {
-	return !!value;
+    return !!value;
 }
 
 void SkRGB16_Opaque_Blitter::blitAntiH(int x, int y,
                                        const SkAlpha* SK_RESTRICT antialias,
-                                       const int16_t* SK_RESTRICT runs) SK_RESTRICT {
+                                       const int16_t* SK_RESTRICT runs) {
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
     uint16_t    srcColor = fRawColor16;
     uint32_t    srcExpanded = fExpandedRaw16;
@@ -372,15 +370,15 @@ static U16CPU blend_compact(uint32_t src32, uint32_t dst32, unsigned scale5) {
     return SkCompact_rgb_16(dst32 + ((src32 - dst32) * scale5 >> 5));
 }
 
-void SkRGB16_Opaque_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
-                                      const SkIRect& SK_RESTRICT clip) SK_RESTRICT {
+void SkRGB16_Opaque_Blitter::blitMask(const SkMask& mask,
+                                      const SkIRect& clip) {
     if (mask.fFormat == SkMask::kBW_Format) {
         SkRGB16_BlitBW(fDevice, mask, clip, fColor16);
         return;
     }
 
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(clip.fLeft, clip.fTop);
-    const uint8_t* SK_RESTRICT alpha = mask.getAddr(clip.fLeft, clip.fTop);
+    const uint8_t* SK_RESTRICT alpha = mask.getAddr8(clip.fLeft, clip.fTop);
     int width = clip.width();
     int height = clip.height();
     unsigned    deviceRB = fDevice.rowBytes() - (width << 1);
@@ -388,20 +386,20 @@ void SkRGB16_Opaque_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
     uint32_t    expanded32 = fExpandedRaw16;
 
 #ifdef SK_USE_NEON
-#define	UNROLL	8
+#define    UNROLL    8
     do {
         int w = width;
         if (w >= UNROLL) {
-            uint32x4_t color;		/* can use same one */
+            uint32x4_t color;        /* can use same one */
             uint32x4_t dev_lo, dev_hi;
             uint32x4_t t1, t2;
             uint32x4_t wn1, wn2;
             uint16x4_t odev_lo, odev_hi;
             uint16x4_t alpha_lo, alpha_hi;
             uint16x8_t  alpha_full;
-            
+
             color = vdupq_n_u32(expanded32);
-            
+
             do {
                 /* alpha is 8x8, widen and split to get pair of 16x4's */
                 alpha_full = vmovl_u8(vld1_u8(alpha));
@@ -409,53 +407,53 @@ void SkRGB16_Opaque_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
                 alpha_full = vshrq_n_u16(alpha_full, 3);
                 alpha_lo = vget_low_u16(alpha_full);
                 alpha_hi = vget_high_u16(alpha_full);
-                
+
                 dev_lo = vmovl_u16(vld1_u16(device));
                 dev_hi = vmovl_u16(vld1_u16(device+4));
-                
+
                 /* unpack in 32 bits */
                 dev_lo = vorrq_u32(
                                    vandq_u32(dev_lo, vdupq_n_u32(0x0000F81F)),
-                                   vshlq_n_u32(vandq_u32(dev_lo, 
+                                   vshlq_n_u32(vandq_u32(dev_lo,
                                                          vdupq_n_u32(0x000007E0)),
                                                16)
                                    );
                 dev_hi = vorrq_u32(
                                    vandq_u32(dev_hi, vdupq_n_u32(0x0000F81F)),
-                                   vshlq_n_u32(vandq_u32(dev_hi, 
+                                   vshlq_n_u32(vandq_u32(dev_hi,
                                                          vdupq_n_u32(0x000007E0)),
                                                16)
                                    );
-                
+
                 /* blend the two */
                 t1 = vmulq_u32(vsubq_u32(color, dev_lo), vmovl_u16(alpha_lo));
                 t1 = vshrq_n_u32(t1, 5);
                 dev_lo = vaddq_u32(dev_lo, t1);
-                
+
                 t1 = vmulq_u32(vsubq_u32(color, dev_hi), vmovl_u16(alpha_hi));
                 t1 = vshrq_n_u32(t1, 5);
                 dev_hi = vaddq_u32(dev_hi, t1);
-                
+
                 /* re-compact and store */
                 wn1 = vandq_u32(dev_lo, vdupq_n_u32(0x0000F81F)),
                 wn2 = vshrq_n_u32(dev_lo, 16);
                 wn2 = vandq_u32(wn2, vdupq_n_u32(0x000007E0));
                 odev_lo = vmovn_u32(vorrq_u32(wn1, wn2));
-                
+
                 wn1 = vandq_u32(dev_hi, vdupq_n_u32(0x0000F81F)),
                 wn2 = vshrq_n_u32(dev_hi, 16);
                 wn2 = vandq_u32(wn2, vdupq_n_u32(0x000007E0));
                 odev_hi = vmovn_u32(vorrq_u32(wn1, wn2));
-                
+
                 vst1_u16(device, odev_lo);
                 vst1_u16(device+4, odev_hi);
-                
+
                 device += UNROLL;
                 alpha += UNROLL;
                 w -= UNROLL;
             } while (w >= UNROLL);
         }
-        
+
         /* residuals (which is everything if we have no neon) */
         while (w > 0) {
             *device = blend_compact(expanded32, SkExpand_rgb_16(*device),
@@ -466,7 +464,7 @@ void SkRGB16_Opaque_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
         device = (uint16_t*)((char*)device + deviceRB);
         alpha += maskRB;
     } while (--height != 0);
-#undef	UNROLL
+#undef    UNROLL
 #else   // non-neon code
     do {
         int w = width;
@@ -484,7 +482,7 @@ void SkRGB16_Opaque_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
 void SkRGB16_Opaque_Blitter::blitV(int x, int y, int height, SkAlpha alpha) {
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
     unsigned    deviceRB = fDevice.rowBytes();
-    
+
     // TODO: respect fDoDither
     unsigned scale5 = SkAlpha255To256(alpha) >> 3;
     uint32_t src32 =  fExpandedRaw16 * scale5;
@@ -572,7 +570,7 @@ static inline void blend32_16_row(SkPMColor src, uint16_t dst[], int count) {
     } while (--count != 0);
 }
 
-void SkRGB16_Blitter::blitH(int x, int y, int width) SK_RESTRICT {
+void SkRGB16_Blitter::blitH(int x, int y, int width) {
     SkASSERT(width > 0);
     SkASSERT(x + width <= fDevice.width());
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
@@ -583,7 +581,7 @@ void SkRGB16_Blitter::blitH(int x, int y, int width) SK_RESTRICT {
 
 void SkRGB16_Blitter::blitAntiH(int x, int y,
                                 const SkAlpha* SK_RESTRICT antialias,
-                                const int16_t* SK_RESTRICT runs) SK_RESTRICT {
+                                const int16_t* SK_RESTRICT runs) {
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
     uint32_t    srcExpanded = fExpandedRaw16;
     unsigned    scale = fScale;
@@ -632,15 +630,15 @@ static inline void blend_8_pixels(U8CPU bw, uint16_t dst[], unsigned dst_scale,
 #define SK_BLITBWMASK_DEVTYPE               uint16_t
 #include "SkBlitBWMaskTemplate.h"
 
-void SkRGB16_Blitter::blitMask(const SkMask& SK_RESTRICT mask,
-                               const SkIRect& SK_RESTRICT clip) SK_RESTRICT {
+void SkRGB16_Blitter::blitMask(const SkMask& mask,
+                               const SkIRect& clip) {
     if (mask.fFormat == SkMask::kBW_Format) {
         SkRGB16_BlendBW(fDevice, mask, clip, 256 - fScale, fColor16);
         return;
     }
 
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(clip.fLeft, clip.fTop);
-    const uint8_t* SK_RESTRICT alpha = mask.getAddr(clip.fLeft, clip.fTop);
+    const uint8_t* SK_RESTRICT alpha = mask.getAddr8(clip.fLeft, clip.fTop);
     int width = clip.width();
     int height = clip.height();
     unsigned    deviceRB = fDevice.rowBytes() - (width << 1);
@@ -697,7 +695,7 @@ SkRGB16_Shader16_Blitter::SkRGB16_Shader16_Blitter(const SkBitmap& device,
     SkASSERT(SkShader::CanCallShadeSpan16(fShaderFlags));
 }
 
-void SkRGB16_Shader16_Blitter::blitH(int x, int y, int width) SK_RESTRICT {
+void SkRGB16_Shader16_Blitter::blitH(int x, int y, int width) {
     SkASSERT(x + width <= fDevice.width());
 
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
@@ -760,8 +758,7 @@ void SkRGB16_Shader16_Blitter::blitRect(int x, int y, int width, int height) {
 
 void SkRGB16_Shader16_Blitter::blitAntiH(int x, int y,
                                          const SkAlpha* SK_RESTRICT antialias,
-                                         const int16_t* SK_RESTRICT runs)
-                                         SK_RESTRICT {
+                                         const int16_t* SK_RESTRICT runs) {
     SkShader*   shader = fShader;
     SkPMColor* SK_RESTRICT span = fBuffer;
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
@@ -824,7 +821,7 @@ SkRGB16_Shader_Blitter::SkRGB16_Shader_Blitter(const SkBitmap& device,
 
     // compute SkBlitRow::Procs
     unsigned flags = 0;
-    
+
     uint32_t shaderFlags = fShaderFlags;
     // shaders take care of global alpha, so we never set it in SkBlitRow
     if (!(shaderFlags & SkShader::kOpaqueAlpha_Flag)) {
@@ -893,8 +890,7 @@ static inline int count_nonzero_span(const int16_t runs[], const SkAlpha aa[]) {
 
 void SkRGB16_Shader_Blitter::blitAntiH(int x, int y,
                                        const SkAlpha* SK_RESTRICT antialias,
-                                       const int16_t* SK_RESTRICT runs)
-                                       SK_RESTRICT {
+                                       const int16_t* SK_RESTRICT runs) {
     SkShader*   shader = fShader;
     SkPMColor* SK_RESTRICT span = fBuffer;
     uint16_t* SK_RESTRICT device = fDevice.getAddr16(x, y);
@@ -971,7 +967,7 @@ void SkRGB16_Shader_Xfermode_Blitter::blitH(int x, int y, int width) {
 
 void SkRGB16_Shader_Xfermode_Blitter::blitAntiH(int x, int y,
                                 const SkAlpha* SK_RESTRICT antialias,
-                                const int16_t* SK_RESTRICT runs) SK_RESTRICT {
+                                const int16_t* SK_RESTRICT runs) {
     SkShader*   shader = fShader;
     SkXfermode* mode = fXfermode;
     SkPMColor* SK_RESTRICT span = fBuffer;
@@ -1021,7 +1017,7 @@ void SkRGB16_Shader_Xfermode_Blitter::blitAntiH(int x, int y,
             SkASSERT(count > 0);
             aa = *antialias;
         }
-    } 
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1064,6 +1060,6 @@ SkBlitter* SkBlitter_ChooseD565(const SkBitmap& device, const SkPaint& paint,
                                   storageSize, (device, paint));
         }
     }
-    
+
     return blitter;
 }

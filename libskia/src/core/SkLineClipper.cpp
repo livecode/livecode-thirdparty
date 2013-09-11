@@ -1,4 +1,26 @@
+
+/*
+ * Copyright 2011 Google Inc.
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
 #include "SkLineClipper.h"
+
+template <typename T> T pin_unsorted(T value, T limit0, T limit1) {
+    if (limit1 < limit0) {
+        SkTSwap(limit0, limit1);
+    }
+    // now the limits are sorted
+    SkASSERT(limit0 <= limit1);
+
+    if (value < limit0) {
+        value = limit0;
+    } else if (value > limit1) {
+        value = limit1;
+    }
+    return value;
+}
 
 // return X coordinate of intersection with horizontal line at Y
 static SkScalar sect_with_horizontal(const SkPoint src[2], SkScalar Y) {
@@ -6,8 +28,23 @@ static SkScalar sect_with_horizontal(const SkPoint src[2], SkScalar Y) {
     if (SkScalarNearlyZero(dy)) {
         return SkScalarAve(src[0].fX, src[1].fX);
     } else {
+#ifdef SK_SCALAR_IS_FLOAT
+        // need the extra precision so we don't compute a value that exceeds
+        // our original limits
+        double X0 = src[0].fX;
+        double Y0 = src[0].fY;
+        double X1 = src[1].fX;
+        double Y1 = src[1].fY;
+        double result = X0 + ((double)Y - Y0) * (X1 - X0) / (Y1 - Y0);
+
+        // The computed X value might still exceed [X0..X1] due to quantum flux
+        // when the doubles were added and subtracted, so we have to pin the
+        // answer :(
+        return (float)pin_unsorted(result, X0, X1);
+#else
         return src[0].fX + SkScalarMulDiv(Y - src[0].fY, src[1].fX - src[0].fX,
                                           dy);
+#endif
     }
 }
 
@@ -17,8 +54,19 @@ static SkScalar sect_with_vertical(const SkPoint src[2], SkScalar X) {
     if (SkScalarNearlyZero(dx)) {
         return SkScalarAve(src[0].fY, src[1].fY);
     } else {
+#ifdef SK_SCALAR_IS_FLOAT
+        // need the extra precision so we don't compute a value that exceeds
+        // our original limits
+        double X0 = src[0].fX;
+        double Y0 = src[0].fY;
+        double X1 = src[1].fX;
+        double Y1 = src[1].fY;
+        double result = Y0 + ((double)X - X0) * (Y1 - Y0) / (X1 - X0);
+        return (float)result;
+#else
         return src[0].fY + SkScalarMulDiv(X - src[0].fX, src[1].fY - src[0].fY,
                                           dx);
+#endif
     }
 }
 
@@ -39,7 +87,7 @@ static inline bool containsNoEmptyCheck(const SkRect& outer,
 bool SkLineClipper::IntersectLine(const SkPoint src[2], const SkRect& clip,
                                   SkPoint dst[2]) {
     SkRect bounds;
-    
+
     bounds.set(src, 2);
     if (containsNoEmptyCheck(clip, bounds)) {
         if (src != dst) {
@@ -57,7 +105,7 @@ bool SkLineClipper::IntersectLine(const SkPoint src[2], const SkRect& clip,
     }
 
     int index0, index1;
-    
+
     if (src[0].fY < src[1].fY) {
         index0 = 0;
         index1 = 1;
@@ -76,7 +124,7 @@ bool SkLineClipper::IntersectLine(const SkPoint src[2], const SkRect& clip,
     if (tmp[index1].fY > clip.fBottom) {
         tmp[index1].set(sect_with_horizontal(src, clip.fBottom), clip.fBottom);
     }
-    
+
     if (tmp[0].fX < tmp[1].fX) {
         index0 = 0;
         index1 = 1;
@@ -106,8 +154,50 @@ bool SkLineClipper::IntersectLine(const SkPoint src[2], const SkRect& clip,
     return true;
 }
 
+#ifdef SK_DEBUG
+// return value between the two limits, where the limits are either ascending
+// or descending.
+static bool is_between_unsorted(SkScalar value,
+                                SkScalar limit0, SkScalar limit1) {
+    if (limit0 < limit1) {
+        return limit0 <= value && value <= limit1;
+    } else {
+        return limit1 <= value && value <= limit0;
+    }
+}
+#endif
+
+#ifdef SK_SCALAR_IS_FLOAT
+#ifdef SK_DEBUG
+// This is an example of why we need to pin the result computed in
+// sect_with_horizontal. If we didn't explicitly pin, is_between_unsorted would
+// fail.
+//
+static void sect_with_horizontal_test_for_pin_results() {
+    const SkPoint pts[] = {
+        { -540000,    -720000 },
+        { SkFloatToScalar(-9.10000017e-05f), SkFloatToScalar(9.99999996e-13f) }
+    };
+    float x = sect_with_horizontal(pts, 0);
+    SkASSERT(is_between_unsorted(x, pts[0].fX, pts[1].fX));
+}
+#endif
+#endif
+
 int SkLineClipper::ClipLine(const SkPoint pts[], const SkRect& clip,
                             SkPoint lines[]) {
+#ifdef SK_SCALAR_IS_FLOAT
+#ifdef SK_DEBUG
+    {
+        static bool gOnce;
+        if (!gOnce) {
+            sect_with_horizontal_test_for_pin_results();
+            gOnce = true;
+        }
+    }
+#endif
+#endif
+
     int index0, index1;
 
     if (pts[0].fY < pts[1].fY) {
@@ -126,7 +216,7 @@ int SkLineClipper::ClipLine(const SkPoint pts[], const SkRect& clip,
     if (pts[index0].fY >= clip.fBottom) {  // we're below the clip
         return 0;
     }
-    
+
     // Chop in Y to produce a single segment, stored in tmp[0..1]
 
     SkPoint tmp[2];
@@ -135,9 +225,11 @@ int SkLineClipper::ClipLine(const SkPoint pts[], const SkRect& clip,
     // now compute intersections
     if (pts[index0].fY < clip.fTop) {
         tmp[index0].set(sect_with_horizontal(pts, clip.fTop), clip.fTop);
+        SkASSERT(is_between_unsorted(tmp[index0].fX, pts[0].fX, pts[1].fX));
     }
     if (tmp[index1].fY > clip.fBottom) {
         tmp[index1].set(sect_with_horizontal(pts, clip.fBottom), clip.fBottom);
+        SkASSERT(is_between_unsorted(tmp[index1].fX, pts[0].fX, pts[1].fX));
     }
 
     // Chop it into 1..3 segments that are wholly within the clip in X.
@@ -169,18 +261,20 @@ int SkLineClipper::ClipLine(const SkPoint pts[], const SkRect& clip,
     } else {
         result = resultStorage;
         SkPoint* r = result;
-        
+
         if (tmp[index0].fX < clip.fLeft) {
             r->set(clip.fLeft, tmp[index0].fY);
             r += 1;
-            r->set(clip.fLeft, sect_with_vertical(pts, clip.fLeft));
+            r->set(clip.fLeft, sect_with_vertical(tmp, clip.fLeft));
+            SkASSERT(is_between_unsorted(r->fY, tmp[0].fY, tmp[1].fY));
         } else {
             *r = tmp[index0];
         }
         r += 1;
 
         if (tmp[index1].fX > clip.fRight) {
-            r->set(clip.fRight, sect_with_vertical(pts, clip.fRight));
+            r->set(clip.fRight, sect_with_vertical(tmp, clip.fRight));
+            SkASSERT(is_between_unsorted(r->fY, tmp[0].fY, tmp[1].fY));
             r += 1;
             r->set(clip.fRight, tmp[index1].fY);
         } else {

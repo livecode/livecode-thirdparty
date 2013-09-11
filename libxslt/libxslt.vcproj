@@ -39,6 +39,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)include\libxslt&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;libxslt_STATIC_FOR_DLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -98,6 +99,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)include\libxslt&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;libxslt_STATIC_FOR_DLL"
 				UsePrecompiledHeader="0"
 				DebugInformationFormat="3"
@@ -140,83 +142,43 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\buf.c"
+				RelativePath=".\src\attributes.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\c14n.c"
+				RelativePath=".\src\attrvt.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\catalog.c"
+				RelativePath=".\src\documents.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\chvalid.c"
+				RelativePath=".\src\extensions.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\debugXML.c"
+				RelativePath=".\src\extra.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\dict.c"
+				RelativePath=".\src\functions.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\DOCBparser.c"
+				RelativePath=".\src\imports.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\encoding.c"
+				RelativePath=".\src\keys.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\entities.c"
+				RelativePath=".\src\namespaces.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\error.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\globals.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\hash.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\HTMLparser.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\HTMLtree.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\legacy.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\list.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\nanoftp.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\nanohttp.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\parser.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\parserInternals.c"
+				RelativePath=".\src\numbers.c"
 				>
 			</File>
 			<File
@@ -224,107 +186,35 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\relaxng.c"
+				RelativePath=".\src\preproc.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\SAX.c"
+				RelativePath=".\src\security.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\SAX2.c"
+				RelativePath=".\src\templates.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\schematron.c"
+				RelativePath=".\src\transform.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\threads.c"
+				RelativePath=".\src\variables.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\tree.c"
+				RelativePath=".\src\xslt.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\trio.c"
+				RelativePath=".\src\xsltlocale.c"
 				>
 			</File>
 			<File
-				RelativePath=".\src\trionan.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\triostr.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\uri.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\valid.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xinclude.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xlink.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlIO.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlmemory.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlmodule.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlreader.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlregexp.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlsave.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlschemas.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlschemastypes.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlstring.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlunicode.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xmlwriter.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xpath.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\xpointer.c"
+				RelativePath=".\src\xsltutils.c"
 				>
 			</File>
 		</Filter>
@@ -334,47 +224,111 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\src\acconfig.h"
+				RelativePath=".\include\libxslt\attributes.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\config.h"
+				RelativePath=".\include\libxslt\config.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\elfgcchack.h"
+				RelativePath=".\include\libxslt\documents.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\libxslt.h"
+				RelativePath=".\include\libxslt\extensions.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\trio.h"
+				RelativePath=".\include\libxslt\extra.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\triodef.h"
+				RelativePath=".\include\libxslt\functions.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\trionan.h"
+				RelativePath=".\include\libxslt\imports.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\triop.h"
+				RelativePath=".\include\libxslt\keys.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\triostr.h"
+				RelativePath=".\include\libxslt\libxslt.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\win32config.h"
+				RelativePath=".\include\libxslt\namespaces.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\wsockcompat.h"
+				RelativePath=".\include\libxslt\numbersInternals.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\pattern.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\preproc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\security.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\templates.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\transform.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\trio.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\triodef.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\variables.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\win32config.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xslt.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xsltconfig.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xsltexports.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xsltInternals.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xsltlocale.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xsltutils.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\libxslt\xsltwin32config.h"
 				>
 			</File>
 		</Filter>

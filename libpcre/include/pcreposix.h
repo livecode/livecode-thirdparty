@@ -9,7 +9,7 @@
 Compatible Regular Expression library. It defines the things POSIX says should
 be there. I hope.
 
-            Copyright (c) 1997-2006 University of Cambridge
+            Copyright (c) 1997-2012 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -50,15 +50,19 @@ POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 #endif
 
-/* Options, mostly defined by POSIX, but with a couple of extras. */
+/* Options, mostly defined by POSIX, but with some extras. */
 
-#define REG_ICASE     0x0001
-#define REG_NEWLINE   0x0002
-#define REG_NOTBOL    0x0004
-#define REG_NOTEOL    0x0008
-#define REG_DOTALL    0x0010   /* NOT defined by POSIX. */
-#define REG_NOSUB     0x0020
-#define REG_UTF8      0x0040   /* NOT defined by POSIX. */
+#define REG_ICASE     0x0001   /* Maps to PCRE_CASELESS */
+#define REG_NEWLINE   0x0002   /* Maps to PCRE_MULTILINE */
+#define REG_NOTBOL    0x0004   /* Maps to PCRE_NOTBOL */
+#define REG_NOTEOL    0x0008   /* Maps to PCRE_NOTEOL */
+#define REG_DOTALL    0x0010   /* NOT defined by POSIX; maps to PCRE_DOTALL */
+#define REG_NOSUB     0x0020   /* Maps to PCRE_NO_AUTO_CAPTURE */
+#define REG_UTF8      0x0040   /* NOT defined by POSIX; maps to PCRE_UTF8 */
+#define REG_STARTEND  0x0080   /* BSD feature: pass subject string by so,eo */
+#define REG_NOTEMPTY  0x0100   /* NOT defined by POSIX; maps to PCRE_NOTEMPTY */
+#define REG_UNGREEDY  0x0200   /* NOT defined by POSIX; maps to PCRE_UNGREEDY */
+#define REG_UCP       0x0400   /* NOT defined by POSIX; maps to PCRE_UCP */
 
 /* This is not used by PCRE, but by defining it we make it easier
 to slot PCRE into existing programs that make POSIX calls. */
@@ -105,40 +109,35 @@ typedef struct {
   regoff_t rm_eo;
 } regmatch_t;
 
-/* Win32 uses DLL by default; it needs special stuff for exported functions
-when building PCRE. */
+/* When an application links to a PCRE DLL in Windows, the symbols that are
+imported have to be identified as such. When building PCRE, the appropriate
+export settings are needed, and are set in pcreposix.c before including this
+file. */
 
-#ifndef PCRE_DATA_SCOPE
-#ifdef _WIN32
-#  ifdef PCRE_DEFINITION
-#    ifdef DLL_EXPORT
-#      define PCRE_DATA_SCOPE __declspec(dllexport)
-#    endif
-#  else
-#    ifndef PCRE_STATIC
-#      define PCRE_DATA_SCOPE extern __declspec(dllimport)
-#    endif
-#  endif
-#endif
+#if defined(_WIN32) && !defined(PCRE_STATIC) && !defined(PCREPOSIX_EXP_DECL)
+#  define PCREPOSIX_EXP_DECL  extern __declspec(dllimport)
+#  define PCREPOSIX_EXP_DEFN  __declspec(dllimport)
 #endif
 
-/* Otherwise, we use the standard "extern". */
+/* By default, we use the standard "extern" declarations. */
 
-#ifndef PCRE_DATA_SCOPE
+#ifndef PCREPOSIX_EXP_DECL
 #  ifdef __cplusplus
-#    define PCRE_DATA_SCOPE     extern "C"
+#    define PCREPOSIX_EXP_DECL  extern "C"
+#    define PCREPOSIX_EXP_DEFN  extern "C"
 #  else
-#    define PCRE_DATA_SCOPE     extern
+#    define PCREPOSIX_EXP_DECL  extern
+#    define PCREPOSIX_EXP_DEFN  extern
 #  endif
 #endif
 
 /* The functions */
 
-PCRE_DATA_SCOPE int regcomp(regex_t *, const char *, int);
-PCRE_DATA_SCOPE int regexec(const regex_t *, const char *, size_t,
-                  regmatch_t *, int);
-PCRE_DATA_SCOPE size_t regerror(int, const regex_t *, char *, size_t);
-PCRE_DATA_SCOPE void regfree(regex_t *);
+PCREPOSIX_EXP_DECL int regcomp(regex_t *, const char *, int);
+PCREPOSIX_EXP_DECL int regexec(const regex_t *, const char *, size_t,
+                     regmatch_t *, int);
+PCREPOSIX_EXP_DECL size_t regerror(int, const regex_t *, char *, size_t);
+PCREPOSIX_EXP_DECL void regfree(regex_t *);
 
 #ifdef __cplusplus
 }   /* extern "C" */

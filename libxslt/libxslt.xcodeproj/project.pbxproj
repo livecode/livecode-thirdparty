@@ -77,7 +77,7 @@
 		4DE75E0D17E08E7B00832B1D /* xsltlocale.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = xsltlocale.h; path = include/libxslt/xsltlocale.h; sourceTree = "<group>"; };
 		4DE75E0E17E08E7B00832B1D /* xsltutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = xsltutils.h; path = include/libxslt/xsltutils.h; sourceTree = "<group>"; };
 		4DE75E0F17E08E7B00832B1D /* xsltwin32config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = xsltwin32config.h; path = include/libxslt/xsltwin32config.h; sourceTree = "<group>"; };
-		D2AAC046055464E500DB518D /* libxml.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libxml.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D2AAC046055464E500DB518D /* libxslt.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libxslt.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,7 +132,7 @@
 		1AB674ADFE9D54B511CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D2AAC046055464E500DB518D /* libxml.a */,
+				D2AAC046055464E500DB518D /* libxslt.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -203,7 +203,7 @@
 			);
 			name = libxslt;
 			productName = libxslt;
-			productReference = D2AAC046055464E500DB518D /* libxml.a */;
+			productReference = D2AAC046055464E500DB518D /* libxslt.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -260,16 +260,14 @@
 		1DEB91EC08733DB70010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = xml;
-				USER_HEADER_SEARCH_PATHS = ./include;
+				PRODUCT_NAME = xslt;
 			};
 			name = Debug;
 		};
 		1DEB91ED08733DB70010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = xml;
-				USER_HEADER_SEARCH_PATHS = ./include;
+				PRODUCT_NAME = xslt;
 			};
 			name = Release;
 		};

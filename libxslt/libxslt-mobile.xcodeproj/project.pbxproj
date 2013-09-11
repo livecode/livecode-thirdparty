@@ -32,7 +32,7 @@
 		4D7EFD6312E72A5A00D67888 /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../../rules/Debug Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4D7EFD6412E72A5A00D67888 /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../../rules/Release Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4D7EFD6512E72A5A00D67888 /* Global Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Global Mobile.xcconfig"; path = "../../rules/Global Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
-		4D7EFD7A12E72ABA00D67888 /* libxml.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libxml.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D7EFD7A12E72ABA00D67888 /* libxslt.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libxslt.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		4DE75E5C17E0949E00832B1D /* attributes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = attributes.h; path = include/libxslt/attributes.h; sourceTree = "<group>"; };
 		4DE75E5D17E0949E00832B1D /* documents.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = documents.h; path = include/libxslt/documents.h; sourceTree = "<group>"; };
 		4DE75E5E17E0949E00832B1D /* extensions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = extensions.h; path = include/libxslt/extensions.h; sourceTree = "<group>"; };
@@ -114,7 +114,7 @@
 		4D7EFD7B12E72ABA00D67888 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4D7EFD7A12E72ABA00D67888 /* libxml.a */,
+				4D7EFD7A12E72ABA00D67888 /* libxslt.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -181,9 +181,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4D7EFD7912E72ABA00D67888 /* xml */ = {
+		4D7EFD7912E72ABA00D67888 /* xslt */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4D7EFD7E12E72ABB00D67888 /* Build configuration list for PBXNativeTarget "xml" */;
+			buildConfigurationList = 4D7EFD7E12E72ABB00D67888 /* Build configuration list for PBXNativeTarget "xslt" */;
 			buildPhases = (
 				4D7EFD7712E72ABA00D67888 /* Sources */,
 				4D7EFD7812E72ABA00D67888 /* Frameworks */,
@@ -192,9 +192,9 @@
 			);
 			dependencies = (
 			);
-			name = xml;
+			name = xslt;
 			productName = template;
-			productReference = 4D7EFD7A12E72ABA00D67888 /* libxml.a */;
+			productReference = 4D7EFD7A12E72ABA00D67888 /* libxslt.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -217,7 +217,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4D7EFD7912E72ABA00D67888 /* xml */,
+				4D7EFD7912E72ABA00D67888 /* xslt */,
 			);
 		};
 /* End PBXProject section */
@@ -271,14 +271,14 @@
 		4D7EFD7C12E72ABB00D67888 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = xml;
+				PRODUCT_NAME = xslt;
 			};
 			name = Debug;
 		};
 		4D7EFD7D12E72ABB00D67888 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = xml;
+				PRODUCT_NAME = xslt;
 			};
 			name = Release;
 		};
@@ -294,7 +294,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4D7EFD7E12E72ABB00D67888 /* Build configuration list for PBXNativeTarget "xml" */ = {
+		4D7EFD7E12E72ABB00D67888 /* Build configuration list for PBXNativeTarget "xslt" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4D7EFD7C12E72ABB00D67888 /* Debug */,

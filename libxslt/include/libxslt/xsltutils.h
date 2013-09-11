@@ -12,7 +12,7 @@
 #ifndef __XML_XSLTUTILS_H__
 #define __XML_XSLTUTILS_H__
 
-#include <xsltconfig.h>
+#include <libxslt/xsltconfig.h>
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
 #endif

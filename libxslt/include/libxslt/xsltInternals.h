@@ -19,7 +19,7 @@
 #include <libxml/xmlerror.h>
 #include <libxml/dict.h>
 #include <libxml/xmlstring.h>
-#include "xslt.h"
+#include <libxslt/xslt.h>
 #include "xsltexports.h"
 #include "xsltlocale.h"
 #include "numbersInternals.h"

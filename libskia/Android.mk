@@ -118,6 +118,7 @@ LOCAL_SRC_FILES := \
 		SkShader.cpp \
 		SkSpriteBlitter_ARGB32.cpp \
 		SkSpriteBlitter_RGB16.cpp \
+		SkStippleMaskFilter.cpp \
 		SkStream.cpp \
 		SkString.cpp \
 		SkStroke.cpp \

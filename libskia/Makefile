@@ -43,7 +43,7 @@ SRC_EFFECTS_GRADIENTS=SkBitmapCache.cpp SkClampRange.cpp SkGradientShader.cpp \
 	SkLinearGradient.cpp SkRadialGradient.cpp SkSweepGradient.cpp \
 	SkTwoPointConicalGradient.cpp SkTwoPointRadialGradient.cpp
 	
-SRC_EFFECTS=SkDashPathEffect.cpp SkColorFilters.cpp SkSingleInputImageFilter.cpp SkLayerDrawLooper.cpp SkBlurMask.cpp SkBlurMaskFilter.cpp SkOffsetImageFilter.cpp $(addprefix gradients/,$(SRC_EFFECTS_GRADIENTS))
+SRC_EFFECTS=SkDashPathEffect.cpp SkColorFilters.cpp SkSingleInputImageFilter.cpp SkLayerDrawLooper.cpp SkBlurMask.cpp SkBlurMaskFilter.cpp SkOffsetImageFilter.cpp SkStippleMaskFilter.cpp $(addprefix gradients/,$(SRC_EFFECTS_GRADIENTS))
 
 SRC_UTILS=SkOSFile.cpp
 	

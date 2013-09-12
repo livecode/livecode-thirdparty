@@ -4,9 +4,9 @@ TYPE=archive
 include ../../rules/environment.linux.makefile
 
 SOURCES=attributes.c attrvt.c documents.c extensions.c \
-	functions.c imports.c keys.c namespaces.c \
+	functions.c imports.c keys.c namespaces.c extra.c \
 	numbers.c pattern.c preproc.c templates.c transform.c \
-	variables.c xslt.c xsltlocale.c xsltutils.c
+	variables.c xslt.c xsltlocale.c xsltutils.c security.c
 
 CUSTOM_DEFINES=
 

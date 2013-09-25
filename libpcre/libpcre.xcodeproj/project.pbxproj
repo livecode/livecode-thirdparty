@@ -14,6 +14,7 @@
 		17EF8A7617DF75800014E17E /* pcre_newline.c in Sources */ = {isa = PBXBuildFile; fileRef = 17EF8A7017DF757F0014E17E /* pcre_newline.c */; };
 		17EF8A7717DF75800014E17E /* pcre_string_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 17EF8A7117DF757F0014E17E /* pcre_string_utils.c */; };
 		17EF8A7817DF75800014E17E /* pcre_ucd.c in Sources */ = {isa = PBXBuildFile; fileRef = 17EF8A7217DF75800014E17E /* pcre_ucd.c */; };
+		17EF8A7A17E05F780014E17E /* pcre_info_fullinfo.c in Sources */ = {isa = PBXBuildFile; fileRef = 17EF8A7917E05F770014E17E /* pcre_info_fullinfo.c */; };
 		4D587D6C0B80933300200116 /* pcre_compile.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D587D500B80933300200116 /* pcre_compile.c */; };
 		4D587D6D0B80933300200116 /* pcre_exec.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D587D510B80933300200116 /* pcre_exec.c */; };
 		4D587D700B80933300200116 /* pcre_fullinfo.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D587D540B80933300200116 /* pcre_fullinfo.c */; };
@@ -38,6 +39,7 @@
 		17EF8A7017DF757F0014E17E /* pcre_newline.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre_newline.c; path = src/pcre_newline.c; sourceTree = "<group>"; };
 		17EF8A7117DF757F0014E17E /* pcre_string_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre_string_utils.c; path = src/pcre_string_utils.c; sourceTree = "<group>"; };
 		17EF8A7217DF75800014E17E /* pcre_ucd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre_ucd.c; path = src/pcre_ucd.c; sourceTree = "<group>"; };
+		17EF8A7917E05F770014E17E /* pcre_info_fullinfo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre_info_fullinfo.c; path = src/pcre_info_fullinfo.c; sourceTree = "<group>"; };
 		4D587D500B80933300200116 /* pcre_compile.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = pcre_compile.c; path = src/pcre_compile.c; sourceTree = "<group>"; };
 		4D587D510B80933300200116 /* pcre_exec.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = pcre_exec.c; path = src/pcre_exec.c; sourceTree = "<group>"; };
 		4D587D530B80933300200116 /* config.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = config.h; path = src/config.h; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 				4D587D630B80933300200116 /* pcre_version.c */,
 				4D587D640B80933300200116 /* pcre_xclass.c */,
 				4D587D680B80933300200116 /* ucp.h */,
+				17EF8A7917E05F770014E17E /* pcre_info_fullinfo.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -212,6 +215,7 @@
 				17EF8A7617DF75800014E17E /* pcre_newline.c in Sources */,
 				17EF8A7717DF75800014E17E /* pcre_string_utils.c in Sources */,
 				17EF8A7817DF75800014E17E /* pcre_ucd.c in Sources */,
+				17EF8A7A17E05F780014E17E /* pcre_info_fullinfo.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

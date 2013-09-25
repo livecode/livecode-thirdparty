@@ -580,6 +580,10 @@ PCRE_EXP_DECL void pcre32_free_substring(PCRE_SPTR32);
 PCRE_EXP_DECL void pcre_free_substring_list(const char **);
 PCRE_EXP_DECL void pcre16_free_substring_list(PCRE_SPTR16 *);
 PCRE_EXP_DECL void pcre32_free_substring_list(PCRE_SPTR32 *);
+// TDZ-2013-09-11 [[ Wrapper pcre_info / pcre_fullinfo ]]
+// PCRE_DATA_SCOPE int  pcre_info(const pcre *, int *, int *);
+PCRE_EXP_DECL int  pcre_info(const pcre *, int *, int *);
+    
 PCRE_EXP_DECL int  pcre_fullinfo(const pcre *, const pcre_extra *, int,
                   void *);
 PCRE_EXP_DECL int  pcre16_fullinfo(const pcre16 *, const pcre16_extra *, int,

@@ -3,6 +3,8 @@ TYPE=archive
 
 include ../../rules/environment.linux.makefile
 
+// TDZ-2013-09-29 : [[ libpcre_8_33 ]]
+
 SOURCES=\
 	pcre_byte_order.c pcre_chartables.c pcre_compile.c pcre_config.c pcre_dfa_exec.c \
 	pcre_exec.c pcre_fullinfo.c pcre_get.c pcre_globals.c pcre_info_fullinfo.c \

@@ -8,16 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		4DBF57B81801A030009CAB2E /* sslstubs.mac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4DBF57B71801A030009CAB2E /* sslstubs.mac.cpp */; };
-		4DBF57CD1801A3F4009CAB2E /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4DBF57CB1801A3EB009CAB2E /* libcrypto.a */; };
-		4DBF57CE1801A3F4009CAB2E /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4DBF57CC1801A3F1009CAB2E /* libssl.a */; };
+		4DBF57CD1801A3F4009CAB2E /* libcustomcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4DBF57CB1801A3EB009CAB2E /* libcustomcrypto.a */; };
+		4DBF57CE1801A3F4009CAB2E /* libcustomssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4DBF57CC1801A3F1009CAB2E /* libcustomssl.a */; };
 		4DBF57D81801A44C009CAB2E /* dummy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4DBF57D71801A447009CAB2E /* dummy.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		4DBF57B71801A030009CAB2E /* sslstubs.mac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = sslstubs.mac.cpp; path = src/sslstubs.mac.cpp; sourceTree = "<group>"; };
 		4DBF57C11801A14C009CAB2E /* revsecurity.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = revsecurity.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		4DBF57CB1801A3EB009CAB2E /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../prebuilt/lib/mac/libcrypto.a; sourceTree = SOURCE_ROOT; };
-		4DBF57CC1801A3F1009CAB2E /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../prebuilt/lib/mac/libssl.a; sourceTree = SOURCE_ROOT; };
+		4DBF57CB1801A3EB009CAB2E /* libcustomcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcustomcrypto.a; path = ../../prebuilt/lib/mac/libcustomcrypto.a; sourceTree = SOURCE_ROOT; };
+		4DBF57CC1801A3F1009CAB2E /* libcustomssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcustomssl.a; path = ../../prebuilt/lib/mac/libcustomssl.a; sourceTree = SOURCE_ROOT; };
 		4DBF57D71801A447009CAB2E /* dummy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dummy.cpp; path = src/dummy.cpp; sourceTree = "<group>"; };
 		4DCDCA230B80890D0040D436 /* Release.xcconfig */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = ../../rules/Release.xcconfig; sourceTree = SOURCE_ROOT; };
 		4DCDCA240B80890D0040D436 /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = ../../rules/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
@@ -30,8 +30,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4DBF57CD1801A3F4009CAB2E /* libcrypto.a in Frameworks */,
-				4DBF57CE1801A3F4009CAB2E /* libssl.a in Frameworks */,
+				4DBF57CD1801A3F4009CAB2E /* libcustomcrypto.a in Frameworks */,
+				4DBF57CE1801A3F4009CAB2E /* libcustomssl.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -79,8 +79,8 @@
 		4DBF57C51801A3E1009CAB2E /* Prebuilts */ = {
 			isa = PBXGroup;
 			children = (
-				4DBF57CB1801A3EB009CAB2E /* libcrypto.a */,
-				4DBF57CC1801A3F1009CAB2E /* libssl.a */,
+				4DBF57CB1801A3EB009CAB2E /* libcustomcrypto.a */,
+				4DBF57CC1801A3F1009CAB2E /* libcustomssl.a */,
 			);
 			name = Prebuilts;
 			sourceTree = "<group>";
@@ -126,6 +126,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4DBF57C41801A1C7009CAB2E /* Build configuration list for PBXNativeTarget "revsecurity" */;
 			buildPhases = (
+				4DBF59081802AD73009CAB2E /* List Stubs */,
 				4DBF57BD1801A14C009CAB2E /* Headers */,
 				4DBF57BE1801A14C009CAB2E /* Sources */,
 				4DBF57BF1801A14C009CAB2E /* Frameworks */,
@@ -199,6 +200,23 @@
 			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.mac.cpp\"\n";
 			showEnvVarsInLog = 0;
 		};
+		4DBF59081802AD73009CAB2E /* List Stubs */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/ssl.stubs",
+			);
+			name = "List Stubs";
+			outputPaths = (
+				"$(SRCROOT)/sslstubs.mac.symlist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/list_stub_symbols.lc\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.mac.symlist\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -254,11 +272,11 @@
 		4DBF57C21801A14D009CAB2E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				EXPORTED_SYMBOLS_FILE = "$(SRCROOT)/sslstubs.mac.symlist";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../prebuilt/lib/mac\"",
 				);
-				OTHER_LDFLAGS = "-all_load";
 				PRODUCT_NAME = revsecurity;
 			};
 			name = Debug;
@@ -267,11 +285,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				EXPORTED_SYMBOLS_FILE = "$(SRCROOT)/sslstubs.mac.symlist";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../prebuilt/lib/mac\"",
 				);
-				OTHER_LDFLAGS = "-all_load";
 				PRODUCT_NAME = revsecurity;
 			};
 			name = Release;

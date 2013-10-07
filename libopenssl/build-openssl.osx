@@ -94,5 +94,5 @@ done
 
 echo "Creating prebuilts"
 mkdir -p "$THIS_DIR/../../prebuilt/lib/mac"
-lipo -create $CRYPTO_LIBS -output "$THIS_DIR/../../prebuilt/lib/mac/libcrypto.a"
-lipo -create $SSL_LIBS -output "$THIS_DIR/../../prebuilt/lib/mac/libssl.a"
+lipo -create $CRYPTO_LIBS -output "$THIS_DIR/../../prebuilt/lib/mac/libcustomcrypto.a"
+lipo -create $SSL_LIBS -output "$THIS_DIR/../../prebuilt/lib/mac/libcustomssl.a"

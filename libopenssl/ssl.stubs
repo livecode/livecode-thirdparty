@@ -1,4 +1,4 @@
-crypto revsecurity.so libcrypto.0.9.7.dylib revsecurity.dll
+crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	OpenSSL_add_all_ciphers: () -> ()
 	OPENSSL_add_all_algorithms_noconf: () -> ()
 
@@ -177,7 +177,7 @@ crypto revsecurity.so libcrypto.0.9.7.dylib revsecurity.dll
 	
 	GENERAL_NAMES_free: (pointer) -> ()
 
-ssl revsecurity.so libssl.0.9.7.dylib revsecurity.dll
+ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_new: (pointer) -> (pointer)
 	SSL_free: (pointer) -> ()
 	SSL_accept: (pointer) -> (integer)

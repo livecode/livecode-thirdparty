@@ -7,32 +7,30 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4D88B93E15F54BCA002CFBD6 /* dgif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93715F54BCA002CFBD6 /* dgif_lib.c */; };
-		4D88B93F15F54BCA002CFBD6 /* egif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93815F54BCA002CFBD6 /* egif_lib.c */; };
-		4D88B94015F54BCA002CFBD6 /* gif_err.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93915F54BCA002CFBD6 /* gif_err.c */; };
-		4D88B94115F54BCA002CFBD6 /* gif_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93A15F54BCA002CFBD6 /* gif_font.c */; };
-		4D88B94215F54BCA002CFBD6 /* gif_hash.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93B15F54BCA002CFBD6 /* gif_hash.c */; };
-		4D88B94315F54BCA002CFBD6 /* gifalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93C15F54BCA002CFBD6 /* gifalloc.c */; };
-		4D88B94415F54BCA002CFBD6 /* quantize.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D88B93D15F54BCA002CFBD6 /* quantize.c */; };
+		4DBF59BE1802BD5F009CAB2E /* sslstubs.ios.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4DBF59BD1802BD5F009CAB2E /* sslstubs.ios.cpp */; };
+		4DBF5AE91802CBAF009CAB2E /* libinfo.ios.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4DBF5AE81802CBAF009CAB2E /* libinfo.ios.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		4D88B93715F54BCA002CFBD6 /* dgif_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dgif_lib.c; path = src/dgif_lib.c; sourceTree = "<group>"; };
-		4D88B93815F54BCA002CFBD6 /* egif_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = egif_lib.c; path = src/egif_lib.c; sourceTree = "<group>"; };
-		4D88B93915F54BCA002CFBD6 /* gif_err.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_err.c; path = src/gif_err.c; sourceTree = "<group>"; };
-		4D88B93A15F54BCA002CFBD6 /* gif_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_font.c; path = src/gif_font.c; sourceTree = "<group>"; };
-		4D88B93B15F54BCA002CFBD6 /* gif_hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_hash.c; path = src/gif_hash.c; sourceTree = "<group>"; };
-		4D88B93C15F54BCA002CFBD6 /* gifalloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gifalloc.c; path = src/gifalloc.c; sourceTree = "<group>"; };
-		4D88B93D15F54BCA002CFBD6 /* quantize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = quantize.c; path = src/quantize.c; sourceTree = "<group>"; };
-		4D88B94515F54BD4002CFBD6 /* gif_hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_hash.h; path = src/gif_hash.h; sourceTree = "<group>"; };
-		4D88B94615F54BD4002CFBD6 /* gif_lib_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_lib_private.h; path = src/gif_lib_private.h; sourceTree = "<group>"; };
+		4DBF59BD1802BD5F009CAB2E /* sslstubs.ios.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = sslstubs.ios.cpp; path = src/sslstubs.ios.cpp; sourceTree = "<group>"; };
+		4DBF5ABF1802C0E7009CAB2E /* librevsecurity.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = librevsecurity.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DBF5AC71802C3B3009CAB2E /* dummy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dummy.cpp; path = src/dummy.cpp; sourceTree = "<group>"; };
+		4DBF5AE81802CBAF009CAB2E /* libinfo.ios.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = libinfo.ios.cpp; path = src/libinfo.ios.cpp; sourceTree = "<group>"; };
+		4DBF5AFE1802E1F2009CAB2E /* revsecurity.ios */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = revsecurity.ios; sourceTree = "<group>"; };
 		4DD3DF451040B04D00CAC7EF /* Global Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Global Mobile.xcconfig"; path = "../../rules/Global Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4DD3DF461040B04D00CAC7EF /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../../rules/Debug Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4DD3DF4A1040B13E00CAC7EF /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../../rules/Release Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
-		4DD3E0181040BB5D00CAC7EF /* libgifmobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgifmobile.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DD3E0181040BB5D00CAC7EF /* libopensslmobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libopensslmobile.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4DBF5ABD1802C0E7009CAB2E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4DD3E0161040BB5D00CAC7EF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -43,19 +41,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4DBF5AC31802C11C009CAB2E /* Prebuilts */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Prebuilts;
+			sourceTree = "<group>";
+		};
 		4DD3DD7B1040AA4700CAC7EF = {
 			isa = PBXGroup;
 			children = (
+				4DBF5AC31802C11C009CAB2E /* Prebuilts */,
 				4DD3DF3A1040B03B00CAC7EF /* Configurations */,
 				4DD3DDAC1040ABB000CAC7EF /* Sources */,
 				4DD3DD9A1040AA9A00CAC7EF /* Products */,
+				4DBF5AFE1802E1F2009CAB2E /* revsecurity.ios */,
 			);
 			sourceTree = "<group>";
 		};
 		4DD3DD9A1040AA9A00CAC7EF /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4DD3E0181040BB5D00CAC7EF /* libgifmobile.a */,
+				4DD3E0181040BB5D00CAC7EF /* libopensslmobile.a */,
+				4DBF5ABF1802C0E7009CAB2E /* librevsecurity.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -63,15 +71,9 @@
 		4DD3DDAC1040ABB000CAC7EF /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				4D88B94515F54BD4002CFBD6 /* gif_hash.h */,
-				4D88B94615F54BD4002CFBD6 /* gif_lib_private.h */,
-				4D88B93715F54BCA002CFBD6 /* dgif_lib.c */,
-				4D88B93815F54BCA002CFBD6 /* egif_lib.c */,
-				4D88B93915F54BCA002CFBD6 /* gif_err.c */,
-				4D88B93A15F54BCA002CFBD6 /* gif_font.c */,
-				4D88B93B15F54BCA002CFBD6 /* gif_hash.c */,
-				4D88B93C15F54BCA002CFBD6 /* gifalloc.c */,
-				4D88B93D15F54BCA002CFBD6 /* quantize.c */,
+				4DBF5AE81802CBAF009CAB2E /* libinfo.ios.cpp */,
+				4DBF5AC71802C3B3009CAB2E /* dummy.cpp */,
+				4DBF59BD1802BD5F009CAB2E /* sslstubs.ios.cpp */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -89,7 +91,7 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		4DD3E0141040BB5D00CAC7EF /* Headers */ = {
+		4DBF5ABB1802C0E7009CAB2E /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -99,11 +101,30 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		4DD3E0171040BB5D00CAC7EF /* gifmobile */ = {
+		4DBF5ABE1802C0E7009CAB2E /* revsecurity */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4DD3E01B1040BB7C00CAC7EF /* Build configuration list for PBXNativeTarget "gifmobile" */;
+			buildConfigurationList = 4DBF5AC41802C11C009CAB2E /* Build configuration list for PBXNativeTarget "revsecurity" */;
 			buildPhases = (
-				4DD3E0141040BB5D00CAC7EF /* Headers */,
+				4DBF5ACA1802C462009CAB2E /* List Stubs And LibInfo */,
+				4DBF5ABB1802C0E7009CAB2E /* Headers */,
+				4DBF5ABC1802C0E7009CAB2E /* Sources */,
+				4DBF5ABD1802C0E7009CAB2E /* Frameworks */,
+				4DBF5ADA1802C567009CAB2E /* Build Extension */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = revsecurity;
+			productName = revsecurity;
+			productReference = 4DBF5ABF1802C0E7009CAB2E /* librevsecurity.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		4DD3E0171040BB5D00CAC7EF /* opensslmobile */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4DD3E01B1040BB7C00CAC7EF /* Build configuration list for PBXNativeTarget "opensslmobile" */;
+			buildPhases = (
+				4DBF59B91802BD1E009CAB2E /* Build Stubs */,
 				4DD3E0151040BB5D00CAC7EF /* Sources */,
 				4DD3E0161040BB5D00CAC7EF /* Frameworks */,
 			);
@@ -111,9 +132,9 @@
 			);
 			dependencies = (
 			);
-			name = gifmobile;
-			productName = gifmobile;
-			productReference = 4DD3E0181040BB5D00CAC7EF /* libgifmobile.a */;
+			name = opensslmobile;
+			productName = opensslmobile;
+			productReference = 4DD3E0181040BB5D00CAC7EF /* libopensslmobile.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -121,7 +142,7 @@
 /* Begin PBXProject section */
 		4DD3DD7D1040AA4700CAC7EF /* Project object */ = {
 			isa = PBXProject;
-			buildConfigurationList = 4DD3DD801040AA4700CAC7EF /* Build configuration list for PBXProject "libgif-mobile" */;
+			buildConfigurationList = 4DD3DD801040AA4700CAC7EF /* Build configuration list for PBXProject "libopenssl-mobile" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -136,23 +157,81 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4DD3E0171040BB5D00CAC7EF /* gifmobile */,
+				4DD3E0171040BB5D00CAC7EF /* opensslmobile */,
+				4DBF5ABE1802C0E7009CAB2E /* revsecurity */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		4DBF59B91802BD1E009CAB2E /* Build Stubs */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/ssl.stubs",
+			);
+			name = "Build Stubs";
+			outputPaths = (
+				"$(SRCROOT)/src/sslstubs.ios.cpp",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.ios.cpp\"\n";
+		};
+		4DBF5ACA1802C462009CAB2E /* List Stubs And LibInfo */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/ssl.stubs",
+			);
+			name = "List Stubs And LibInfo";
+			outputPaths = (
+				"$(SRCROOT)/sslstubs.ios.symlist",
+				"$(SRCROOT)/src/libinfo.ios.cpp",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/list_stub_symbols.lc\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.ios.symlist\"\n\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/build_libinfo.lc\" \"revsecurity\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/libinfo.ios.cpp\"\n";
+			showEnvVarsInLog = 0;
+		};
+		4DBF5ADA1802C567009CAB2E /* Build Extension */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(EXECUTABLE_NAME)",
+				"$(SRCROOT)/$(PRODUCT_NAME).ios",
+			);
+			name = "Build Extension";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).dylib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "export SYMBOLS=\nexport SYMBOLS_FILE=\"$SRCROOT/sslstubs.ios.symlist\"\nexport STATIC_DEPS=-lcustomcrypto -lcustomssl\nsh \"$SRCROOT/../../tools/build-extension-ios.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
+		4DBF5ABC1802C0E7009CAB2E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DBF5AE91802CBAF009CAB2E /* libinfo.ios.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		4DD3E0151040BB5D00CAC7EF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D88B93E15F54BCA002CFBD6 /* dgif_lib.c in Sources */,
-				4D88B93F15F54BCA002CFBD6 /* egif_lib.c in Sources */,
-				4D88B94015F54BCA002CFBD6 /* gif_err.c in Sources */,
-				4D88B94115F54BCA002CFBD6 /* gif_font.c in Sources */,
-				4D88B94215F54BCA002CFBD6 /* gif_hash.c in Sources */,
-				4D88B94315F54BCA002CFBD6 /* gifalloc.c in Sources */,
-				4D88B94415F54BCA002CFBD6 /* quantize.c in Sources */,
+				4DBF59BE1802BD5F009CAB2E /* sslstubs.ios.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -170,7 +249,7 @@
 		4D75E684113C0E08000A129F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = gifmobile;
+				PRODUCT_NAME = opensslmobile;
 			};
 			name = Release;
 		};
@@ -185,7 +264,32 @@
 		4D8F6FF0113EC9B30056ED41 /* ReleaseDeviceForShark */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = gifmobile;
+				PRODUCT_NAME = opensslmobile;
+			};
+			name = ReleaseDeviceForShark;
+		};
+		4DBF5AC01802C0E8009CAB2E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = "$(SOLUTION_DIR)/prebuilt/lib/ios/$(SDK_NAME)";
+				PRODUCT_NAME = revsecurity;
+			};
+			name = Debug;
+		};
+		4DBF5AC11802C0E8009CAB2E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				LIBRARY_SEARCH_PATHS = "$(SOLUTION_DIR)/prebuilt/lib/ios/$(SDK_NAME)";
+				PRODUCT_NAME = revsecurity;
+			};
+			name = Release;
+		};
+		4DBF5AC21802C0E8009CAB2E /* ReleaseDeviceForShark */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				LIBRARY_SEARCH_PATHS = "$(SOLUTION_DIR)/prebuilt/lib/ios/$(SDK_NAME)";
+				PRODUCT_NAME = revsecurity;
 			};
 			name = ReleaseDeviceForShark;
 		};
@@ -200,14 +304,24 @@
 		4DD3E0191040BB5E00CAC7EF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PRODUCT_NAME = gifmobile;
+				PRODUCT_NAME = opensslmobile;
 			};
 			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4DD3DD801040AA4700CAC7EF /* Build configuration list for PBXProject "libgif-mobile" */ = {
+		4DBF5AC41802C11C009CAB2E /* Build configuration list for PBXNativeTarget "revsecurity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4DBF5AC01802C0E8009CAB2E /* Debug */,
+				4DBF5AC11802C0E8009CAB2E /* Release */,
+				4DBF5AC21802C0E8009CAB2E /* ReleaseDeviceForShark */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4DD3DD801040AA4700CAC7EF /* Build configuration list for PBXProject "libopenssl-mobile" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4DD3DD7E1040AA4700CAC7EF /* Debug */,
@@ -217,7 +331,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4DD3E01B1040BB7C00CAC7EF /* Build configuration list for PBXNativeTarget "gifmobile" */ = {
+		4DD3E01B1040BB7C00CAC7EF /* Build configuration list for PBXNativeTarget "opensslmobile" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				4DD3E0191040BB5E00CAC7EF /* Debug */,

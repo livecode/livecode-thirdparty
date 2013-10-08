@@ -213,7 +213,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export SYMBOLS=\nexport SYMBOLS_FILE=\"$SRCROOT/sslstubs.ios.symlist\"\nexport STATIC_DEPS=-lcustomcrypto -lcustomssl\nsh \"$SRCROOT/../../tools/build-extension-ios.sh\"\n";
+			shellScript = "export SYMBOLS=\nexport SYMBOLS_FILE=\"$SRCROOT/sslstubs.ios.symlist\"\nexport STATIC_DEPS=\"-lcustomcrypto -lcustomssl\"\nsh \"$SRCROOT/../../tools/build-extension-ios.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

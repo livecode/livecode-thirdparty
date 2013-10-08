@@ -20,12 +20,18 @@ mkdir -p $INSTALL_DIR
 
 BUILDS="Xcode_3_2_6,iPhoneSimulator,4.3,i386"
 BUILDS+=" Xcode_4_2_0,iPhoneSimulator,5.0,i386"
-#BUILDS+=" Xcode_4_3_1/Xcode.app/Contents/Developer,iPhoneSimulator,5.1,i386"
-#BUILDS+=" Xcode_4_5_0/Xcode.app/Contents/Developer,iPhoneSimulator,6.0,i386"
-#BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneSimulator,6.1,i386"
+BUILDS+=" Xcode_4_3_1/Xcode.app/Contents/Developer,iPhoneSimulator,5.1,i386"
+if [ -e "$PLATFORMS_DIR/Xcode_4_5_0" ]; then
+	BUILDS+=" Xcode_4_5_0/Xcode.app/Contents/Developer,iPhoneSimulator,6.0,i386"
+fi
+if [ -e "$PLATFORMS_DIR/Xcode_4_6_0" ]; then
+	BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneSimulator,6.1,i386"
+fi
 BUILDS+=" Xcode_4_2_0,iPhoneOS,5.0,armv6|armv7"
-#BUILDS+=" Xcode_4_3_1/Xcode.app/Contents/Developer,iPhoneOS,5.1,armv6|armv7"
-#BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneOS,6.1,armv7"
+BUILDS+=" Xcode_4_3_1/Xcode.app/Contents/Developer,iPhoneOS,5.1,armv6|armv7"
+if [ -e "$PLATFORMS_DIR/Xcode_4_6_0" ]; then
+	BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneOS,6.1,armv7"
+fi
 
 ################################################################################
 #
@@ -74,7 +80,7 @@ do
 		OPENSSL_ARCH_LOG="$OPENSSL_ARCH_SRC.log"
 
 		if [ ! -e $OPENSSL_ARCH_SRC ]; then
-			echo "Unpacking openssl-$OPENSSL_VERSION for $ARCH"
+			echo "Unpacking openssl-$OPENSSL_VERSION for $PLATFORM $VERSION $ARCH"
 			tar xf $OPENSSL_TGZ
 			mv $OPENSSL_SRC $OPENSSL_ARCH_SRC
 			

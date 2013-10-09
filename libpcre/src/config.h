@@ -271,7 +271,7 @@ sure both macros are undefined; an emulation function will then be used. */
 /* #undef PCRE_EXP_DEFN */
 
 /* Define to any value if linking statically (TODO: make nice with Libtool) */
-/* #undef PCRE_STATIC */
+#define PCRE_STATIC 1
 
 /* When calling PCRE via the POSIX interface, additional working storage is
    required for holding the pointers to capturing substrings because PCRE

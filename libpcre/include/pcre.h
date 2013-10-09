@@ -39,6 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef _PCRE_H
 #define _PCRE_H
 
+// MW-2013-10-09: [[ LibPcre833 ]] Define PCRE_STATIC as we only use it in that way.
+#define PCRE_STATIC 1
+
 /* The current PCRE version information. */
 
 #define PCRE_MAJOR          8

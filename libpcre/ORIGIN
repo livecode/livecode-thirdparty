@@ -1,3 +1,6 @@
-Files in this folder are based on pcre-6.7
+Files in this folder are based on pcre-8.33 (previously pcre-6.7)
 
 Original source archives are available from <http://www.pcre.org/>
+
+// TDZ-2013-09-09: [[ libpcre_8_33 ]]
+copy pcre-8.33/pcre.h.in  in libpcre/src/pcre.h

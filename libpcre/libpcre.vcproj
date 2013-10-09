@@ -140,7 +140,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\src\chartables.c"
+				RelativePath=".\src\pcre_byte_order.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre_chartables.c"
 				>
 			</File>
 			<File
@@ -172,11 +176,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\pcre_info.c"
+				RelativePath=".\src\pcre_info_fullinfo.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre_jit_compile.c"
 				>
 			</File>
 			<File
 				RelativePath=".\src\pcre_maketables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre_newline.c"
 				>
 			</File>
 			<File
@@ -188,6 +200,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\pcre_string_utils.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\pcre_study.c"
 				>
 			</File>
@@ -196,11 +212,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\pcre_try_flipped.c"
-				>
-			</File>
-			<File
-				RelativePath=".\src\pcre_ucp_searchfuncs.c"
+				RelativePath=".\src\pcre_ucd.c"
 				>
 			</File>
 			<File
@@ -214,38 +226,6 @@
 			<File
 				RelativePath=".\src\pcre_xclass.c"
 				>
-			</File>
-			<File
-				RelativePath=".\src\pcreposix.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\ucptable.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter

@@ -235,10 +235,8 @@
 		1DEB91ED08733DB70010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				OTHER_CFLAGS = "";
 				PRODUCT_NAME = pcre;
-				VALID_ARCHS = i386;
 			};
 			name = Release;
 		};
@@ -248,7 +246,6 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				OWNER = ..;
-				VALID_ARCHS = i386;
 			};
 			name = Debug;
 		};
@@ -256,9 +253,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DCDCA230B80890D0040D436 /* Release.xcconfig */;
 			buildSettings = {
-				ARCHS = i386;
 				OWNER = ..;
-				VALID_ARCHS = i386;
 			};
 			name = Release;
 		};

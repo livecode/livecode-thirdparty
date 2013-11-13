@@ -135,7 +135,7 @@ if [ $# -eq 1 -a $1 = "osx" ] ; then
 
 	# Combine the various built OSX libraries
 	mkdir -p "${INSTALL_ROOT}/osx/universal/lib"
-	for L in libicu{data,i18n,io,le,lx,tu,uc}.${ICU_VERSION}.a ; do
+	for L in libicu{data,i18n,io,le,lx,tu,uc}.a ; do
 		LIBS=""
 		for A in ppc ppc64 i386 x86_64 ; do
 			if [ -e "${INSTALL_ROOT}/osx/${A}/lib/${L}" ] ; then

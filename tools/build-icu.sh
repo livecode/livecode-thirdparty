@@ -22,7 +22,7 @@ ANDROID_ARMV7="-march=armv7-a -mfloat-abi=softfp -mfpu=neon"
 ANDROID_ARMV6=""
 ANDROID_ARMV5="-mfpu=vfp"
 
-CONFIG_COMMON="--prefix=/ --with-data-packaging=archive --disable-samples --disable-tests"
+CONFIG_COMMON="--disable-shared --enable-static --prefix=/ --with-data-packaging=archive --disable-samples --disable-tests"
 CFLAGS_COMMON="-DU_USING_ICU_NAMESPACE=0 -DUNISTR_FROM_CHAR_EXPLICIT=explicit -DUNISTR_FROM_STRING_EXPLICIT=explicit"
 
 # Set some default makeflags. Will be overridden by explicitly-set makeflags
@@ -135,7 +135,7 @@ if [ $# -eq 1 -a $1 = "osx" ] ; then
 
 	# Combine the various built OSX libraries
 	mkdir -p "${INSTALL_ROOT}/osx/universal/lib"
-	for L in libicu{data,i18n,io,le,lx,tu,uc}.${ICU_VERSION}.dylib ; do
+	for L in libicu{data,i18n,io,le,lx,tu,uc}.${ICU_VERSION}.a ; do
 		LIBS=""
 		for A in ppc ppc64 i386 x86_64 ; do
 			if [ -e "${INSTALL_ROOT}/osx/${A}/lib/${L}" ] ; then
@@ -199,7 +199,7 @@ case ${TRIPLET} in
 		SYSROOT=${SDK}/Platforms/${TARGET}.platform/Developer/SDKs/${TARGET}${VERSION}.sdk
 		export CFLAGS="${CFLAGS} -arch ${ARCH} -isysroot ${SYSROOT}"
 		export LDFLAGS="-L${SYSROOT}/usr/lib -isysroot ${SYSROOT} -Wl,-dead_strip"
-		CONFIG_EXTRA="--host=arm-apple-darwin --with-cross-build=${HOST_BUILD_DIR} --disable-tools --disable-shared --enable-static"
+		CONFIG_EXTRA="--host=arm-apple-darwin --with-cross-build=${HOST_BUILD_DIR} --disable-tools"
 
 		# When building for the iOS simulator for iOS 7.0, the compiler thinks it is building for OSX
 		if [ "${VERSION}" == "7.0" ] ; then
@@ -243,7 +243,7 @@ case ${TRIPLET} in
 
 	android-*)
 		# Android native builds are configured as a Linux cross-compile
-		CONFIG_FLAGS="Linux --disable-shared --enable-static --host=arm-linux-androideabi --with-cross-build=${HOST_BUILD_DIR} --disable-tools"
+		CONFIG_FLAGS="Linux --host=arm-linux-androideabi --with-cross-build=${HOST_BUILD_DIR} --disable-tools"
 		CCOPTIONS="--sysroot ${ANDROID_SYSROOT} -fpic -ffunction-sections -funwind-tables -Wno-psabi -mthumb -fomit-frame-pointer -fno-strict-aliasing -DANDROID -Wa,--noexecstack"
 		CC="${ANDROID_BIN}/arm-linux-androideabi-gcc ${CCOPTIONS}"
 		CXX="${ANDROID_BIN}/arm-linux-androideabi-g++ ${CCOPTIONS}"

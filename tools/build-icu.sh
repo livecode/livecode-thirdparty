@@ -147,6 +147,20 @@ if [ $# -eq 1 -a $1 = "osx" ] ; then
 		fi
 	done
 
+	# Do the same for the binary utilities
+	mkdir -p "${INSTALL_ROOT}/osx/universal/bin"
+	for B in derb genbrk gencfu gencnval gendict genrb icuinfo makeconv pkgdata uconv ; do
+		BINS=""
+		for A in ppc ppc64 i386 x86_64 ; do
+			if [ -e "${INSTALL_ROOT}/osx/${A}/bin/${B}" ] ; then
+				BINS+=" ${INSTALL_ROOT}/osx/${A}/bin/${B}"
+			fi
+		done
+		if [ "${BINS}" ] ; then
+			lipo -create ${BINS} -output "${INSTALL_ROOT}/osx/universal/bin/${B}"
+		fi
+	done
+
 	exit
 fi
 

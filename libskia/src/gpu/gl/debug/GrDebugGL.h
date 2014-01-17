@@ -12,13 +12,14 @@
 #include "SkTArray.h"
 #include "gl/GrGLInterface.h"
 
-class GrFakeRefObj;
-class GrTextureUnitObj;
 class GrBufferObj;
-class GrTextureObj;
+class GrFakeRefObj;
 class GrFrameBufferObj;
-class GrRenderBufferObj;
 class GrProgramObj;
+class GrRenderBufferObj;
+class GrTextureObj;
+class GrTextureUnitObj;
+class GrVertexArrayObj;
 
 ////////////////////////////////////////////////////////////////////////////////
 // This is the main debugging object. It is a singleton and keeps track of
@@ -33,6 +34,7 @@ public:
         kShader_ObjTypes,
         kProgram_ObjTypes,
         kTextureUnit_ObjTypes,
+        kVertexArray_ObjTypes,
         kObjTypeCount
     };
 
@@ -63,6 +65,9 @@ public:
     void setElementArrayBuffer(GrBufferObj *elementArrayBuffer);
     GrBufferObj *getElementArrayBuffer()                            { return fElementArrayBuffer; }
 
+    void setVertexArray(GrVertexArrayObj* vertexArray);
+    GrVertexArrayObj* getVertexArray() { return fVertexArray; }
+
     void setTexture(GrTextureObj *texture);
 
     void setFrameBuffer(GrFrameBufferObj *frameBuffer);
@@ -85,7 +90,7 @@ public:
 
     static GrDebugGL *getInstance() {
         // someone should admit to actually using this class
-        GrAssert(0 < gStaticRefCount);
+        SkASSERT(0 < gStaticRefCount);
 
         if (NULL == gObj) {
             gObj = SkNEW(GrDebugGL);
@@ -101,7 +106,7 @@ public:
     }
 
     static void staticUnRef() {
-        GrAssert(gStaticRefCount > 0);
+        SkASSERT(gStaticRefCount > 0);
         gStaticRefCount--;
         if (0 == gStaticRefCount) {
             SkDELETE(gObj);
@@ -117,15 +122,15 @@ private:
 
     GrGLint         fPackRowLength;
     GrGLint         fUnPackRowLength;
-    GrGLuint        fMaxTextureUnits;
     GrGLuint        fCurTextureUnit;
-    GrBufferObj *   fArrayBuffer;
-    GrBufferObj *   fElementArrayBuffer;
-    GrFrameBufferObj *fFrameBuffer;
-    GrRenderBufferObj *fRenderBuffer;
-    GrProgramObj *  fProgram;
-    GrTextureObj *  fTexture;
+    GrBufferObj*    fArrayBuffer;
+    GrBufferObj*    fElementArrayBuffer;
+    GrFrameBufferObj* fFrameBuffer;
+    GrRenderBufferObj* fRenderBuffer;
+    GrProgramObj* fProgram;
+    GrTextureObj* fTexture;
     GrTextureUnitObj *fTextureUnits[kDefaultMaxTextureUnits];
+    GrVertexArrayObj *fVertexArray;
 
     typedef GrFakeRefObj *(*Create)();
 

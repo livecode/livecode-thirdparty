@@ -10,6 +10,7 @@
 #include "SkPDFCatalog.h"
 #include "SkPDFDevice.h"
 #include "SkPDFPage.h"
+#include "SkPDFResourceDict.h"
 #include "SkStream.h"
 
 SkPDFPage::SkPDFPage(SkPDFDevice* content)
@@ -21,9 +22,11 @@ SkPDFPage::SkPDFPage(SkPDFDevice* content)
 SkPDFPage::~SkPDFPage() {}
 
 void SkPDFPage::finalizePage(SkPDFCatalog* catalog, bool firstPage,
-                             SkTDArray<SkPDFObject*>* resourceObjects) {
+                             const SkTSet<SkPDFObject*>& knownResourceObjects,
+                             SkTSet<SkPDFObject*>* newResourceObjects) {
+    SkPDFResourceDict* resourceDict = fDevice->getResourceDict();
     if (fContentStream.get() == NULL) {
-        insert("Resources", fDevice->getResourceDict());
+        insert("Resources", resourceDict);
         SkSafeUnref(this->insert("MediaBox", fDevice->copyMediaBox()));
         if (!SkToBool(catalog->getDocumentFlags() &
                       SkPDFDocument::kNoLinks_Flags)) {
@@ -38,7 +41,9 @@ void SkPDFPage::finalizePage(SkPDFCatalog* catalog, bool firstPage,
         insert("Contents", new SkPDFObjRef(fContentStream.get()))->unref();
     }
     catalog->addObject(fContentStream.get(), firstPage);
-    fDevice->getResources(resourceObjects, true);
+    resourceDict->getReferencedResources(knownResourceObjects,
+                                         newResourceObjects,
+                                         true);
 }
 
 off_t SkPDFPage::getPageSize(SkPDFCatalog* catalog, off_t fileOffset) {
@@ -112,12 +117,19 @@ void SkPDFPage::GeneratePageTree(const SkTDArray<SkPDFPage*>& pages,
                 }
             }
 
-            newNode->insert(kidsName.get(), kids.get());
+            // treeCapacity is the number of leaf nodes possible for the
+            // current set of subtrees being generated. (i.e. 8, 64, 512, ...).
+            // It is hard to count the number of leaf nodes in the current
+            // subtree. However, by construction, we know that unless it's the
+            // last subtree for the current depth, the leaf count will be
+            // treeCapacity, otherwise it's what ever is left over after
+            // consuming treeCapacity chunks.
             int pageCount = treeCapacity;
-            if (count < kNodeSize) {
-                pageCount = pages.count() % treeCapacity;
+            if (i == curNodes.count()) {
+                pageCount = ((pages.count() - 1) % treeCapacity) + 1;
             }
             newNode->insert(countName.get(), new SkPDFInt(pageCount))->unref();
+            newNode->insert(kidsName.get(), kids.get());
             nextRoundNodes.push(newNode);  // Transfer reference.
         }
 
@@ -139,4 +151,8 @@ const SkTDArray<SkPDFFont*>& SkPDFPage::getFontResources() const {
 
 const SkPDFGlyphSetMap& SkPDFPage::getFontGlyphUsage() const {
     return fDevice->getFontGlyphUsage();
+}
+
+void SkPDFPage::appendDestinations(SkPDFDict* dict) {
+    fDevice->appendDestinations(dict, this);
 }

@@ -12,7 +12,6 @@
 static SkScalar SkScalarDotDiv(int count, const SkScalar a[], int step_a,
                                const SkScalar b[], int step_b,
                                SkScalar denom) {
-#ifdef SK_SCALAR_IS_FLOAT
     float prod = 0;
     for (int i = 0; i < count; i++) {
         prod += a[0] * b[0];
@@ -20,24 +19,10 @@ static SkScalar SkScalarDotDiv(int count, const SkScalar a[], int step_a,
         b += step_b;
     }
     return prod / denom;
-#else
-    Sk64    prod, tmp;
-
-    prod.set(0);
-    for (int i = 0; i < count; i++) {
-        tmp.setMul(a[0], b[0]);
-        prod.add(tmp);
-        a += step_a;
-        b += step_b;
-    }
-    prod.div(denom, Sk64::kRound_DivOption);
-    return prod.get32();
-#endif
 }
 
 static SkScalar SkScalarDot(int count, const SkScalar a[], int step_a,
                                        const SkScalar b[], int step_b) {
-#ifdef SK_SCALAR_IS_FLOAT
     float prod = 0;
     for (int i = 0; i < count; i++) {
         prod += a[0] * b[0];
@@ -45,24 +30,11 @@ static SkScalar SkScalarDot(int count, const SkScalar a[], int step_a,
         b += step_b;
     }
     return prod;
-#else
-    Sk64    prod, tmp;
-
-    prod.set(0);
-    for (int i = 0; i < count; i++) {
-        tmp.setMul(a[0], b[0]);
-        prod.add(tmp);
-        a += step_a;
-        b += step_b;
-    }
-    return prod.getFixed();
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 SkUnitScalar SkPoint3D::normalize(SkUnit3D* unit) const {
-#ifdef SK_SCALAR_IS_FLOAT
     float mag = sk_float_sqrt(fX*fX + fY*fY + fZ*fZ);
     if (mag) {
         float scale = 1.0f / mag;
@@ -72,26 +44,6 @@ SkUnitScalar SkPoint3D::normalize(SkUnit3D* unit) const {
     } else {
         unit->fX = unit->fY = unit->fZ = 0;
     }
-#else
-    Sk64    tmp1, tmp2;
-
-    tmp1.setMul(fX, fX);
-    tmp2.setMul(fY, fY);
-    tmp1.add(tmp2);
-    tmp2.setMul(fZ, fZ);
-    tmp1.add(tmp2);
-
-    SkFixed mag = tmp1.getSqrt();
-    if (mag) {
-        // what if mag < SK_Fixed1 ??? we will underflow the fixdiv
-        SkFixed scale = SkFixedDiv(SK_Fract1, mag);
-        unit->fX = SkFixedMul(fX, scale);
-        unit->fY = SkFixedMul(fY, scale);
-        unit->fZ = SkFixedMul(fZ, scale);
-    } else {
-        unit->fX = unit->fY = unit->fZ = 0;
-    }
-#endif
     return mag;
 }
 
@@ -365,23 +317,23 @@ void Sk3DView::restore() {
 #ifdef SK_BUILD_FOR_ANDROID
 void Sk3DView::setCameraLocation(SkScalar x, SkScalar y, SkScalar z) {
     // the camera location is passed in inches, set in pt
-    SkScalar lz = z * SkFloatToScalar(72.0f);
-    fCamera.fLocation.set(x * SkFloatToScalar(72.0f), y * SkFloatToScalar(72.0f), lz);
+    SkScalar lz = z * 72.0f;
+    fCamera.fLocation.set(x * 72.0f, y * 72.0f, lz);
     fCamera.fObserver.set(0, 0, lz);
     fCamera.update();
 
 }
 
 SkScalar Sk3DView::getCameraLocationX() {
-    return fCamera.fLocation.fX / SkFloatToScalar(72.0f);
+    return fCamera.fLocation.fX / 72.0f;
 }
 
 SkScalar Sk3DView::getCameraLocationY() {
-    return fCamera.fLocation.fY / SkFloatToScalar(72.0f);
+    return fCamera.fLocation.fY / 72.0f;
 }
 
 SkScalar Sk3DView::getCameraLocationZ() {
-    return fCamera.fLocation.fZ / SkFloatToScalar(72.0f);
+    return fCamera.fLocation.fZ / 72.0f;
 }
 #endif
 
@@ -423,4 +375,3 @@ void Sk3DView::applyToCanvas(SkCanvas* canvas) const {
     this->getMatrix(&matrix);
     canvas->concat(matrix);
 }
-

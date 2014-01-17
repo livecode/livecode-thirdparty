@@ -14,12 +14,20 @@
 #include "SkUnPreMultiply.h"
 
 #if SK_SUPPORT_GPU
-#include "gl/GrGLEffectMatrix.h"
-#include "effects/GrSingleTextureEffect.h"
-#include "GrTBackendEffectFactory.h"
+#include "effects/GrBicubicEffect.h"
 #include "GrContext.h"
 #include "GrTexture.h"
+#include "SkImageFilterUtils.h"
 #endif
+
+#define DS(x) SkDoubleToScalar(x)
+
+static const SkScalar gMitchellCoefficients[16] = {
+    DS( 1.0 / 18.0), DS(-9.0 / 18.0), DS( 15.0 / 18.0), DS( -7.0 / 18.0),
+    DS(16.0 / 18.0), DS( 0.0 / 18.0), DS(-36.0 / 18.0), DS( 21.0 / 18.0),
+    DS( 1.0 / 18.0), DS( 9.0 / 18.0), DS( 27.0 / 18.0), DS(-21.0 / 18.0),
+    DS( 0.0 / 18.0), DS( 0.0 / 18.0), DS( -6.0 / 18.0), DS(  7.0 / 18.0),
+};
 
 SkBicubicImageFilter::SkBicubicImageFilter(const SkSize& scale, const SkScalar coefficients[16], SkImageFilter* input)
   : INHERITED(input),
@@ -27,24 +35,21 @@ SkBicubicImageFilter::SkBicubicImageFilter(const SkSize& scale, const SkScalar c
     memcpy(fCoefficients, coefficients, sizeof(fCoefficients));
 }
 
-#define DS(x) SkDoubleToScalar(x)
-
 SkBicubicImageFilter* SkBicubicImageFilter::CreateMitchell(const SkSize& scale,
                                                            SkImageFilter* input) {
-    static const SkScalar coefficients[16] = {
-        DS( 1.0 / 18.0), DS(-9.0 / 18.0), DS( 15.0 / 18.0), DS( -7.0 / 18.0),
-        DS(16.0 / 18.0), DS( 0.0 / 18.0), DS(-36.0 / 18.0), DS( 21.0 / 18.0),
-        DS( 1.0 / 18.0), DS( 9.0 / 18.0), DS( 27.0 / 18.0), DS(-21.0 / 18.0),
-        DS( 0.0 / 18.0), DS( 0.0 / 18.0), DS( -6.0 / 18.0), DS(  7.0 / 18.0),
-    };
-    return SkNEW_ARGS(SkBicubicImageFilter, (scale, coefficients, input));
+    return SkNEW_ARGS(SkBicubicImageFilter, (scale, gMitchellCoefficients, input));
 }
 
-SkBicubicImageFilter::SkBicubicImageFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
-    SkDEBUGCODE(uint32_t readSize =) buffer.readScalarArray(fCoefficients);
-    SkASSERT(readSize == 16);
+SkBicubicImageFilter::SkBicubicImageFilter(SkFlattenableReadBuffer& buffer)
+  : INHERITED(1, buffer) {
+    SkDEBUGCODE(bool success =) buffer.readScalarArray(fCoefficients, 16);
+    SkASSERT(success);
     fScale.fWidth = buffer.readScalar();
     fScale.fHeight = buffer.readScalar();
+    buffer.validate(SkScalarIsFinite(fScale.fWidth) &&
+                    SkScalarIsFinite(fScale.fHeight) &&
+                    (fScale.fWidth >= 0) &&
+                    (fScale.fHeight >= 0));
 }
 
 void SkBicubicImageFilter::flatten(SkFlattenableWriteBuffer& buffer) const {
@@ -65,19 +70,27 @@ inline SkPMColor cubicBlend(const SkScalar c[16], SkScalar t, SkPMColor c0, SkPM
     cc[1] = c[4]  + SkScalarMul(c[5], t) + SkScalarMul(c[6], t2) + SkScalarMul(c[7], t3);
     cc[2] = c[8]  + SkScalarMul(c[9], t) + SkScalarMul(c[10], t2) + SkScalarMul(c[11], t3);
     cc[3] = c[12] + SkScalarMul(c[13], t) + SkScalarMul(c[14], t2) + SkScalarMul(c[15], t3);
-    SkScalar a = SkScalarMul(cc[0], SkGetPackedA32(c0)) + SkScalarMul(cc[1], SkGetPackedA32(c1)) + SkScalarMul(cc[2], SkGetPackedA32(c2)) + SkScalarMul(cc[3], SkGetPackedA32(c3));
+    SkScalar a = SkScalarClampMax(SkScalarMul(cc[0], SkGetPackedA32(c0)) + SkScalarMul(cc[1], SkGetPackedA32(c1)) + SkScalarMul(cc[2], SkGetPackedA32(c2)) + SkScalarMul(cc[3], SkGetPackedA32(c3)), 255);
     SkScalar r = SkScalarMul(cc[0], SkGetPackedR32(c0)) + SkScalarMul(cc[1], SkGetPackedR32(c1)) + SkScalarMul(cc[2], SkGetPackedR32(c2)) + SkScalarMul(cc[3], SkGetPackedR32(c3));
     SkScalar g = SkScalarMul(cc[0], SkGetPackedG32(c0)) + SkScalarMul(cc[1], SkGetPackedG32(c1)) + SkScalarMul(cc[2], SkGetPackedG32(c2)) + SkScalarMul(cc[3], SkGetPackedG32(c3));
     SkScalar b = SkScalarMul(cc[0], SkGetPackedB32(c0)) + SkScalarMul(cc[1], SkGetPackedB32(c1)) + SkScalarMul(cc[2], SkGetPackedB32(c2)) + SkScalarMul(cc[3], SkGetPackedB32(c3));
-    return SkPackARGB32(SkScalarRoundToInt(SkScalarClampMax(a, 255)), SkScalarRoundToInt(SkScalarClampMax(r, 255)), SkScalarRoundToInt(SkScalarClampMax(g, 255)), SkScalarRoundToInt(SkScalarClampMax(b, 255)));
+    return SkPackARGB32(SkScalarRoundToInt(a),
+                        SkScalarRoundToInt(SkScalarClampMax(r, a)),
+                        SkScalarRoundToInt(SkScalarClampMax(g, a)),
+                        SkScalarRoundToInt(SkScalarClampMax(b, a)));
 }
 
 bool SkBicubicImageFilter::onFilterImage(Proxy* proxy,
                                          const SkBitmap& source,
                                          const SkMatrix& matrix,
                                          SkBitmap* result,
-                                         SkIPoint* loc) {
-    SkBitmap src = this->getInputResult(proxy, source, matrix, loc);
+                                         SkIPoint* offset) {
+    SkBitmap src = source;
+    SkIPoint srcOffset = SkIPoint::Make(0, 0);
+    if (getInput(0) && !getInput(0)->filterImage(proxy, source, matrix, &src, &srcOffset)) {
+        return false;
+    }
+
     if (src.config() != SkBitmap::kARGB_8888_Config) {
         return false;
     }
@@ -91,6 +104,9 @@ bool SkBicubicImageFilter::onFilterImage(Proxy* proxy,
                                     SkScalarMul(SkIntToScalar(src.height()), fScale.fHeight));
     SkIRect dstIRect;
     dstRect.roundOut(&dstIRect);
+    if (dstIRect.isEmpty()) {
+        return false;
+    }
     result->setConfig(src.config(), dstIRect.width(), dstIRect.height());
     result->allocPixels();
     if (!result->getPixels()) {
@@ -99,9 +115,10 @@ bool SkBicubicImageFilter::onFilterImage(Proxy* proxy,
 
     SkRect srcRect;
     src.getBounds(&srcRect);
+    srcRect.offset(SkPoint::Make(SkIntToScalar(srcOffset.fX), SkIntToScalar(srcOffset.fY)));
     SkMatrix inverse;
     inverse.setRectToRect(dstRect, srcRect, SkMatrix::kFill_ScaleToFit);
-    inverse.postTranslate(SkFloatToScalar(-0.5f), SkFloatToScalar(-0.5f));
+    inverse.postTranslate(-0.5f, -0.5f);
 
     for (int y = dstIRect.fTop; y < dstIRect.fBottom; ++y) {
         SkPMColor* dptr = result->getAddr32(dstIRect.fLeft, y);
@@ -143,219 +160,45 @@ bool SkBicubicImageFilter::onFilterImage(Proxy* proxy,
             *dptr++ = cubicBlend(fCoefficients, fracty, s0, s1, s2, s3);
         }
     }
+    offset->fX = dstIRect.fLeft;
+    offset->fY = dstIRect.fTop;
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 #if SK_SUPPORT_GPU
-class GrGLBicubicEffect;
 
-class GrBicubicEffect : public GrSingleTextureEffect {
-public:
-    virtual ~GrBicubicEffect();
-
-    static const char* Name() { return "Bicubic"; }
-    const float* coefficients() const { return fCoefficients; }
-
-    typedef GrGLBicubicEffect GLEffect;
-
-    virtual const GrBackendEffectFactory& getFactory() const SK_OVERRIDE;
-    virtual bool onIsEqual(const GrEffect&) const SK_OVERRIDE;
-    virtual void getConstantColorComponents(GrColor* color, uint32_t* validFlags) const SK_OVERRIDE;
-
-    static GrEffectRef* Create(GrTexture* tex, const SkScalar coefficients[16]) {
-        SkAutoTUnref<GrEffect> effect(SkNEW_ARGS(GrBicubicEffect, (tex, coefficients)));
-        return CreateEffectRef(effect);
+bool SkBicubicImageFilter::filterImageGPU(Proxy* proxy, const SkBitmap& src, const SkMatrix& ctm,
+                                          SkBitmap* result, SkIPoint* offset) {
+    SkBitmap srcBM;
+    if (!SkImageFilterUtils::GetInputResultGPU(getInput(0), proxy, src, ctm, &srcBM, offset)) {
+        return false;
     }
-
-private:
-    GrBicubicEffect(GrTexture*, const SkScalar coefficients[16]);
-    float    fCoefficients[16];
-
-    GR_DECLARE_EFFECT_TEST;
-
-    typedef GrSingleTextureEffect INHERITED;
-};
-
-class GrGLBicubicEffect : public GrGLEffect {
-public:
-    GrGLBicubicEffect(const GrBackendEffectFactory& factory,
-                                const GrEffect& effect);
-    virtual void emitCode(GrGLShaderBuilder*,
-                          const GrEffectStage&,
-                          EffectKey,
-                          const char* vertexCoords,
-                          const char* outputColor,
-                          const char* inputColor,
-                          const TextureSamplerArray&) SK_OVERRIDE;
-
-    static inline EffectKey GenKey(const GrEffectStage&, const GrGLCaps&);
-
-    virtual void setData(const GrGLUniformManager&, const GrEffectStage&) SK_OVERRIDE;
-
-private:
-    typedef GrGLUniformManager::UniformHandle        UniformHandle;
-
-    UniformHandle       fCoefficientsUni;
-    UniformHandle       fImageIncrementUni;
-
-    GrGLEffectMatrix    fEffectMatrix;
-
-    typedef GrGLEffect INHERITED;
-};
-
-GrGLBicubicEffect::GrGLBicubicEffect(const GrBackendEffectFactory& factory,
-                                     const GrEffect& effect)
-    : INHERITED(factory)
-    , fCoefficientsUni(GrGLUniformManager::kInvalidUniformHandle)
-    , fImageIncrementUni(GrGLUniformManager::kInvalidUniformHandle) {
-}
-
-void GrGLBicubicEffect::emitCode(GrGLShaderBuilder* builder,
-                                 const GrEffectStage&,
-                                 EffectKey key,
-                                 const char* vertexCoords,
-                                 const char* outputColor,
-                                 const char* inputColor,
-                                 const TextureSamplerArray& samplers) {
-    const char* coords;
-    fEffectMatrix.emitCodeMakeFSCoords2D(builder, key, vertexCoords, &coords);
-    fCoefficientsUni = builder->addUniform(GrGLShaderBuilder::kFragment_ShaderType,
-                                           kMat44f_GrSLType, "Coefficients");
-    fImageIncrementUni = builder->addUniform(GrGLShaderBuilder::kFragment_ShaderType,
-                                             kVec2f_GrSLType, "ImageIncrement");
-    SkString* code = &builder->fFSCode;
-
-    const char* imgInc = builder->getUniformCStr(fImageIncrementUni);
-    const char* coeff = builder->getUniformCStr(fCoefficientsUni);
-
-    SkString cubicBlendName;
-
-    static const GrGLShaderVar gCubicBlendArgs[] = {
-        GrGLShaderVar("coefficients",  kMat44f_GrSLType),
-        GrGLShaderVar("t",             kFloat_GrSLType),
-        GrGLShaderVar("c0",            kVec4f_GrSLType),
-        GrGLShaderVar("c1",            kVec4f_GrSLType),
-        GrGLShaderVar("c2",            kVec4f_GrSLType),
-        GrGLShaderVar("c3",            kVec4f_GrSLType),
-    };
-    builder->emitFunction(GrGLShaderBuilder::kFragment_ShaderType,
-                          kVec4f_GrSLType,
-                          "cubicBlend",
-                          SK_ARRAY_COUNT(gCubicBlendArgs),
-                          gCubicBlendArgs,
-                          "\tvec4 ts = vec4(1.0, t, t * t, t * t * t);\n"
-                          "\tvec4 c = coefficients * ts;\n"
-                          "\treturn c.x * c0 + c.y * c1 + c.z * c2 + c.w * c3;\n",
-                          &cubicBlendName);
-    code->appendf("\tvec2 coord = %s - %s * vec2(0.5, 0.5);\n", coords, imgInc);
-    code->appendf("\tvec2 f = fract(coord / %s);\n", imgInc);
-    for (int y = 0; y < 4; ++y) {
-        for (int x = 0; x < 4; ++x) {
-            SkString coord;
-            coord.printf("coord + %s * vec2(%d, %d)", imgInc, x - 1, y - 1);
-            code->appendf("\tvec4 s%d%d = ", x, y);
-            builder->appendTextureLookup(&builder->fFSCode, samplers[0], coord.c_str());
-            code->appendf(";\n");
-        }
-        code->appendf("\tvec4 s%d = %s(%s, f.x, s0%d, s1%d, s2%d, s3%d);\n", y, cubicBlendName.c_str(), coeff, y, y, y, y);
-    }
-    code->appendf("\t%s = %s(%s, f.y, s0, s1, s2, s3);\n", outputColor, cubicBlendName.c_str(), coeff);
-}
-
-GrGLEffect::EffectKey GrGLBicubicEffect::GenKey(const GrEffectStage& s, const GrGLCaps&) {
-    const GrBicubicEffect& m =
-        static_cast<const GrBicubicEffect&>(*s.getEffect());
-    EffectKey matrixKey = GrGLEffectMatrix::GenKey(m.getMatrix(),
-                                                   s.getCoordChangeMatrix(),
-                                                   m.texture(0));
-    return matrixKey;
-}
-
-void GrGLBicubicEffect::setData(const GrGLUniformManager& uman,
-                                const GrEffectStage& stage) {
-    const GrBicubicEffect& effect =
-        static_cast<const GrBicubicEffect&>(*stage.getEffect());
-    GrTexture& texture = *effect.texture(0);
-    float imageIncrement[2];
-    imageIncrement[0] = 1.0f / texture.width();
-    imageIncrement[1] = 1.0f / texture.height();
-    uman.set2fv(fImageIncrementUni, 0, 1, imageIncrement);
-    uman.setMatrix4f(fCoefficientsUni, effect.coefficients());
-    fEffectMatrix.setData(uman,
-                          effect.getMatrix(),
-                          stage.getCoordChangeMatrix(),
-                          effect.texture(0));
-}
-
-GrBicubicEffect::GrBicubicEffect(GrTexture* texture,
-                                 const SkScalar coefficients[16])
-  : INHERITED(texture, MakeDivByTextureWHMatrix(texture)) {
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            // Convert from row-major scalars to column-major floats.
-            fCoefficients[x * 4 + y] = SkScalarToFloat(coefficients[y * 4 + x]);
-        }
-    }
-}
-
-GrBicubicEffect::~GrBicubicEffect() {
-}
-
-const GrBackendEffectFactory& GrBicubicEffect::getFactory() const {
-    return GrTBackendEffectFactory<GrBicubicEffect>::getInstance();
-}
-
-bool GrBicubicEffect::onIsEqual(const GrEffect& sBase) const {
-    const GrBicubicEffect& s =
-        static_cast<const GrBicubicEffect&>(sBase);
-    return this->texture(0) == s.texture(0) &&
-           !memcmp(fCoefficients, s.coefficients(), 16);
-}
-
-void GrBicubicEffect::getConstantColorComponents(GrColor* color, uint32_t* validFlags) const {
-    // FIXME:  Perhaps we can do better.
-    *validFlags = 0;
-    return;
-}
-
-GR_DEFINE_EFFECT_TEST(GrBicubicEffect);
-
-GrEffectRef* GrBicubicEffect::TestCreate(SkRandom* random,
-                                         GrContext* context,
-                                         GrTexture* textures[]) {
-    int texIdx = random->nextBool() ? GrEffectUnitTest::kSkiaPMTextureIdx :
-                                      GrEffectUnitTest::kAlphaTextureIdx;
-    SkScalar coefficients[16];
-    for (int i = 0; i < 16; i++) {
-        coefficients[i] = random->nextSScalar1();
-    }
-    return GrBicubicEffect::Create(textures[texIdx], coefficients);
-}
-
-GrTexture* SkBicubicImageFilter::filterImageGPU(Proxy* proxy, GrTexture* src, const SkRect& rect) {
-    SkAutoTUnref<GrTexture> srcTexture(this->getInputResultAsTexture(proxy, src, rect));
+    GrTexture* srcTexture = srcBM.getTexture();
     GrContext* context = srcTexture->getContext();
 
-    SkRect dstRect = SkRect::MakeWH(rect.width() * fScale.fWidth,
-                                    rect.height() * fScale.fHeight);
+    SkRect dstRect = SkRect::MakeWH(srcBM.width() * fScale.fWidth,
+                                    srcBM.height() * fScale.fHeight);
 
     GrTextureDesc desc;
     desc.fFlags = kRenderTarget_GrTextureFlagBit | kNoStencil_GrTextureFlagBit;
     desc.fWidth = SkScalarCeilToInt(dstRect.width());
     desc.fHeight = SkScalarCeilToInt(dstRect.height());
-    desc.fConfig = kRGBA_8888_GrPixelConfig;
+    desc.fConfig = kSkia8888_GrPixelConfig;
 
     GrAutoScratchTexture ast(context, desc);
-    if (!ast.texture()) {
-        return NULL;
+    SkAutoTUnref<GrTexture> dst(ast.detach());
+    if (!dst) {
+        return false;
     }
-    GrContext::AutoRenderTarget art(context, ast.texture()->asRenderTarget());
+    GrContext::AutoRenderTarget art(context, dst->asRenderTarget());
     GrPaint paint;
-    paint.colorStage(0)->setEffect(GrBicubicEffect::Create(srcTexture, fCoefficients))->unref();
-    context->drawRectToRect(paint, dstRect, rect);
-    return ast.detach();
+    paint.addColorEffect(GrBicubicEffect::Create(srcTexture, fCoefficients))->unref();
+    SkRect srcRect;
+    srcBM.getBounds(&srcRect);
+    context->drawRectToRect(paint, dstRect, srcRect);
+    return SkImageFilterUtils::WrapTexture(dst, desc.fWidth, desc.fHeight, result);
 }
 #endif
 

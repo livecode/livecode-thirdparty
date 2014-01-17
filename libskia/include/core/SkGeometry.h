@@ -72,6 +72,12 @@ int SkFindQuadExtrema(SkScalar a, SkScalar b, SkScalar c, SkScalar tValues[1]);
 int SkChopQuadAtYExtrema(const SkPoint src[3], SkPoint dst[5]);
 int SkChopQuadAtXExtrema(const SkPoint src[3], SkPoint dst[5]);
 
+/** Given 3 points on a quadratic bezier, if the point of maximum
+    curvature exists on the segment, returns the t value for this
+    point along the curve. Otherwise it will return a value of 0.
+*/
+float SkFindQuadMaxCurvature(const SkPoint src[3]);
+
 /** Given 3 points on a quadratic bezier, divide it into 2 quadratics
     if the point of maximum curvature exists on the quad segment.
     Depending on what is returned, dst[] is treated as follows
@@ -205,5 +211,97 @@ enum SkRotationDirection {
 */
 int SkBuildQuadArc(const SkVector& unitStart, const SkVector& unitStop,
                    SkRotationDirection, const SkMatrix*, SkPoint quadPoints[]);
+
+// experimental
+struct SkConic {
+    SkPoint  fPts[3];
+    SkScalar fW;
+
+    void set(const SkPoint pts[3], SkScalar w) {
+        memcpy(fPts, pts, 3 * sizeof(SkPoint));
+        fW = w;
+    }
+
+    /**
+     *  Given a t-value [0...1] return its position and/or tangent.
+     *  If pos is not null, return its position at the t-value.
+     *  If tangent is not null, return its tangent at the t-value. NOTE the
+     *  tangent value's length is arbitrary, and only its direction should
+     *  be used.
+     */
+    void evalAt(SkScalar t, SkPoint* pos, SkVector* tangent = NULL) const;
+    void chopAt(SkScalar t, SkConic dst[2]) const;
+    void chop(SkConic dst[2]) const;
+
+    void computeAsQuadError(SkVector* err) const;
+    bool asQuadTol(SkScalar tol) const;
+
+    /**
+     *  return the power-of-2 number of quads needed to approximate this conic
+     *  with a sequence of quads. Will be >= 0.
+     */
+    int computeQuadPOW2(SkScalar tol) const;
+
+    /**
+     *  Chop this conic into N quads, stored continguously in pts[], where
+     *  N = 1 << pow2. The amount of storage needed is (1 + 2 * N)
+     */
+    int chopIntoQuadsPOW2(SkPoint pts[], int pow2) const;
+
+    bool findXExtrema(SkScalar* t) const;
+    bool findYExtrema(SkScalar* t) const;
+    bool chopAtXExtrema(SkConic dst[2]) const;
+    bool chopAtYExtrema(SkConic dst[2]) const;
+
+    void computeTightBounds(SkRect* bounds) const;
+    void computeFastBounds(SkRect* bounds) const;
+};
+
+#include "SkTemplates.h"
+
+/**
+ *  Help class to allocate storage for approximating a conic with N quads.
+ */
+class SkAutoConicToQuads {
+public:
+    SkAutoConicToQuads() : fQuadCount(0) {}
+
+    /**
+     *  Given a conic and a tolerance, return the array of points for the
+     *  approximating quad(s). Call countQuads() to know the number of quads
+     *  represented in these points.
+     *
+     *  The quads are allocated to share end-points. e.g. if there are 4 quads,
+     *  there will be 9 points allocated as follows
+     *      quad[0] == pts[0..2]
+     *      quad[1] == pts[2..4]
+     *      quad[2] == pts[4..6]
+     *      quad[3] == pts[6..8]
+     */
+    const SkPoint* computeQuads(const SkConic& conic, SkScalar tol) {
+        int pow2 = conic.computeQuadPOW2(tol);
+        fQuadCount = 1 << pow2;
+        SkPoint* pts = fStorage.reset(1 + 2 * fQuadCount);
+        conic.chopIntoQuadsPOW2(pts, pow2);
+        return pts;
+    }
+
+    const SkPoint* computeQuads(const SkPoint pts[3], SkScalar weight,
+                                SkScalar tol) {
+        SkConic conic;
+        conic.set(pts, weight);
+        return computeQuads(conic, tol);
+    }
+
+    int countQuads() const { return fQuadCount; }
+
+private:
+    enum {
+        kQuadCount = 8, // should handle most conics
+        kPointCount = 1 + 2 * kQuadCount,
+    };
+    SkAutoSTMalloc<kPointCount, SkPoint> fStorage;
+    int fQuadCount; // #quads for current usage
+};
 
 #endif

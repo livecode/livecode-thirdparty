@@ -8,7 +8,7 @@
 #ifndef SkBicubicImageFilter_DEFINED
 #define SkBicubicImageFilter_DEFINED
 
-#include "SkSingleInputImageFilter.h"
+#include "SkImageFilter.h"
 #include "SkScalar.h"
 #include "SkSize.h"
 #include "SkPoint.h"
@@ -18,7 +18,7 @@
     filter using the given matrix.
  */
 
-class SK_API SkBicubicImageFilter : public SkSingleInputImageFilter {
+class SK_API SkBicubicImageFilter : public SkImageFilter {
 public:
     /** Construct a (scaling-only) bicubic resampling image filter.
         @param scale        How much to scale the image.
@@ -27,7 +27,8 @@ public:
                             passed to filterImage() is used instead.
     */
 
-    SkBicubicImageFilter(const SkSize& scale, const SkScalar coefficients[16], SkImageFilter* input = NULL);
+    SkBicubicImageFilter(const SkSize& scale, const SkScalar coefficients[16],
+                         SkImageFilter* input = NULL);
     static SkBicubicImageFilter* CreateMitchell(const SkSize& scale, SkImageFilter* input = NULL);
     virtual ~SkBicubicImageFilter();
 
@@ -42,14 +43,14 @@ protected:
 
 #if SK_SUPPORT_GPU
     virtual bool canFilterImageGPU() const SK_OVERRIDE { return true; }
-    virtual GrTexture* filterImageGPU(Proxy* proxy, GrTexture* src,
-                                      const SkRect& rect) SK_OVERRIDE;
+    virtual bool filterImageGPU(Proxy* proxy, const SkBitmap& src, const SkMatrix& ctm,
+                                SkBitmap* result, SkIPoint* offset) SK_OVERRIDE;
 #endif
 
 private:
     SkSize    fScale;
     SkScalar  fCoefficients[16];
-    typedef SkSingleInputImageFilter INHERITED;
+    typedef SkImageFilter INHERITED;
 };
 
 #endif

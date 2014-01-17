@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2012 Google Inc.
  *
@@ -9,11 +8,12 @@
 #ifndef GrTextureStripAtlas_DEFINED
 #define GrTextureStripAtlas_DEFINED
 
+#include "GrBinHashKey.h"
+#include "GrTHashTable.h"
 #include "SkBitmap.h"
-#include "GrTHashCache.h"
 #include "SkGr.h"
 #include "SkTDArray.h"
-#include "GrBinHashKey.h"
+#include "SkTypes.h"
 
 /**
  * Maintains a single large texture whose rows store many textures of a small fixed height,
@@ -79,7 +79,7 @@ private:
      * The state of a single row in our cache, next/prev pointers allow these to be chained
      * together to represent LRU status
      */
-    struct AtlasRow : public GrNoncopyable {
+    struct AtlasRow : public SkNoncopyable {
         AtlasRow() : fKey(kEmptyAtlasRowKey), fLocks(0), fNext(NULL), fPrev(NULL) { }
         // GenerationID of the bitmap that is represented by this row, 0xffffffff means "empty"
         uint32_t fKey;
@@ -120,8 +120,8 @@ private:
     /**
      * Compare two atlas rows by key, so we can sort/search by key
      */
-    static int compareKeys(const AtlasRow* lhs, const AtlasRow* rhs) {
-        return lhs->fKey - rhs->fKey;
+    static bool KeyLess(const AtlasRow& lhs, const AtlasRow& rhs) {
+        return lhs.fKey < rhs.fKey;
     }
 
 #ifdef SK_DEBUG
@@ -136,12 +136,15 @@ private:
 
     // Hash table entry for atlases
     class AtlasEntry;
-    typedef GrTBinHashKey<AtlasEntry, sizeof(GrTextureStripAtlas::Desc)> AtlasHashKey;
-    class AtlasEntry : public ::GrNoncopyable {
+    class AtlasHashKey : public GrBinHashKey<sizeof(GrTextureStripAtlas::Desc)> {
+    public:
+        static bool Equals(const AtlasEntry& entry, const AtlasHashKey& key);
+        static bool LessThan(const AtlasEntry& entry, const AtlasHashKey& key);
+    };
+    class AtlasEntry : public ::SkNoncopyable {
     public:
         AtlasEntry() : fAtlas(NULL) {}
         ~AtlasEntry() { SkDELETE(fAtlas); }
-        int compare(const AtlasHashKey& key) const { return fKey.compare(key); }
         AtlasHashKey fKey;
         GrTextureStripAtlas* fAtlas;
     };
@@ -178,5 +181,14 @@ private:
     SkTDArray<AtlasRow*> fKeyTable;
 };
 
-#endif
+inline bool GrTextureStripAtlas::AtlasHashKey::Equals(const AtlasEntry& entry,
+                                                      const AtlasHashKey& key) {
+    return entry.fKey == key;
+}
 
+inline bool GrTextureStripAtlas::AtlasHashKey::LessThan(const AtlasEntry& entry,
+                                                        const AtlasHashKey& key) {
+    return entry.fKey < key;
+}
+
+#endif

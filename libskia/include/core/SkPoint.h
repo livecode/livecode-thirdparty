@@ -1,11 +1,9 @@
-
 /*
  * Copyright 2006 The Android Open Source Project
  *
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-
 
 #ifndef SkPoint_DEFINED
 #define SkPoint_DEFINED
@@ -218,13 +216,10 @@ struct SK_API SkPoint {
      *  Return true if the computed length of the vector is >= the internal
      *  tolerance (used to avoid dividing by tiny values).
      */
-    static bool CanNormalize(SkScalar dx, SkScalar dy)
-#ifdef SK_SCALAR_IS_FLOAT
-    // Simple enough (and performance critical sometimes) so we inline it.
-    { return (dx*dx + dy*dy) > (SK_ScalarNearlyZero * SK_ScalarNearlyZero); }
-#else
-    ;
-#endif
+    static bool CanNormalize(SkScalar dx, SkScalar dy) {
+        // Simple enough (and performance critical sometimes) so we inline it.
+        return (dx*dx + dy*dy) > (SK_ScalarNearlyZero * SK_ScalarNearlyZero);
+    }
 
     bool canNormalize() const {
         return CanNormalize(fX, fY);
@@ -253,6 +248,14 @@ struct SK_API SkPoint {
      (i.e. nearly 0) then return false and do nothing, otherwise return true.
     */
     bool setLength(SkScalar x, SkScalar y, SkScalar length);
+
+    /** Same as setLength, but favoring speed over accuracy.
+    */
+    bool setLengthFast(SkScalar length);
+
+    /** Same as setLength, but favoring speed over accuracy.
+    */
+    bool setLengthFast(SkScalar x, SkScalar y, SkScalar length);
 
     /** Scale the point's coordinates by scale, writing the answer into dst.
         It is legal for dst == this.
@@ -318,7 +321,6 @@ struct SK_API SkPoint {
      *  Returns true if both X and Y are finite (not infinity or NaN)
      */
     bool isFinite() const {
-#ifdef SK_SCALAR_IS_FLOAT
         SkScalar accum = 0;
         accum *= fX;
         accum *= fY;
@@ -329,17 +331,14 @@ struct SK_API SkPoint {
         // value==value will be true iff value is not NaN
         // TODO: is it faster to say !accum or accum==accum?
         return accum == accum;
-#else
-        // use bit-or for speed, since we don't care about short-circuting the
-        // tests, and we expect the common case will be that we need to check all.
-        int isNaN = (SK_FixedNaN == fX) | (SK_FixedNaN == fX));
-        return !isNaN;
-#endif
     }
 
-    /** Returns true if the point's coordinates equal (x,y)
-    */
-    bool equals(SkScalar x, SkScalar y) const { return fX == x && fY == y; }
+    /**
+     *  Returns true if the point's coordinates equal (x,y)
+     */
+    bool equals(SkScalar x, SkScalar y) const {
+        return fX == x && fY == y;
+    }
 
     friend bool operator==(const SkPoint& a, const SkPoint& b) {
         return a.fX == b.fX && a.fY == b.fY;
@@ -352,7 +351,7 @@ struct SK_API SkPoint {
     /** Return true if this point and the given point are far enough apart
         such that a vector between them would be non-degenerate.
 
-        WARNING: Unlike the deprecated version of equalsWithinTolerance(),
+        WARNING: Unlike the explicit tolerance version,
         this method does not use componentwise comparison.  Instead, it
         uses a comparison designed to match judgments elsewhere regarding
         degeneracy ("points A and B are so close that the vector between them
@@ -362,10 +361,7 @@ struct SK_API SkPoint {
         return !CanNormalize(fX - p.fX, fY - p.fY);
     }
 
-    /** DEPRECATED: Return true if this and the given point are componentwise
-        within tolerance "tol".
-
-        WARNING: There is no guarantee that the result will reflect judgments
+    /** WARNING: There is no guarantee that the result will reflect judgments
         elsewhere regarding degeneracy ("points A and B are so close that the
         vector between them is essentially zero").
     */
@@ -503,6 +499,11 @@ struct SK_API SkPoint {
             fY = -tmp;
         }
     }
+
+    /**
+     *  cast-safe way to treat the point as an array of (2) SkScalars.
+     */
+    const SkScalar* asScalars() const { return &fX; }
 };
 
 typedef SkPoint SkVector;

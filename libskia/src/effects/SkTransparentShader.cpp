@@ -23,14 +23,13 @@ bool SkTransparentShader::setContext(const SkBitmap& device,
 uint32_t SkTransparentShader::getFlags() {
     uint32_t flags = this->INHERITED::getFlags();
 
-    switch (fDevice->getConfig()) {
+    switch (fDevice->config()) {
         case SkBitmap::kRGB_565_Config:
             flags |= kHasSpan16_Flag;
             if (fAlpha == 255)
                 flags |= kOpaqueAlpha_Flag;
             break;
         case SkBitmap::kARGB_8888_Config:
-        case SkBitmap::kARGB_4444_Config:
             if (fAlpha == 255 && fDevice->isOpaque())
                 flags |= kOpaqueAlpha_Flag;
             break;
@@ -43,7 +42,7 @@ uint32_t SkTransparentShader::getFlags() {
 void SkTransparentShader::shadeSpan(int x, int y, SkPMColor span[], int count) {
     unsigned scale = SkAlpha255To256(fAlpha);
 
-    switch (fDevice->getConfig()) {
+    switch (fDevice->config()) {
         case SkBitmap::kARGB_8888_Config:
             if (scale == 256) {
                 SkPMColor* src = fDevice->getAddr32(x, y);
@@ -79,21 +78,6 @@ void SkTransparentShader::shadeSpan(int x, int y, SkPMColor span[], int count) {
             }
             break;
         }
-        case SkBitmap::kARGB_4444_Config: {
-            const uint16_t* src = fDevice->getAddr16(x, y);
-            if (scale == 256) {
-                for (int i = count - 1; i >= 0; --i) {
-                    span[i] = SkPixel4444ToPixel32(src[i]);
-                }
-            } else {
-                unsigned scale16 = scale >> 4;
-                for (int i = count - 1; i >= 0; --i) {
-                    uint32_t c = SkExpand_4444(src[i]) * scale16;
-                    span[i] = SkCompact_8888(c);
-                }
-            }
-            break;
-        }
         case SkBitmap::kIndex8_Config:
             SkDEBUGFAIL("index8 not supported as a destination device");
             break;
@@ -110,16 +94,13 @@ void SkTransparentShader::shadeSpan(int x, int y, SkPMColor span[], int count) {
             }
             break;
         }
-        case SkBitmap::kA1_Config:
-            SkDEBUGFAIL("kA1_Config umimplemented at this time");
-            break;
         default:    // to avoid warnings
             break;
     }
 }
 
 void SkTransparentShader::shadeSpan16(int x, int y, uint16_t span[], int count) {
-    SkASSERT(fDevice->getConfig() == SkBitmap::kRGB_565_Config);
+    SkASSERT(fDevice->config() == SkBitmap::kRGB_565_Config);
 
     uint16_t* src = fDevice->getAddr16(x, y);
     if (src != span) {

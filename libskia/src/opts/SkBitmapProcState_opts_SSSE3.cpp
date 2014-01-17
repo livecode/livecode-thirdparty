@@ -7,6 +7,7 @@
 
 #include <tmmintrin.h>  // SSSE3
 #include "SkBitmapProcState_opts_SSSE3.h"
+#include "SkPaint.h"
 #include "SkUtils.h"
 
 // adding anonymous namespace seemed to force gcc to inline directly the
@@ -385,7 +386,7 @@ void S32_generic_D32_filter_DX_SSSE3(const SkBitmapProcState& s,
                                      const uint32_t* xy,
                                      int count, uint32_t* colors) {
     SkASSERT(count > 0 && colors != NULL);
-    SkASSERT(s.fDoFilter);
+    SkASSERT(s.fFilterLevel != SkPaint::kNone_FilterLevel);
     SkASSERT(s.fBitmap->config() == SkBitmap::kARGB_8888_Config);
     if (has_alpha) {
         SkASSERT(s.fAlphaScale < 256);
@@ -395,7 +396,7 @@ void S32_generic_D32_filter_DX_SSSE3(const SkBitmapProcState& s,
 
     const uint8_t* src_addr =
             static_cast<const uint8_t*>(s.fBitmap->getPixels());
-    const unsigned rb = s.fBitmap->rowBytes();
+    const size_t rb = s.fBitmap->rowBytes();
     const uint32_t XY = *xy++;
     const unsigned y0 = XY >> 14;
     const uint32_t* row0 =
@@ -576,7 +577,7 @@ void S32_generic_D32_filter_DXDY_SSSE3(const SkBitmapProcState& s,
                                        const uint32_t* xy,
                                        int count, uint32_t* colors) {
     SkASSERT(count > 0 && colors != NULL);
-    SkASSERT(s.fDoFilter);
+    SkASSERT(s.fFilterLevel != SkPaint::kNone_FilterLevel);
     SkASSERT(s.fBitmap->config() == SkBitmap::kARGB_8888_Config);
     if (has_alpha) {
         SkASSERT(s.fAlphaScale < 256);
@@ -586,7 +587,7 @@ void S32_generic_D32_filter_DXDY_SSSE3(const SkBitmapProcState& s,
 
     const uint8_t* src_addr =
                         static_cast<const uint8_t*>(s.fBitmap->getPixels());
-    const unsigned rb = s.fBitmap->rowBytes();
+    const size_t rb = s.fBitmap->rowBytes();
 
     // vector constants
     const __m128i mask_dist_select = _mm_set_epi8(12, 12, 12, 12,

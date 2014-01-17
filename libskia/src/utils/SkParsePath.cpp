@@ -188,7 +188,6 @@ bool SkParsePath::FromSVGString(const char data[], SkPath* result) {
 #include "SkStream.h"
 
 static void write_scalar(SkWStream* stream, SkScalar value) {
-#ifdef SK_SCALAR_IS_FLOAT
     char buffer[64];
 #ifdef SK_BUILD_FOR_WIN32
     int len = _snprintf(buffer, sizeof(buffer), "%g", value);
@@ -196,10 +195,6 @@ static void write_scalar(SkWStream* stream, SkScalar value) {
     int len = snprintf(buffer, sizeof(buffer), "%g", value);
 #endif
     char* stop = buffer + len;
-#else
-    char    buffer[SkStrAppendScalar_MaxSize];
-    char*   stop = SkStrAppendScalar(buffer, value);
-#endif
     stream->write(buffer, stop - buffer);
 }
 
@@ -221,7 +216,10 @@ void SkParsePath::ToSVGString(const SkPath& path, SkString* str) {
 
     for (;;) {
         switch (iter.next(pts, false)) {
-            case SkPath::kMove_Verb:
+             case SkPath::kConic_Verb:
+                SkASSERT(0);
+                break;
+           case SkPath::kMove_Verb:
                 append_scalars(&stream, 'M', &pts[0].fX, 2);
                 break;
             case SkPath::kLine_Verb:
@@ -243,4 +241,3 @@ void SkParsePath::ToSVGString(const SkPath& path, SkString* str) {
         }
     }
 }
-

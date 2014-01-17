@@ -10,6 +10,15 @@
 
 #include "SkTypes.h"
 
+/**
+ *  Computes a 32bit checksum from a blob of 32bit aligned data. This is meant
+ *  to be very very fast, as it is used internally by the font cache, in
+ *  conjuction with the entire raw key. This algorithm does not generate
+ *  unique values as well as others (e.g. MD5) but it performs much faster.
+ *  Skia's use cases can survive non-unique values (since the entire key is
+ *  always available). Clients should only be used in circumstances where speed
+ *  over uniqueness is at a premium.
+ */
 class SkChecksum : SkNoncopyable {
 private:
     /*
@@ -27,6 +36,42 @@ private:
     }
 
 public:
+
+    /**
+     * Calculate 32-bit Murmur hash (murmur3).
+     * This should take 2-3x longer than SkChecksum::Compute, but is a considerably better hash.
+     * See en.wikipedia.org/wiki/MurmurHash.
+     *
+     *  @param data Memory address of the data block to be processed. Must be 32-bit aligned.
+     *  @param size Size of the data block in bytes. Must be a multiple of 4.
+     *  @param seed Initial hash seed. (optional)
+     *  @return hash result
+     */
+    static uint32_t Murmur3(const uint32_t* data, size_t bytes, uint32_t seed=0) {
+        SkASSERT(SkIsAlign4(bytes));
+        const size_t words = bytes/4;
+
+        uint32_t hash = seed;
+        for (size_t i = 0; i < words; i++) {
+            uint32_t k = data[i];
+            k *= 0xcc9e2d51;
+            k = (k << 15) | (k >> 17);
+            k *= 0x1b873593;
+
+            hash ^= k;
+            hash = (hash << 13) | (hash >> 19);
+            hash *= 5;
+            hash += 0xe6546b64;
+        }
+        hash ^= bytes;
+        hash ^= hash >> 16;
+        hash *= 0x85ebca6b;
+        hash ^= hash >> 13;
+        hash *= 0xc2b2ae35;
+        hash ^= hash >> 16;
+        return hash;
+    }
+
     /**
      *  Compute a 32-bit checksum for a given data block
      *

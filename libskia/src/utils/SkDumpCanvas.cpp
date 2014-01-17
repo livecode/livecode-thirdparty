@@ -14,6 +14,7 @@
 #include "SkRRect.h"
 #include "SkString.h"
 #include <stdarg.h>
+#include <stdio.h>
 
 // needed just to know that these are all subclassed from SkFlattenable
 #include "SkShader.h"
@@ -22,8 +23,6 @@
 #include "SkColorFilter.h"
 #include "SkPathEffect.h"
 #include "SkMaskFilter.h"
-
-SK_DEFINE_INST_COUNT(SkDumpCanvas::Dumper)
 
 static void toString(const SkRect& r, SkString* str) {
     str->appendf("[%g,%g %g:%g]",
@@ -84,6 +83,9 @@ static void dumpVerbs(const SkPath& path, SkString* str) {
                 break;
             case SkPath::kDone_Verb:
                 return;
+            case SkPath::kConic_Verb:
+                SkASSERT(0);
+                break;
         }
     }
 }
@@ -138,15 +140,15 @@ static void toString(const void* text, size_t byteLen, SkPaint::TextEncoding enc
     // FIXME: this code appears to be untested - and probably unused - and probably wrong
     switch (enc) {
         case SkPaint::kUTF8_TextEncoding:
-            str->appendf("\"%.*s\"%s", SkMax32(byteLen, 32), (const char*) text,
+            str->appendf("\"%.*s\"%s", (int)SkTMax<size_t>(byteLen, 32), (const char*) text,
                         byteLen > 32 ? "..." : "");
             break;
         case SkPaint::kUTF16_TextEncoding:
-            str->appendf("\"%.*ls\"%s", SkMax32(byteLen, 32), (const wchar_t*) text,
+            str->appendf("\"%.*ls\"%s", (int)SkTMax<size_t>(byteLen, 32), (const wchar_t*) text,
                         byteLen > 64 ? "..." : "");
             break;
         case SkPaint::kUTF32_TextEncoding:
-            str->appendf("\"%.*ls\"%s", SkMax32(byteLen, 32), (const wchar_t*) text,
+            str->appendf("\"%.*ls\"%s", (int)SkTMax<size_t>(byteLen, 32), (const wchar_t*) text,
                         byteLen > 128 ? "..." : "");
             break;
         case SkPaint::kGlyphID_TextEncoding:
@@ -346,7 +348,8 @@ void SkDumpCanvas::drawBitmap(const SkBitmap& bitmap, SkScalar x, SkScalar y,
 }
 
 void SkDumpCanvas::drawBitmapRectToRect(const SkBitmap& bitmap, const SkRect* src,
-                                        const SkRect& dst, const SkPaint* paint) {
+                                        const SkRect& dst, const SkPaint* paint,
+                                        DrawBitmapRectFlags flags) {
     SkString bs, rs;
     bitmap.toString(&bs);
     toString(dst, &rs);
@@ -439,7 +442,19 @@ void SkDumpCanvas::drawVertices(VertexMode vmode, int vertexCount,
 void SkDumpCanvas::drawData(const void* data, size_t length) {
 //    this->dump(kDrawData_Verb, NULL, "drawData(%d)", length);
     this->dump(kDrawData_Verb, NULL, "drawData(%d) %.*s", length,
-               SkMin32(length, 64), data);
+               SkTMin<size_t>(length, 64), data);
+}
+
+void SkDumpCanvas::beginCommentGroup(const char* description) {
+    this->dump(kBeginCommentGroup_Verb, NULL, "beginCommentGroup(%s)", description);
+}
+
+void SkDumpCanvas::addComment(const char* kywd, const char* value) {
+    this->dump(kAddComment_Verb, NULL, "addComment(%s, %s)", kywd, value);
+}
+
+void SkDumpCanvas::endCommentGroup() {
+    this->dump(kEndCommentGroup_Verb, NULL, "endCommentGroup()");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -489,6 +504,10 @@ void SkFormatDumper::dump(SkDumpCanvas* canvas, SkDumpCanvas::Verb verb,
         if (SkDumpCanvas::kDrawText_Verb == verb) {
             msg.appendf(" textSize:%g", SkScalarToFloat(p->getTextSize()));
             appendPtr(&msg, p->getTypeface(), "typeface");
+        }
+
+        if (p->getStyle() != SkPaint::kFill_Style) {
+            msg.appendf(" strokeWidth:%g", SkScalarToFloat(p->getStrokeWidth()));
         }
     }
 

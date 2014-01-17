@@ -8,6 +8,7 @@
 #ifndef SkDrawProcs_DEFINED
 #define SkDrawProcs_DEFINED
 
+#include "SkBlitter.h"
 #include "SkDraw.h"
 
 class SkAAClip;
@@ -20,19 +21,46 @@ struct SkDraw1Glyph {
     const SkAAClip* fAAClip;
     SkBlitter* fBlitter;
     SkGlyphCache* fCache;
+    const SkPaint* fPaint;
     SkIRect fClipBounds;
+    /** Half the sampling frequency of the rasterized glyph in x. */
+    SkFixed fHalfSampleX;
+    /** Half the sampling frequency of the rasterized glyph in y. */
+    SkFixed fHalfSampleY;
 
-    // The fixed x,y are pre-rounded, so impls just trunc them down to ints.
-    // i.e. half the sampling frequency has been added.
-    // e.g. 1/2 or 1/(2^(SkGlyph::kSubBits+1)) has already been added.
+    /** Draws one glyph.
+     *
+     *  The x and y are pre-biased, so implementations may just truncate them.
+     *  i.e. half the sampling frequency has been added.
+     *  e.g. 1/2 or 1/(2^(SkGlyph::kSubBits+1)) has already been added.
+     *  This added bias can be found in fHalfSampleX,Y.
+     */
     typedef void (*Proc)(const SkDraw1Glyph&, SkFixed x, SkFixed y, const SkGlyph&);
 
-    Proc init(const SkDraw* draw, SkBlitter* blitter, SkGlyphCache* cache);
+    Proc init(const SkDraw* draw, SkBlitter* blitter, SkGlyphCache* cache,
+              const SkPaint&);
+
+    // call this instead of fBlitter->blitMask() since this wrapper will handle
+    // the case when the mask is ARGB32_Format
+    //
+    void blitMask(const SkMask& mask, const SkIRect& clip) const {
+        if (SkMask::kARGB32_Format == mask.fFormat) {
+            this->blitMaskAsSprite(mask);
+        } else {
+            fBlitter->blitMask(mask, clip);
+        }
+    }
+
+    // mask must be kARGB32_Format
+    void blitMaskAsSprite(const SkMask& mask) const;
 };
 
 struct SkDrawProcs {
     SkDraw1Glyph::Proc  fD1GProc;
 };
+
+bool SkDrawTreatAAStrokeAsHairline(SkScalar strokeWidth, const SkMatrix&,
+                                   SkScalar* coverage);
 
 /**
  *  If the current paint is set to stroke and the stroke-width when applied to
@@ -40,7 +68,23 @@ struct SkDrawProcs {
  *  a stroke by drawing a hairline with partial coverage). If any of these
  *  conditions are false, then this returns false and coverage is ignored.
  */
-bool SkDrawTreatAsHairline(const SkPaint&, const SkMatrix&, SkScalar* coverage);
+inline bool SkDrawTreatAsHairline(const SkPaint& paint, const SkMatrix& matrix,
+                                  SkScalar* coverage) {
+    if (SkPaint::kStroke_Style != paint.getStyle()) {
+        return false;
+    }
+
+    SkScalar strokeWidth = paint.getStrokeWidth();
+    if (0 == strokeWidth) {
+        *coverage = SK_Scalar1;
+        return true;
+    }
+
+    if (!paint.isAntiAlias()) {
+        return false;
+    }
+
+    return SkDrawTreatAAStrokeAsHairline(strokeWidth, matrix, coverage);
+}
 
 #endif
-

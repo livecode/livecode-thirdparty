@@ -971,13 +971,14 @@ size_t SkFontHost::GetFileName(SkFontID fontID, char path[], size_t length,
 }
 
 SkFontID SkFontHost::NextLogicalFont(SkFontID currFontID, SkFontID origFontID) {
-#ifdef SK_BUILD_FOR_ANDROID_NDK
+    // MM-2014-01-20: [[ Bug 11412 ]] Use fallback fonts by default. Was preventing certain unicode chars from being rendered.
+//#ifdef SK_BUILD_FOR_ANDROID_NDK
     // Skia does not support font fallback for ndk applications in order to
     // enable clients such as WebKit to customize their font selection.
     // Clients can use GetFallbackFamilyNameForChar() to get the fallback
     // font for individual characters.
-    return 0;
-#else
+//    return 0;
+//#else
     SkAutoMutexAcquire  ac(gFamilyHeadAndNameListMutex);
 
     load_system_fonts();
@@ -1013,7 +1014,7 @@ SkFontID SkFontHost::NextLogicalFont(SkFontID currFontID, SkFontID origFontID) {
     // i.e. gFallbackFonts[0] != 0.
     const SkTypeface* firstTypeface = find_from_uniqueID(list[0]);
     return find_typeface(firstTypeface, origTypeface->style())->uniqueID();
-#endif
+//#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////

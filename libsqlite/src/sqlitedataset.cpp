@@ -43,6 +43,12 @@
 
 typedef int (*MYPROC)(void *,int,const void *,int,const void *);
 
+struct binstr
+{
+	char *ptr;
+	size_t length;
+};
+
 extern int sqlite_decode_binary(const unsigned char * in, int in_bufsize, unsigned char *out, int out_bufsize);
 //**collation callback
 
@@ -182,7 +188,7 @@ void SanitizeHeaders(result_set *r,int ncols)
 }
 //************* Callback function ***************************
 
-int callback(void* res_ptr,int ncol, char** reslt,char** cols){
+int callback(void* res_ptr,int ncol, binstr* reslt,char** cols){
 
 	result_set* r = (result_set*)res_ptr;
 	int sz = r->records.size();
@@ -221,7 +227,7 @@ int callback(void* res_ptr,int ncol, char** reslt,char** cols){
 		{ 
 			// OK-2010-03-17: [[Bug 8671]] - Create it here instead
 			field_value v;
-			if (reslt[i] == NULL)
+			if (reslt[i].ptr == NULL)
 			{
 				v.set_asString("");
 				v.set_isNull();
@@ -230,7 +236,7 @@ int callback(void* res_ptr,int ncol, char** reslt,char** cols){
 			{
 				// MM-2012002-29: [[ BUG 1022 ]] - Ignore typing of the actual column and always assume data is string.
 				// The type of a SQLite column is determined by its contents rather than its schema (which is for guidance).
-				v.set_asString(reslt[i]);
+				v.set_asString(reslt[i].ptr, reslt[i].length);
 				switch( r->record_header[i].type)
 				{
 				case ft_Boolean:
@@ -261,6 +267,7 @@ int callback(void* res_ptr,int ncol, char** reslt,char** cols){
 				case ft_Object:
 					// MW-2014-01-29: [[ Sqlite382 ]] We no longer do the binary processing here - 
 					//   it is now done in revdb itself.
+						v . set_isBinary();
 #ifdef OLD_BINARY_PROCESSING
 					{
 						char *mybuff;
@@ -441,6 +448,7 @@ int SqliteDatabase::drop() {
 
 
 long SqliteDatabase::nextid(const char* sname) {
+#ifdef NOT_USED
   if (!active) return DB_UNEXPECTED_RESULT;
   int id;
   result_set res;
@@ -461,6 +469,7 @@ long SqliteDatabase::nextid(const char* sname) {
     if (last_err = sqlite3_exec(conn,sqlcmd,NULL,NULL,NULL) != SQLITE_OK) return DB_UNEXPECTED_RESULT;
     return id;    
   }
+#endif
   return DB_UNEXPECTED_RESULT;
 }
 
@@ -595,7 +604,7 @@ void SqliteDataset::fill_fields() {
 
 }
 
-static int sqlite3_query_exec(sqlite3 *db, const char *zSql, sqlite3_callback xCallback, void *pArg, char **pzErrMsg)
+static int sqlite3_query_exec(sqlite3 *db, const char *zSql, int (*xCallback)(void*,int,binstr*,char**), void *pArg, char **pzErrMsg)
 {
 	int rc = SQLITE_OK;
 	const char *zLeftover;
@@ -609,7 +618,7 @@ static int sqlite3_query_exec(sqlite3 *db, const char *zSql, sqlite3_callback xC
 	while( (rc==SQLITE_OK || (rc==SQLITE_SCHEMA && (++nRetry)<2)) && zSql[0] )
 	{
 		int nCol;
-		char **azVals = 0;
+		binstr *azVals = 0;
 
 		pStmt = 0;
 		rc = sqlite3_prepare(db, zSql, -1, &pStmt, &zLeftover);
@@ -626,9 +635,10 @@ static int sqlite3_query_exec(sqlite3 *db, const char *zSql, sqlite3_callback xC
 		int nCallback;
 		nCallback = 0;
 		nCol = sqlite3_column_count(pStmt);
-		azCols = (char **)malloc(3*nCol*sizeof(const char *) + 1);
-		memset(azCols, 0, 3*nCol*sizeof(const char *) + 1);
-
+		azCols = (char **)malloc(2*nCol*sizeof(const char *) + 1);
+		memset(azCols, 0, 2*nCol*sizeof(const char *) + 1);
+		azVals = (binstr *)malloc(nCol * sizeof(binstr));
+		
 		if( 0 == nCallback )
 		{
 			for(int i = 0; i < nCol; i++)
@@ -640,7 +650,6 @@ static int sqlite3_query_exec(sqlite3 *db, const char *zSql, sqlite3_callback xC
 
 		if( rc == SQLITE_OK )
 		{
-			azVals = &azCols[nCol * 2];
 			for(int i = 0; i < nCol; i++)
 			{
 				azCols[i + nCol] = (char *)sqlite3_column_decltype(pStmt, i);
@@ -698,10 +707,10 @@ static int sqlite3_query_exec(sqlite3 *db, const char *zSql, sqlite3_callback xC
 					}
 					nCallback++;
 				}*/
-					azVals = &azCols[nCol * 2];
 					for(i=0; i<nCol; i++)
 					{
-						azVals[i] = (char *)sqlite3_column_text(pStmt, i);
+						azVals[i] . ptr = (char *)sqlite3_column_text(pStmt, i);
+						azVals[i] . length = sqlite3_column_bytes(pStmt, i);
 					}
 				if( xCallback(pArg, nCol, azVals, azCols) )
 				{

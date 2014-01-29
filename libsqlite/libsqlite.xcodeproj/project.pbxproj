@@ -162,9 +162,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = (
-					SQLITE_OMIT_LOAD_EXTENSION,
 					SQLITE_ENABLE_FTS3,
 					SQLITE_ENABLE_FTS3_PARANTHESIS,
+					SQLITE_ENABLE_RTREE,
 				);
 				PRODUCT_NAME = sqlite;
 			};
@@ -174,9 +174,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = (
-					SQLITE_OMIT_LOAD_EXTENSION,
 					SQLITE_ENABLE_FTS3,
 					SQLITE_ENABLE_FTS3_PARANTHESIS,
+					SQLITE_ENABLE_RTREE,
 				);
 				PRODUCT_NAME = sqlite;
 			};

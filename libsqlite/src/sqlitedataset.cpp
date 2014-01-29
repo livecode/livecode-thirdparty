@@ -259,6 +259,9 @@ int callback(void* res_ptr,int ncol, char** reslt,char** cols){
 					//v.set_asDouble(v.get_asDouble());
 					break;
 				case ft_Object:
+					// MW-2014-01-29: [[ Sqlite382 ]] We no longer do the binary processing here - 
+					//   it is now done in revdb itself.
+#ifdef OLD_BINARY_PROCESSING
 					{
 						char *mybuff;
 						int bufsize;
@@ -277,6 +280,7 @@ int callback(void* res_ptr,int ncol, char** reslt,char** cols){
 						
 						free(mybuff);
 					}
+#endif
 					break;
 				case ft_LongDouble:
 					break;

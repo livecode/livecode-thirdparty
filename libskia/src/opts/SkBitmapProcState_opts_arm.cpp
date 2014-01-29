@@ -1,46 +1,41 @@
 /*
- * Copyright (C) 2009 The Android Open Source Project
+ * Copyright 2009 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
 
-#ifdef ANDROID
-    #include <machine/cpu-features.h>
-#endif
 
 #include "SkBitmapProcState.h"
 #include "SkColorPriv.h"
+#include "SkTypes.h"
 #include "SkUtils.h"
 
-#if __ARM_ARCH__ >= 6 && !defined(SK_CPU_BENDIAN)
+#if SK_ARM_ARCH >= 6 && !defined(SK_CPU_BENDIAN)
+void SI8_D16_nofilter_DX_arm(
+    const SkBitmapProcState& s,
+    const uint32_t* SK_RESTRICT xy,
+    int count,
+    uint16_t* SK_RESTRICT colors) SK_ATTRIBUTE_OPTIMIZE_O1;
+
 void SI8_D16_nofilter_DX_arm(const SkBitmapProcState& s,
                              const uint32_t* SK_RESTRICT xy,
                              int count, uint16_t* SK_RESTRICT colors) {
     SkASSERT(count > 0 && colors != NULL);
     SkASSERT(s.fInvType <= (SkMatrix::kTranslate_Mask | SkMatrix::kScale_Mask));
     SkASSERT(s.fDoFilter == false);
-    
+
     const uint16_t* SK_RESTRICT table = s.fBitmap->getColorTable()->lock16BitCache();
     const uint8_t* SK_RESTRICT srcAddr = (const uint8_t*)s.fBitmap->getPixels();
-    
+
     // buffer is y32, x16, x16, x16, x16, x16
     // bump srcAddr to the proper row, since we're told Y never changes
     SkASSERT((unsigned)xy[0] < (unsigned)s.fBitmap->height());
     srcAddr = (const uint8_t*)((const char*)srcAddr +
                                xy[0] * s.fBitmap->rowBytes());
-    
+
     uint8_t src;
-    
+
     if (1 == s.fBitmap->width()) {
         src = srcAddr[0];
         uint16_t dstValue = table[src];
@@ -49,7 +44,7 @@ void SI8_D16_nofilter_DX_arm(const SkBitmapProcState& s,
         int i;
         int count8 = count >> 3;
         const uint16_t* SK_RESTRICT xx = (const uint16_t*)(xy + 1);
-        
+
         asm volatile (
                       "cmp        %[count8], #0                   \n\t"   // compare loop counter with 0
                       "beq        2f                              \n\t"   // if loop counter == 0, exit
@@ -99,14 +94,20 @@ void SI8_D16_nofilter_DX_arm(const SkBitmapProcState& s,
                       : [table] "r" (table), [srcAddr] "r" (srcAddr)
                       : "memory", "cc", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11"
                       );
-        
+
         for (i = (count & 7); i > 0; --i) {
             src = srcAddr[*xx++]; *colors++ = table[src];
         }
     }
 
-    s.fBitmap->getColorTable()->unlock16BitCache(); 
+    s.fBitmap->getColorTable()->unlock16BitCache();
 }
+
+void SI8_opaque_D32_nofilter_DX_arm(
+    const SkBitmapProcState& s,
+    const uint32_t* SK_RESTRICT xy,
+    int count,
+    SkPMColor* SK_RESTRICT colors) SK_ATTRIBUTE_OPTIMIZE_O1;
 
 void SI8_opaque_D32_nofilter_DX_arm(const SkBitmapProcState& s,
                                     const uint32_t* SK_RESTRICT xy,
@@ -181,7 +182,7 @@ void SI8_opaque_D32_nofilter_DX_arm(const SkBitmapProcState& s,
 
     s.fBitmap->getColorTable()->unlockColors(false);
 }
-#endif //__ARM_ARCH__ >= 6 && !defined(SK_CPU_BENDIAN)
+#endif // SK_ARM_ARCH >= 6 && !defined(SK_CPU_BENDIAN)
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -199,7 +200,7 @@ void SkBitmapProcState::platformProcs() {
 
     switch (fBitmap->config()) {
         case SkBitmap::kIndex8_Config:
-#if __ARM_ARCH__ >= 6 && !defined(SK_CPU_BENDIAN)
+#if SK_ARM_ARCH >= 6 && !defined(SK_CPU_BENDIAN)
             if (justDx && !doFilter) {
 #if 0   /* crashing on android device */
                 fSampleProc16 = SI8_D16_nofilter_DX_arm;

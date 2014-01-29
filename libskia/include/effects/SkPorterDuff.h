@@ -1,17 +1,8 @@
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
 
 #ifndef SkPorterDuff_DEFINED
@@ -24,7 +15,7 @@ class SkXfermode;
 
 /** DEPRECATED - use SkXfermode::Mode instead
  */
-class SkPorterDuff {
+class SK_API SkPorterDuff {
 public:
     /** List of predefined xfermodes. In general, the algebra for the modes
         uses the following symbols:
@@ -52,6 +43,9 @@ public:
         kMultiply_Mode, //!< [Sa * Da, Sc * Dc]
         kScreen_Mode,   //!< [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]
         kAdd_Mode,      //!< Saturate(S + D)
+#ifdef SK_BUILD_FOR_ANDROID
+        kOverlay_Mode,
+#endif
 
         kModeCount
     };
@@ -59,19 +53,19 @@ public:
     /** Return an SkXfermode object for the specified mode.
     */
     static SkXfermode* CreateXfermode(Mode mode);
-    
+
     /** Return a function pointer to a routine that applies the specified
         porter-duff transfer mode.
     */
     static SkXfermodeProc GetXfermodeProc(Mode mode);
-    
+
     /** Return a function pointer to a routine that applies the specified
         porter-duff transfer mode and srcColor to a 16bit device color. Note,
         if the mode+srcColor might return a non-opaque color, then there is not
         16bit proc, and this will return NULL.
     */
     static SkXfermodeProc16 GetXfermodeProc16(Mode mode, SkColor srcColor);
-    
+
     /** If the specified xfermode advertises itself as one of the porterduff
         modes (via SkXfermode::Coeff), return true and if not null, set mode
         to the corresponding porterduff mode. If it is not recognized as a one,
@@ -85,4 +79,3 @@ public:
 };
 
 #endif
-

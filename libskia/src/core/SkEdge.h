@@ -1,24 +1,27 @@
-/* libs/graphics/sgl/SkEdge.h
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #ifndef SkEdge_DEFINED
 #define SkEdge_DEFINED
 
 #include "SkRect.h"
+#include "SkFDot6.h"
+#include "SkMath.h"
+
+//#ifdef SK_IGNORE_SETLINE_FIX
+#if 1
+    #define SkEdge_Compute_DY(top, y0)  ((32 - (y0)) & 63)
+#else
+    // This is correct, as it favors the lower-pixel when y0 is on a 1/2 pixel
+    // boundary, returning 64 instead of the old code, which returns 0.
+    #define SkEdge_Compute_DY(top, y0)  ((top << 6) + 32 - (y0))
+#endif
 
 struct SkEdge {
     enum Type {
@@ -41,6 +44,8 @@ struct SkEdge {
 
     int setLine(const SkPoint& p0, const SkPoint& p1, const SkIRect* clip,
                 int shiftUp);
+    // call this version if you know you don't have a clip
+    inline int setLine(const SkPoint& p0, const SkPoint& p1, int shiftUp);
     inline int updateLine(SkFixed ax, SkFixed ay, SkFixed bx, SkFixed by);
     void chopLineWithClip(const SkIRect& clip);
 
@@ -51,11 +56,7 @@ struct SkEdge {
 
 #ifdef SK_DEBUG
     void dump() const {
-    #ifdef SK_CAN_USE_FLOAT
         SkDebugf("edge: firstY:%d lastY:%d x:%g dx:%g w:%d\n", fFirstY, fLastY, SkFixedToFloat(fX), SkFixedToFloat(fDX), fWinding);
-    #else
-        SkDebugf("edge: firstY:%d lastY:%d x:%x dx:%x w:%d\n", fFirstY, fLastY, fX, fDX, fWinding);
-    #endif
     }
 
     void validate() const {
@@ -89,5 +90,54 @@ struct SkCubicEdge : public SkEdge {
     int setCubic(const SkPoint pts[4], const SkIRect* clip, int shiftUp);
     int updateCubic();
 };
+
+int SkEdge::setLine(const SkPoint& p0, const SkPoint& p1, int shift) {
+    SkFDot6 x0, y0, x1, y1;
+
+    {
+#ifdef SK_SCALAR_IS_FLOAT
+        float scale = float(1 << (shift + 6));
+        x0 = int(p0.fX * scale);
+        y0 = int(p0.fY * scale);
+        x1 = int(p1.fX * scale);
+        y1 = int(p1.fY * scale);
+#else
+        shift = 10 - shift;
+        x0 = p0.fX >> shift;
+        y0 = p0.fY >> shift;
+        x1 = p1.fX >> shift;
+        y1 = p1.fY >> shift;
+#endif
+    }
+
+    int winding = 1;
+
+    if (y0 > y1) {
+        SkTSwap(x0, x1);
+        SkTSwap(y0, y1);
+        winding = -1;
+    }
+
+    int top = SkFDot6Round(y0);
+    int bot = SkFDot6Round(y1);
+
+    // are we a zero-height line?
+    if (top == bot) {
+        return 0;
+    }
+
+    SkFixed slope = SkFDot6Div(x1 - x0, y1 - y0);
+    const int dy  = SkEdge_Compute_DY(top, y0);
+
+    fX          = SkFDot6ToFixed(x0 + SkFixedMul(slope, dy));   // + SK_Fixed1/2
+    fDX         = slope;
+    fFirstY     = top;
+    fLastY      = bot - 1;
+    fCurveCount = 0;
+    fWinding    = SkToS8(winding);
+    fCurveShift = 0;
+    return 1;
+}
+
 
 #endif

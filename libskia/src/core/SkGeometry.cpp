@@ -1,19 +1,11 @@
-/* libs/graphics/sgl/SkGeometry.cpp
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkGeometry.h"
 #include "Sk64.h"
@@ -212,7 +204,7 @@ static SkScalar eval_quad(const SkScalar src[], SkScalar t)
     return SkScalarMulAdd(SkScalarMulAdd(A, t, B), t, C);
 #else
     SkScalar    ab = SkScalarInterp(src[0], src[2], t);
-    SkScalar    bc = SkScalarInterp(src[2], src[4], t); 
+    SkScalar    bc = SkScalarInterp(src[2], src[4], t);
     return SkScalarInterp(ab, bc, t);
 #endif
 }
@@ -324,7 +316,7 @@ int SkChopQuadAtYExtrema(const SkPoint src[3], SkPoint dst[5])
 {
     SkASSERT(src);
     SkASSERT(dst);
-    
+
 #if 0
     static bool once = true;
     if (once)
@@ -332,16 +324,16 @@ int SkChopQuadAtYExtrema(const SkPoint src[3], SkPoint dst[5])
         once = false;
         SkPoint s[3] = { 0, 26398, 0, 26331, 0, 20621428 };
         SkPoint d[6];
-        
+
         int n = SkChopQuadAtYExtrema(s, d);
         SkDebugf("chop=%d, Y=[%x %x %x %x %x %x]\n", n, d[0].fY, d[1].fY, d[2].fY, d[3].fY, d[4].fY, d[5].fY);
     }
 #endif
-    
+
     SkScalar a = src[0].fY;
     SkScalar b = src[1].fY;
     SkScalar c = src[2].fY;
-    
+
     if (is_not_monotonic(a, b, c))
     {
         SkScalar    tValue;
@@ -368,11 +360,11 @@ int SkChopQuadAtXExtrema(const SkPoint src[3], SkPoint dst[5])
 {
     SkASSERT(src);
     SkASSERT(dst);
-    
+
     SkScalar a = src[0].fX;
     SkScalar b = src[1].fX;
     SkScalar c = src[2].fX;
-    
+
     if (is_not_monotonic(a, b, c)) {
         SkScalar tValue;
         if (valid_unit_divide(a - b, a - b - b + c, &tValue)) {
@@ -448,18 +440,20 @@ int SkChopQuadAtMaxCurvature(const SkPoint src[3], SkPoint dst[5])
     }
 }
 
-void SkConvertQuadToCubic(const SkPoint src[3], SkPoint dst[4])
-{
-    SkScalar two = SkIntToScalar(2);
-    SkScalar one_third = SkScalarDiv(SK_Scalar1, SkIntToScalar(3));
-    dst[0].set(src[0].fX, src[0].fY);
-    dst[1].set(
-        SkScalarMul(SkScalarMulAdd(src[1].fX, two, src[0].fX), one_third),
-        SkScalarMul(SkScalarMulAdd(src[1].fY, two, src[0].fY), one_third));
-    dst[2].set(
-        SkScalarMul(SkScalarMulAdd(src[1].fX, two, src[2].fX), one_third),
-        SkScalarMul(SkScalarMulAdd(src[1].fY, two, src[2].fY), one_third));
-    dst[3].set(src[2].fX, src[2].fY);
+#ifdef SK_SCALAR_IS_FLOAT
+    #define SK_ScalarTwoThirds  (0.666666666f)
+#else
+    #define SK_ScalarTwoThirds  ((SkFixed)(43691))
+#endif
+
+void SkConvertQuadToCubic(const SkPoint src[3], SkPoint dst[4]) {
+    const SkScalar scale = SK_ScalarTwoThirds;
+    dst[0] = src[0];
+    dst[1].set(src[0].fX + SkScalarMul(src[1].fX - src[0].fX, scale),
+               src[0].fY + SkScalarMul(src[1].fY - src[0].fY, scale));
+    dst[2].set(src[2].fX + SkScalarMul(src[1].fX - src[2].fX, scale),
+               src[2].fY + SkScalarMul(src[1].fY - src[2].fY, scale));
+    dst[3] = src[2];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -598,7 +592,7 @@ void SkChopCubicAt(const SkPoint src[4], SkPoint dst[7], SkScalar t)
 }
 
 /*  http://code.google.com/p/skia/issues/detail?id=32
- 
+
     This test code would fail when we didn't check the return result of
     valid_unit_divide in SkChopCubicAt(... tValues[], int roots). The reason is
     that after the first chop, the parameters to valid_unit_divide are equal
@@ -705,7 +699,7 @@ int SkChopCubicAtYExtrema(const SkPoint src[4], SkPoint dst[10]) {
     SkScalar    tValues[2];
     int         roots = SkFindCubicExtrema(src[0].fY, src[1].fY, src[2].fY,
                                            src[3].fY, tValues);
-    
+
     SkChopCubicAt(src, dst, tValues, roots);
     if (dst && roots > 0) {
         // we do some cleanup to ensure our Y extrema are flat
@@ -721,7 +715,7 @@ int SkChopCubicAtXExtrema(const SkPoint src[4], SkPoint dst[10]) {
     SkScalar    tValues[2];
     int         roots = SkFindCubicExtrema(src[0].fX, src[1].fX, src[2].fX,
                                            src[3].fX, tValues);
-    
+
     SkChopCubicAt(src, dst, tValues, roots);
     if (dst && roots > 0) {
         // we do some cleanup to ensure our Y extrema are flat
@@ -840,6 +834,64 @@ static SkScalar refine_cubic_root(const SkFP coeff[4], SkScalar root)
 }
 #endif
 
+/**
+ *  Given an array and count, remove all pair-wise duplicates from the array,
+ *  keeping the existing sorting, and return the new count
+ */
+static int collaps_duplicates(float array[], int count) {
+    for (int n = count; n > 1; --n) {
+        if (array[0] == array[1]) {
+            for (int i = 1; i < n; ++i) {
+                array[i - 1] = array[i];
+            }
+            count -= 1;
+        } else {
+            array += 1;
+        }
+    }
+    return count;
+}
+
+#ifdef SK_DEBUG
+
+#define TEST_COLLAPS_ENTRY(array)   array, SK_ARRAY_COUNT(array)
+
+static void test_collaps_duplicates() {
+    static bool gOnce;
+    if (gOnce) { return; }
+    gOnce = true;
+    const float src0[] = { 0 };
+    const float src1[] = { 0, 0 };
+    const float src2[] = { 0, 1 };
+    const float src3[] = { 0, 0, 0 };
+    const float src4[] = { 0, 0, 1 };
+    const float src5[] = { 0, 1, 1 };
+    const float src6[] = { 0, 1, 2 };
+    const struct {
+        const float* fData;
+        int fCount;
+        int fCollapsedCount;
+    } data[] = {
+        { TEST_COLLAPS_ENTRY(src0), 1 },
+        { TEST_COLLAPS_ENTRY(src1), 1 },
+        { TEST_COLLAPS_ENTRY(src2), 2 },
+        { TEST_COLLAPS_ENTRY(src3), 1 },
+        { TEST_COLLAPS_ENTRY(src4), 2 },
+        { TEST_COLLAPS_ENTRY(src5), 2 },
+        { TEST_COLLAPS_ENTRY(src6), 3 },
+    };
+    for (size_t i = 0; i < SK_ARRAY_COUNT(data); ++i) {
+        float dst[3];
+        memcpy(dst, data[i].fData, data[i].fCount * sizeof(dst[0]));
+        int count = collaps_duplicates(dst, data[i].fCount);
+        SkASSERT(data[i].fCollapsedCount == count);
+        for (int j = 1; j < count; ++j) {
+            SkASSERT(dst[j-1] < dst[j]);
+        }
+    }
+}
+#endif
+
 #if defined _WIN32 && _MSC_VER >= 1300  && defined SK_SCALAR_IS_FIXED // disable warning : unreachable code if building fixed point for windows desktop
 #pragma warning ( disable : 4702 )
 #endif
@@ -847,6 +899,9 @@ static SkScalar refine_cubic_root(const SkFP coeff[4], SkScalar root)
 /*  Solve coeff(t) == 0, returning the number of roots that
     lie withing 0 < t < 1.
     coeff[0]t^3 + coeff[1]t^2 + coeff[2]t + coeff[3]
+
+    Eliminates repeated roots (so that all tValues are distinct, and are always
+    in increasing order.
 */
 static int solve_cubic_polynomial(const SkFP coeff[4], SkScalar tValues[3])
 {
@@ -901,8 +956,14 @@ static int solve_cubic_polynomial(const SkFP coeff[4], SkScalar tValues[3])
         if (is_unit_interval(r))
             *roots++ = r;
 
+        SkDEBUGCODE(test_collaps_duplicates();)
+
         // now sort the roots
-        bubble_sort(tValues, (int)(roots - tValues));
+        int count = (int)(roots - tValues);
+        SkASSERT((unsigned)count <= 3);
+        bubble_sort(tValues, count);
+        count = collaps_duplicates(tValues, count);
+        roots = tValues + count;    // so we compute the proper count below
 #endif
     }
     else                // we have 1 real root
@@ -923,7 +984,7 @@ static int solve_cubic_polynomial(const SkFP coeff[4], SkScalar tValues[3])
 }
 
 /*  Looking for F' dot F'' == 0
-    
+
     A = b - a
     B = c - 2b + a
     C = d - 3c + 3b - a
@@ -955,7 +1016,7 @@ static void formulate_F1DotF2(const SkScalar src[], SkFP coeff[4])
 #define kMinTValueForChopping   0
 
 /*  Looking for F' dot F'' == 0
-    
+
     A = b - a
     B = c - 2b + a
     C = d - 3c + 3b - a
@@ -1177,7 +1238,7 @@ static bool quad_pt2OffCurve(const SkPoint quad[3], SkScalar x, SkScalar y, SkPo
             catch the >= 1 roots (which given our caller, will basically mean
             a root of 1, give-or-take numerical instability). If we are in the
             >= 1 case, return the existing offCurve point.
-        
+
             The test below checks to see if we are close to the "end" of the
             curve (near base[4]). Rather than specifying a tolerance, I just
             check to see if value is on to the right/left of the middle point
@@ -1193,28 +1254,52 @@ static bool quad_pt2OffCurve(const SkPoint quad[3], SkScalar x, SkScalar y, SkPo
     return false;
 }
 
+#ifdef SK_SCALAR_IS_FLOAT
+// Due to floating point issues (i.e., 1.0f - SK_ScalarRoot2Over2 !=
+// SK_ScalarRoot2Over2 - SK_ScalarTanPIOver8) a cruder root2over2
+// approximation is required to make the quad circle points convex. The
+// root of the problem is that with the root2over2 value in SkScalar.h
+// the arcs really are ever so slightly concave. Some alternative fixes
+// to this problem (besides just arbitrarily pushing out the mid-point as
+// is done here) are:
+//    Adjust all the points (not just the middle) to both better approximate
+//             the curve and remain convex
+//    Switch over to using cubics rather then quads
+//    Use a different method to create the mid-point (e.g., compute
+//             the two side points, average them, then move it out as needed
+#ifdef SK_REDEFINE_ROOT2OVER2_TO_MAKE_ARCTOS_CONVEX
+    #define SK_ScalarRoot2Over2_QuadCircle    0.7072f
+#else
+    #define SK_ScalarRoot2Over2_QuadCircle    SK_ScalarRoot2Over2
+#endif
+
+#else
+    #define SK_ScalarRoot2Over2_QuadCircle    SK_FixedRoot2Over2
+#endif
+
+
 static const SkPoint gQuadCirclePts[kSkBuildQuadArcStorage] = {
-    { SK_Scalar1,           0               },
-    { SK_Scalar1,           SK_ScalarTanPIOver8 },
-    { SK_ScalarRoot2Over2,  SK_ScalarRoot2Over2 },
-    { SK_ScalarTanPIOver8,  SK_Scalar1          },
+    { SK_Scalar1,                      0                                  },
+    { SK_Scalar1,                      SK_ScalarTanPIOver8                },
+    { SK_ScalarRoot2Over2_QuadCircle,  SK_ScalarRoot2Over2_QuadCircle     },
+    { SK_ScalarTanPIOver8,             SK_Scalar1                         },
 
-    { 0,                    SK_Scalar1      },
-    { -SK_ScalarTanPIOver8, SK_Scalar1  },
-    { -SK_ScalarRoot2Over2, SK_ScalarRoot2Over2 },
-    { -SK_Scalar1,          SK_ScalarTanPIOver8 },
+    { 0,                               SK_Scalar1                         },
+    { -SK_ScalarTanPIOver8,            SK_Scalar1                         },
+    { -SK_ScalarRoot2Over2_QuadCircle, SK_ScalarRoot2Over2_QuadCircle     },
+    { -SK_Scalar1,                     SK_ScalarTanPIOver8                },
 
-    { -SK_Scalar1,          0               },
-    { -SK_Scalar1,          -SK_ScalarTanPIOver8    },
-    { -SK_ScalarRoot2Over2, -SK_ScalarRoot2Over2    },
-    { -SK_ScalarTanPIOver8, -SK_Scalar1     },
+    { -SK_Scalar1,                     0                                  },
+    { -SK_Scalar1,                     -SK_ScalarTanPIOver8               },
+    { -SK_ScalarRoot2Over2_QuadCircle, -SK_ScalarRoot2Over2_QuadCircle    },
+    { -SK_ScalarTanPIOver8,            -SK_Scalar1                        },
 
-    { 0,                    -SK_Scalar1     },
-    { SK_ScalarTanPIOver8,  -SK_Scalar1     },
-    { SK_ScalarRoot2Over2,  -SK_ScalarRoot2Over2    },
-    { SK_Scalar1,           -SK_ScalarTanPIOver8    },
+    { 0,                               -SK_Scalar1                        },
+    { SK_ScalarTanPIOver8,             -SK_Scalar1                        },
+    { SK_ScalarRoot2Over2_QuadCircle,  -SK_ScalarRoot2Over2_QuadCircle    },
+    { SK_Scalar1,                      -SK_ScalarTanPIOver8               },
 
-    { SK_Scalar1,           0   }
+    { SK_Scalar1,                      0                                  }
 };
 
 int SkBuildQuadArc(const SkVector& uStart, const SkVector& uStop,
@@ -1236,7 +1321,7 @@ int SkBuildQuadArc(const SkVector& uStart, const SkVector& uStop,
     if (absY <= SK_ScalarNearlyZero && x > 0 &&
         ((y >= 0 && kCW_SkRotationDirection == dir) ||
          (y <= 0 && kCCW_SkRotationDirection == dir))) {
-            
+
         // just return the start-point
         quadPoints[0].set(SK_Scalar1, 0);
         pointCount = 1;

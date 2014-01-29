@@ -1,19 +1,9 @@
-/* libs/graphics/sgl/SkCoreBlitters.h
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
 
 #ifndef SkCoreBlitters_DEFINED
 #define SkCoreBlitters_DEFINED
@@ -101,7 +91,10 @@ public:
     virtual const SkBitmap* justAnOpaqueColor(uint32_t*);
 
 protected:
-    SkColor fPMColor;
+    SkColor                fColor;
+    SkPMColor              fPMColor;
+    SkBlitRow::ColorProc   fColor32Proc;
+    SkBlitRow::ColorRectProc fColorRect32Proc;
 
 private:
     unsigned fSrcA, fSrcR, fSrcG, fSrcB;
@@ -126,7 +119,6 @@ class SkARGB32_Black_Blitter : public SkARGB32_Opaque_Blitter {
 public:
     SkARGB32_Black_Blitter(const SkBitmap& device, const SkPaint& paint)
         : INHERITED(device, paint) {}
-    virtual void blitMask(const SkMask&, const SkIRect&);
     virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
 
 private:
@@ -137,14 +129,19 @@ class SkARGB32_Shader_Blitter : public SkShaderBlitter {
 public:
     SkARGB32_Shader_Blitter(const SkBitmap& device, const SkPaint& paint);
     virtual ~SkARGB32_Shader_Blitter();
-    virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]);
+    virtual void blitH(int x, int y, int width) SK_OVERRIDE;
+    virtual void blitV(int x, int y, int height, SkAlpha alpha) SK_OVERRIDE;
+    virtual void blitRect(int x, int y, int width, int height) SK_OVERRIDE;
+    virtual void blitAntiH(int x, int y, const SkAlpha[], const int16_t[]) SK_OVERRIDE;
+    virtual void blitMask(const SkMask&, const SkIRect&) SK_OVERRIDE;
 
 private:
     SkXfermode*         fXfermode;
     SkPMColor*          fBuffer;
     SkBlitRow::Proc32   fProc32;
     SkBlitRow::Proc32   fProc32Blend;
+    bool                fShadeDirectlyIntoDevice;
+    bool                fConstInY;
 
     // illegal
     SkARGB32_Shader_Blitter& operator=(const SkARGB32_Shader_Blitter&);
@@ -164,7 +161,7 @@ private:
 
     // illegal
     SkA1_Blitter& operator=(const SkA1_Blitter&);
-    
+
     typedef SkRasterBlitter INHERITED;
 };
 
@@ -174,7 +171,7 @@ private:
 
     Currently, they make the following assumptions about the state of the
     paint:
- 
+
     1. If there is an xfermode, there will also be a shader
     2. If there is a colorfilter, there will be a shader that itself handles
        calling the filter, so the blitter can always ignore the colorfilter obj

@@ -1,26 +1,18 @@
-/* libs/corecg/SkMemory_stdlib.cpp
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkTypes.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 #ifdef SK_DEBUG
-    #define SK_TAG_BLOCKS
+    // #define SK_TAG_BLOCKS
     // #define SK_TRACK_ALLOC  // enable to see a printf for every alloc/free
     // #define SK_CHECK_TAGS   // enable to double-check debugging link list
 #endif
@@ -37,7 +29,7 @@ static const char kBlockTrailerTag[] = { 'a', 'i', 'k', 's' };
 #define kByteFill 0xCD
 #define kDeleteFill 0xEF
 
-static SkMutex& get_block_mutex() {
+static SkBaseMutex& get_block_mutex() {
     static SkMutex* gBlockMutex;
     if (NULL == gBlockMutex) {
         gBlockMutex = new SkMutex;
@@ -58,7 +50,7 @@ struct SkBlockHeader {
     // data goes here. The offset to this point must be a multiple of 8
     char fTrailer[sizeof(kBlockTrailerTag)];
 
-    void* add(size_t realSize) 
+    void* add(size_t realSize)
     {
         SkAutoMutexAcquire  ac(get_block_mutex());
         InMutexValidate();
@@ -77,7 +69,7 @@ struct SkBlockHeader {
         memcpy(trailer, kBlockTrailerTag, sizeof(kBlockTrailerTag));
         return result;
     }
-    
+
     static void Dump()
     {
         SkAutoMutexAcquire  ac(get_block_mutex());
@@ -136,7 +128,7 @@ struct SkBlockHeader {
         const char* trailer = fTrailer + fSize;
         SkASSERT(memcmp(trailer, kBlockTrailerTag, sizeof(kBlockTrailerTag)) == 0);
     }
-    
+
     static void Validate()
     {
         SkAutoMutexAcquire  ac(get_block_mutex());
@@ -167,19 +159,13 @@ void ValidateHeap() {}
 
 void sk_throw()
 {
-#ifdef ANDROID
-    fprintf(stderr, "throwing...\n");
-#endif
-    SkASSERT(!"sk_throw");
+    SkDEBUGFAIL("sk_throw");
     abort();
 }
 
 void sk_out_of_memory(void)
 {
-#ifdef ANDROID
-    fprintf(stderr,"- out of memory in SGL -\n");
-#endif
-    SkASSERT(!"sk_out_of_memory");
+    SkDEBUGFAIL("sk_out_of_memory");
     abort();
 }
 
@@ -202,7 +188,7 @@ void* sk_realloc_throw(void* addr, size_t size)
         addr = header;
     }
     size_t realSize = size;
-    if (size) 
+    if (size)
         size += sizeof(SkBlockHeader);
 #endif
 
@@ -235,7 +221,7 @@ void sk_free(void* p)
     {
         ValidateHeap();
 #ifdef SK_TAG_BLOCKS
-        SkBlockHeader* header = (SkBlockHeader*) 
+        SkBlockHeader* header = (SkBlockHeader*)
             ((char*)p - SK_OFFSETOF(SkBlockHeader, fTrailer));
         header->remove();
 #ifdef SK_TRACK_ALLOC
@@ -258,7 +244,7 @@ void* sk_malloc_flags(size_t size, unsigned flags)
     size_t realSize = size;
     size += sizeof(SkBlockHeader);
 #endif
-    
+
     void* p = malloc(size);
     if (p == NULL)
     {

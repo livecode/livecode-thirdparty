@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #ifndef SkCanvas_DEFINED
 #define SkCanvas_DEFINED
@@ -20,6 +13,7 @@
 #include "SkTypes.h"
 #include "SkBitmap.h"
 #include "SkDeque.h"
+#include "SkClipStack.h"
 #include "SkPaint.h"
 #include "SkRefCnt.h"
 #include "SkPath.h"
@@ -27,12 +21,17 @@
 #include "SkScalarCompare.h"
 #include "SkXfermode.h"
 
+// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask.
+#include "SkMask.h"
+
 class SkBounder;
 class SkDevice;
 class SkDraw;
 class SkDrawFilter;
+class SkMetaData;
 class SkPicture;
-class SkShape;
+class SkRRect;
+class SkSurface_Base;
 
 /** \class SkCanvas
 
@@ -49,33 +48,40 @@ class SkShape;
     color, typeface, textSize, strokeWidth, shader (e.g. gradients, patterns),
     etc.
 */
-class SkCanvas : public SkRefCnt {
+class SK_API SkCanvas : public SkRefCnt {
 public:
-    /** Construct a canvas with the specified bitmap to draw into.
+    SK_DECLARE_INST_COUNT(SkCanvas)
+
+    SkCanvas();
+
+    /** Construct a canvas with the specified device to draw into.
+
+        @param device   Specifies a device for the canvas to draw into.
+    */
+    explicit SkCanvas(SkDevice* device);
+
+    /** Deprecated - Construct a canvas with the specified bitmap to draw into.
         @param bitmap   Specifies a bitmap for the canvas to draw into. Its
                         structure are copied to the canvas.
     */
     explicit SkCanvas(const SkBitmap& bitmap);
-    /** Construct a canvas with the specified device to draw into.
-        @param device   Specifies a device for the canvas to draw into. The
-                        device may be null.
-    */
-    explicit SkCanvas(SkDevice* device = NULL);
     virtual ~SkCanvas();
+
+    SkMetaData& getMetaData();
 
     ///////////////////////////////////////////////////////////////////////////
 
-    /** If this subclass of SkCanvas supports GL viewports, return true and set
-        size (if not null) to the size of the viewport. If it is not supported,
-        ignore vp and return false.
-    */
-    virtual bool getViewport(SkIPoint* size) const;
-    
-    /** If this subclass of SkCanvas supports GL viewports, return true and set
-        the viewport to the specified x and y dimensions. If it is not
-        supported, ignore x and y and return false.
-    */
-    virtual bool setViewport(int x, int y);
+    /**
+     *  Trigger the immediate execution of all pending draw operations.
+     */
+    void flush();
+
+    /**
+     *  Return the width/height of the underlying device. The current drawable
+     *  area may be small (due to clipping or saveLayer). For a canvas with
+     *  no device, 0,0 will be returned.
+     */
+    SkISize getDeviceSize() const;
 
     /** Return the canvas' device object, which may be null. The device holds
         the bitmap of the pixels that the canvas draws into. The reference count
@@ -83,20 +89,135 @@ public:
     */
     SkDevice* getDevice() const;
 
-    /** Specify a device for this canvas to draw into. If it is not null, its
-        reference count is incremented. If the canvas was already holding a
-        device, its reference count is decremented. The new device is returned.
-    */
-    SkDevice* setDevice(SkDevice* device);
-    
-    /** Specify a bitmap for the canvas to draw into. This is a help method for
-        setDevice(), and it creates a device for the bitmap by calling
-        createDevice(). The structure of the bitmap is copied into the device.
-    */
-    virtual SkDevice* setBitmapDevice(const SkBitmap& bitmap);
+    /**
+     *  saveLayer() can create another device (which is later drawn onto
+     *  the previous device). getTopDevice() returns the top-most device current
+     *  installed. Note that this can change on other calls like save/restore,
+     *  so do not access this device after subsequent canvas calls.
+     *  The reference count of the device is not changed.
+     *
+     * @param updateMatrixClip If this is true, then before the device is
+     *        returned, we ensure that its has been notified about the current
+     *        matrix and clip. Note: this happens automatically when the device
+     *        is drawn to, but is optional here, as there is a small perf hit
+     *        sometimes.
+     */
+    SkDevice* getTopDevice(bool updateMatrixClip = false) const;
+
+    /**
+     *  Shortcut for getDevice()->createCompatibleDevice(...).
+     *  If getDevice() == NULL, this method does nothing, and returns NULL.
+     */
+    SkDevice* createCompatibleDevice(SkBitmap::Config config,
+                                    int width, int height,
+                                    bool isOpaque);
 
     ///////////////////////////////////////////////////////////////////////////
-    
+
+    /**
+     * This enum can be used with read/writePixels to perform a pixel ops to or
+     * from an 8888 config other than Skia's native config (SkPMColor). There
+     * are three byte orders supported: native, BGRA, and RGBA. Each has a
+     * premultiplied and unpremultiplied variant.
+     *
+     * Components of a 8888 pixel can be packed/unpacked from a 32bit word using
+     * either byte offsets or shift values. Byte offsets are endian-invariant
+     * while shifts are not. BGRA and RGBA configs are defined by byte
+     * orderings. The native config is defined by shift values (SK_A32_SHIFT,
+     * ..., SK_B32_SHIFT).
+     */
+    enum Config8888 {
+        /**
+         * Skia's native order specified by:
+         *      SK_A32_SHIFT, SK_R32_SHIFT, SK_G32_SHIFT, and SK_B32_SHIFT
+         *
+         * kNative_Premul_Config8888 is equivalent to SkPMColor
+         * kNative_Unpremul_Config8888 has the same component order as SkPMColor
+         * but is not premultiplied.
+         */
+        kNative_Premul_Config8888,
+        kNative_Unpremul_Config8888,
+        /**
+         * low byte to high byte: B, G, R, A.
+         */
+        kBGRA_Premul_Config8888,
+        kBGRA_Unpremul_Config8888,
+        /**
+         * low byte to high byte: R, G, B, A.
+         */
+        kRGBA_Premul_Config8888,
+        kRGBA_Unpremul_Config8888
+    };
+
+    /**
+     *  On success (returns true), copy the canvas pixels into the bitmap.
+     *  On failure, the bitmap parameter is left unchanged and false is
+     *  returned.
+     *
+     *  The canvas' pixels are converted to the bitmap's config. The only
+     *  supported config is kARGB_8888_Config, though this is likely to be
+     *  relaxed in  the future. The meaning of config kARGB_8888_Config is
+     *  modified by the enum param config8888. The default value interprets
+     *  kARGB_8888_Config as SkPMColor
+     *
+     *  If the bitmap has pixels already allocated, the canvas pixels will be
+     *  written there. If not, bitmap->allocPixels() will be called
+     *  automatically. If the bitmap is backed by a texture readPixels will
+     *  fail.
+     *
+     *  The actual pixels written is the intersection of the canvas' bounds, and
+     *  the rectangle formed by the bitmap's width,height and the specified x,y.
+     *  If bitmap pixels extend outside of that intersection, they will not be
+     *  modified.
+     *
+     *  Other failure conditions:
+     *    * If the canvas is backed by a non-raster device (e.g. PDF) then
+     *       readPixels will fail.
+     *    * If bitmap is texture-backed then readPixels will fail. (This may be
+     *       relaxed in the future.)
+     *
+     *  Example that reads the entire canvas into a bitmap using the native
+     *  SkPMColor:
+     *    SkISize size = canvas->getDeviceSize();
+     *    bitmap->setConfig(SkBitmap::kARGB_8888_Config, size.fWidth,
+     *                                                   size.fHeight);
+     *    if (canvas->readPixels(bitmap, 0, 0)) {
+     *       // use the pixels
+     *    }
+     */
+    bool readPixels(SkBitmap* bitmap,
+                    int x, int y,
+                    Config8888 config8888 = kNative_Premul_Config8888);
+
+    /**
+     * DEPRECATED: This will be removed as soon as webkit is no longer relying
+     * on it. The bitmap is resized to the intersection of srcRect and the
+     * canvas bounds. New pixels are always allocated on success. Bitmap is
+     * unmodified on failure.
+     */
+    bool readPixels(const SkIRect& srcRect, SkBitmap* bitmap);
+
+    /**
+     *  Similar to draw sprite, this method will copy the pixels in bitmap onto
+     *  the canvas, with the top/left corner specified by (x, y). The canvas'
+     *  pixel values are completely replaced: there is no blending.
+     *
+     *  Currently if bitmap is backed by a texture this is a no-op. This may be
+     *  relaxed in the future.
+     *
+     *  If the bitmap has config kARGB_8888_Config then the config8888 param
+     *  will determines how the pixel valuess are intepreted. If the bitmap is
+     *  not kARGB_8888_Config then this parameter is ignored.
+     *
+     *  Note: If you are recording drawing commands on this canvas to
+     *  SkPicture, writePixels() is ignored!
+     */
+    void writePixels(const SkBitmap& bitmap,
+                     int x, int y,
+                     Config8888 config8888 = kNative_Premul_Config8888);
+
+    ///////////////////////////////////////////////////////////////////////////
+
     enum SaveFlags {
         /** save the matrix state, restoring it on restore() */
         kMatrix_SaveFlag            = 0x01,
@@ -175,6 +296,11 @@ public:
     */
     void restoreToCount(int saveCount);
 
+    /** Returns true if drawing is currently going to a layer (from saveLayer)
+     *  rather than to the root device.
+     */
+    virtual bool isDrawingToLayer() const;
+
     /** Preconcat the current matrix with the specified translation
         @param dx   The distance to translate in X
         @param dy   The distance to translate in Y
@@ -207,31 +333,56 @@ public:
         @return true if the operation succeeded (e.g. did not overflow)
     */
     virtual bool concat(const SkMatrix& matrix);
-    
+
     /** Replace the current matrix with a copy of the specified matrix.
         @param matrix The matrix that will be copied into the current matrix.
     */
     virtual void setMatrix(const SkMatrix& matrix);
-    
+
     /** Helper for setMatrix(identity). Sets the current matrix to identity.
     */
     void resetMatrix();
 
-    /** Modify the current clip with the specified rectangle.
-        @param rect The rect to intersect with the current clip
-        @param op The region op to apply to the current clip
-        @return true if the canvas' clip is non-empty
-    */
+    /**
+     *  Modify the current clip with the specified rectangle.
+     *  @param rect The rect to combine with the current clip
+     *  @param op The region op to apply to the current clip
+     *  @param doAntiAlias true if the clip should be antialiased
+     *  @return true if the canvas' clip is non-empty
+     */
     virtual bool clipRect(const SkRect& rect,
-                          SkRegion::Op op = SkRegion::kIntersect_Op);
+                          SkRegion::Op op = SkRegion::kIntersect_Op,
+                          bool doAntiAlias = false);
 
-    /** Modify the current clip with the specified path.
-        @param path The path to apply to the current clip
-        @param op The region op to apply to the current clip
-        @return true if the canvas' new clip is non-empty
-    */
+    /**
+     *  Modify the current clip with the specified SkRRect.
+     *  @param rrect The rrect to combine with the current clip
+     *  @param op The region op to apply to the current clip
+     *  @param doAntiAlias true if the clip should be antialiased
+     *  @return true if the canvas' clip is non-empty
+     */
+    virtual bool clipRRect(const SkRRect& rrect,
+                           SkRegion::Op op = SkRegion::kIntersect_Op,
+                           bool doAntiAlias = false);
+
+    /**
+     *  Modify the current clip with the specified path.
+     *  @param path The path to combine with the current clip
+     *  @param op The region op to apply to the current clip
+     *  @param doAntiAlias true if the clip should be antialiased
+     *  @return true if the canvas' new clip is non-empty
+     */
     virtual bool clipPath(const SkPath& path,
-                          SkRegion::Op op = SkRegion::kIntersect_Op);
+                          SkRegion::Op op = SkRegion::kIntersect_Op,
+                          bool doAntiAlias = false);
+
+    /** EXPERIMENTAL -- only used for testing
+        Set to false to force clips to be hard, even if doAntiAlias=true is
+        passed to clipRect or clipPath.
+     */
+    void setAllowSoftClip(bool allow) {
+        fAllowSoftClip = allow;
+    }
 
     /** Modify the current clip with the specified region. Note that unlike
         clipRect() and clipPath() which transform their arguments by the current
@@ -254,33 +405,15 @@ public:
         return this->clipRegion(deviceRgn, SkRegion::kReplace_Op);
     }
 
-    /** Enum describing how to treat edges when performing quick-reject tests
-        of a geometry against the current clip. Treating them as antialiased
-        (kAA_EdgeType) will take into account the extra pixels that may be drawn
-        if the edge does not lie exactly on a device pixel boundary (after being
-        transformed by the current matrix).
-    */
-    enum EdgeType {
-        /** Treat the edges as B&W (not antialiased) for the purposes of testing
-            against the current clip
-        */
-        kBW_EdgeType,
-        /** Treat the edges as antialiased for the purposes of testing
-            against the current clip
-        */
-        kAA_EdgeType
-    };
-
     /** Return true if the specified rectangle, after being transformed by the
         current matrix, would lie completely outside of the current clip. Call
         this to check if an area you intend to draw into is clipped out (and
         therefore you can skip making the draw calls).
         @param rect the rect to compare with the current clip
-        @param et  specifies how to treat the edges (see EdgeType)
         @return true if the rect (transformed by the canvas' matrix) does not
                      intersect with the canvas' clip
     */
-    bool quickReject(const SkRect& rect, EdgeType et) const;
+    bool quickReject(const SkRect& rect) const;
 
     /** Return true if the specified path, after being transformed by the
         current matrix, would lie completely outside of the current clip. Call
@@ -289,11 +422,10 @@ public:
         return false even if the path itself might not intersect the clip
         (i.e. the bounds of the path intersects, but the path does not).
         @param path The path to compare with the current clip
-        @param et  specifies how to treat the edges (see EdgeType)
         @return true if the path (transformed by the canvas' matrix) does not
                      intersect with the canvas' clip
     */
-    bool quickReject(const SkPath& path, EdgeType et) const;
+    bool quickReject(const SkPath& path) const;
 
     /** Return true if the horizontal band specified by top and bottom is
         completely clipped out. This is a conservative calculation, meaning
@@ -305,14 +437,30 @@ public:
         @return true if the horizontal band is completely clipped out (i.e. does
                      not intersect the current clip)
     */
-    bool quickRejectY(SkScalar top, SkScalar bottom, EdgeType et) const;
+    bool quickRejectY(SkScalar top, SkScalar bottom) const {
+        SkASSERT(SkScalarToCompareType(top) <= SkScalarToCompareType(bottom));
+        const SkRectCompareType& clipR = this->getLocalClipBoundsCompareType();
+        // In the case where the clip is empty and we are provided with a
+        // negative top and positive bottom parameter then this test will return
+        // false even though it will be clipped. We have chosen to exclude that
+        // check as it is rare and would result double the comparisons.
+        return SkScalarToCompareType(top) >= clipR.fBottom
+            || SkScalarToCompareType(bottom) <= clipR.fTop;
+    }
 
     /** Return the bounds of the current clip (in local coordinates) in the
         bounds parameter, and return true if it is non-empty. This can be useful
         in a way similar to quickReject, in that it tells you that drawing
         outside of these bounds will be clipped out.
     */
-    bool getClipBounds(SkRect* bounds, EdgeType et = kAA_EdgeType) const;
+    bool getClipBounds(SkRect* bounds) const;
+
+    /** Return the bounds of the current clip, in device coordinates; returns
+        true if non-empty. Maybe faster than getting the clip explicitly and
+        then taking its bounds.
+    */
+    bool getClipDeviceBounds(SkIRect* bounds) const;
+
 
     /** Fill the entire canvas' bitmap (restricted to the current clip) with the
         specified ARGB color, using the specified mode.
@@ -333,10 +481,27 @@ public:
     void drawColor(SkColor color,
                    SkXfermode::Mode mode = SkXfermode::kSrcOver_Mode);
 
-    /** Fill the entire canvas' bitmap (restricted to the current clip) with the
-        specified paint.
-        @param paint    The paint used to fill the canvas
-    */
+    /**
+     *  This erases the entire drawing surface to the specified color,
+     *  irrespective of the clip. It does not blend with the previous pixels,
+     *  but always overwrites them.
+     *
+     *  It is roughly equivalent to the following:
+     *      canvas.save();
+     *      canvas.clipRect(hugeRect, kReplace_Op);
+     *      paint.setColor(color);
+     *      paint.setXfermodeMode(kSrc_Mode);
+     *      canvas.drawPaint(paint);
+     *      canvas.restore();
+     *  though it is almost always much more efficient.
+     */
+    virtual void clear(SkColor);
+
+    /**
+     *  Fill the entire canvas' bitmap (restricted to the current clip) with the
+     *  specified paint.
+     *  @param paint    The paint used to fill the canvas
+     */
     virtual void drawPaint(const SkPaint& paint);
 
     enum PointMode {
@@ -376,7 +541,7 @@ public:
         details.
     */
     void drawPoint(SkScalar x, SkScalar y, const SkPaint& paint);
-    
+
     /** Draws a single pixel in the specified color.
         @param x        The X coordinate of which pixel to draw
         @param y        The Y coordiante of which pixel to draw
@@ -414,7 +579,7 @@ public:
         r.set(rect);    // promotes the ints to scalars
         this->drawRect(r, paint);
     }
-    
+
     /** Draw the specified rectangle using the specified paint. The rectangle
         will be filled or framed based on the Style in the paint.
         @param left     The left side of the rectangle to be drawn
@@ -431,7 +596,16 @@ public:
         @param oval     The rectangle bounds of the oval to be drawn
         @param paint    The paint used to draw the oval
     */
-    void drawOval(const SkRect& oval, const SkPaint&);
+    virtual void drawOval(const SkRect& oval, const SkPaint&);
+
+    /**
+     *  Draw the specified RRect using the specified paint The rrect will be filled or stroked
+     *  based on the Style in the paint.
+     *
+     *  @param rrect    The round-rect to draw
+     *  @param paint    The paint used to draw the round-rect
+     */
+    virtual void drawRRect(const SkRRect& rrect, const SkPaint& paint);
 
     /** Draw the specified circle using the specified paint. If radius is <= 0,
         then nothing will be drawn. The circle will be filled
@@ -497,12 +671,46 @@ public:
                         image will be drawn
         @param paint    The paint used to draw the bitmap, or NULL
     */
-    virtual void drawBitmapRect(const SkBitmap& bitmap, const SkIRect* src,
-                                const SkRect& dst, const SkPaint* paint = NULL);
+    virtual void drawBitmapRectToRect(const SkBitmap& bitmap, const SkRect* src,
+                                      const SkRect& dst,
+                                      const SkPaint* paint);
+
+    void drawBitmapRect(const SkBitmap& bitmap, const SkRect& dst,
+                        const SkPaint* paint) {
+        this->drawBitmapRectToRect(bitmap, NULL, dst, paint);
+    }
+
+    void drawBitmapRect(const SkBitmap& bitmap, const SkIRect* isrc,
+                        const SkRect& dst, const SkPaint* paint = NULL) {
+        SkRect realSrcStorage;
+        SkRect* realSrcPtr = NULL;
+        if (isrc) {
+            realSrcStorage.set(*isrc);
+            realSrcPtr = &realSrcStorage;
+        }
+        this->drawBitmapRectToRect(bitmap, realSrcPtr, dst, paint);
+    }
 
     virtual void drawBitmapMatrix(const SkBitmap& bitmap, const SkMatrix& m,
                                   const SkPaint* paint = NULL);
-    
+
+    /**
+     *  Draw the bitmap stretched differentially to fit into dst.
+     *  center is a rect within the bitmap, and logically divides the bitmap
+     *  into 9 sections (3x3). For example, if the middle pixel of a [5x5]
+     *  bitmap is the "center", then the center-rect should be [2, 2, 3, 3].
+     *
+     *  If the dst is >= the bitmap size, then...
+     *  - The 4 corners are not stretch at all.
+     *  - The sides are stretch in only one axis.
+     *  - The center is stretch in both axes.
+     * Else, for each axis where dst < bitmap,
+     *  - The corners shrink proportionally
+     *  - The sides (along the shrink axis) and center are not drawn
+     */
+    virtual void drawBitmapNine(const SkBitmap& bitmap, const SkIRect& center,
+                                const SkRect& dst, const SkPaint* paint = NULL);
+
     /** Draw the specified bitmap, with its top/left corner at (x,y),
         NOT transformed by the current matrix. Note: if the paint
         contains a maskfilter that generates a mask which extends beyond the
@@ -529,7 +737,7 @@ public:
                           SkScalar y, const SkPaint& paint);
 
     /** Draw the text, with each character/glyph origin specified by the pos[]
-        array. The origin is interpreted by the Align setting in the paint. 
+        array. The origin is interpreted by the Align setting in the paint.
         @param text The text to be drawn
         @param byteLength   The number of bytes to read from the text parameter
         @param pos      Array of positions, used to position each character
@@ -537,10 +745,10 @@ public:
         */
     virtual void drawPosText(const void* text, size_t byteLength,
                              const SkPoint pos[], const SkPaint& paint);
-    
+
     /** Draw the text, with each character/glyph origin specified by the x
         coordinate taken from the xpos[] array, and the y from the constY param.
-        The origin is interpreted by the Align setting in the paint. 
+        The origin is interpreted by the Align setting in the paint.
         @param text The text to be drawn
         @param byteLength   The number of bytes to read from the text parameter
         @param xpos     Array of x-positions, used to position each character
@@ -550,7 +758,7 @@ public:
     virtual void drawPosTextH(const void* text, size_t byteLength,
                               const SkScalar xpos[], SkScalar constY,
                               const SkPaint& paint);
-    
+
     /** Draw the text, with origin at (x,y), using the specified paint, along
         the specified path. The paint's Align setting determins where along the
         path to start the text.
@@ -581,27 +789,35 @@ public:
                                 const SkPath& path, const SkMatrix* matrix,
                                 const SkPaint& paint);
 
+#ifdef SK_BUILD_FOR_ANDROID
+    /** Draw the text on path, with each character/glyph origin specified by the pos[]
+        array. The origin is interpreted by the Align setting in the paint.
+        @param text The text to be drawn
+        @param byteLength   The number of bytes to read from the text parameter
+        @param pos      Array of positions, used to position each character
+        @param paint    The paint used for the text (e.g. color, size, style)
+        @param path The path to draw on
+        @param matrix The canvas matrix
+        */
+    void drawPosTextOnPath(const void* text, size_t byteLength,
+                           const SkPoint pos[], const SkPaint& paint,
+                           const SkPath& path, const SkMatrix* matrix);
+#endif
+
     /** Draw the picture into this canvas. This method effective brackets the
         playback of the picture's draw calls with save/restore, so the state
-        of this canvas will be unchanged after this call. This contrasts with
-        the more immediate method SkPicture::draw(), which does not bracket
-        the canvas with save/restore, thus the canvas may be left in a changed
-        state after the call.
+        of this canvas will be unchanged after this call.
         @param picture The recorded drawing commands to playback into this
                        canvas.
     */
     virtual void drawPicture(SkPicture& picture);
-    
-    /** Draws the specified shape
-     */
-    virtual void drawShape(SkShape*);
 
     enum VertexMode {
         kTriangles_VertexMode,
         kTriangleStrip_VertexMode,
         kTriangleFan_VertexMode
     };
-    
+
     /** Draw the array of vertices, interpreted as triangles (based on mode).
         @param vmode How to interpret the array of vertices
         @param vertexCount The number of points in the vertices array (and
@@ -618,7 +834,7 @@ public:
         @param indices If not null, array of indices to reference into the
                     vertex (texs, colors) array.
         @param indexCount number of entries in the indices array (if not null)
-        @param paint Specifies the shader/texture if present. 
+        @param paint Specifies the shader/texture if present.
     */
     virtual void drawVertices(VertexMode vmode, int vertexCount,
                               const SkPoint vertices[], const SkPoint texs[],
@@ -633,9 +849,12 @@ public:
         and then play it back later (via another call to drawData).
      */
     virtual void drawData(const void* data, size_t length);
+	
+	// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
+	virtual void drawDevMask(SkMask& mask, const SkPaint&);	
 
     //////////////////////////////////////////////////////////////////////////
-    
+
     /** Get the current bounder object.
         The bounder's reference count is unchaged.
         @return the canva's bounder (or NULL).
@@ -651,13 +870,13 @@ public:
         @return the set bounder object
     */
     virtual SkBounder* setBounder(SkBounder* bounder);
- 
+
     /** Get the current filter object. The filter's reference count is not
         affected. The filter is saved/restored, just like the matrix and clip.
         @return the canvas' filter (or NULL).
     */
     SkDrawFilter* getDrawFilter() const;
-    
+
     /** Set the new filter (or NULL). Pass NULL to clear any existing filter.
         As a convenience, the parameter is returned. If an existing filter
         exists, its refcnt is decrement. If the new filter is not null, its
@@ -676,22 +895,47 @@ public:
     */
     const SkMatrix& getTotalMatrix() const;
 
-    /** Return the current device clip (concatenation of all clip calls).
-        This does not account for the translate in any of the devices.
-        @return the current device clip (concatenation of all clip calls).
+    enum ClipType {
+        kEmpty_ClipType = 0,
+        kRect_ClipType,
+        kComplex_ClipType
+    };
+
+    /** Returns a description of the total clip; may be cheaper than
+        getting the clip and querying it directly.
     */
+    ClipType getClipType() const;
+
+    /** Return the current device clip (concatenation of all clip calls).
+     *  This does not account for the translate in any of the devices.
+     *  @return the current device clip (concatenation of all clip calls).
+     *
+     *  DEPRECATED -- call getClipDeviceBounds() instead.
+     */
     const SkRegion& getTotalClip() const;
 
-    /** May be overridden by subclasses. This returns a compatible device
-        for this canvas, with the specified config/width/height. If isOpaque
-        is true, then the underlying bitmap is optimized to assume that every
-        pixel will be drawn to, and thus it does not need to clear the alpha
-        channel ahead of time (assuming the specified config supports per-pixel
-        alpha.) If isOpaque is false, then the bitmap should clear its alpha
-        channel.
-    */
-    virtual SkDevice* createDevice(SkBitmap::Config, int width, int height,
-                                   bool isOpaque, bool isForLayer);
+    /** Return the clip stack. The clip stack stores all the individual
+     *  clips organized by the save/restore frame in which they were
+     *  added.
+     *  @return the current clip stack ("list" of individual clip elements)
+     */
+    const SkClipStack* getClipStack() const {
+        return &fClipStack;
+    }
+
+    class ClipVisitor {
+    public:
+        virtual ~ClipVisitor();
+        virtual void clipRect(const SkRect&, SkRegion::Op, bool antialias) = 0;
+        virtual void clipPath(const SkPath&, SkRegion::Op, bool antialias) = 0;
+    };
+
+    /**
+     *  Replays the clip operations, back to front, that have been applied to
+     *  the canvas, calling the appropriate method on the visitor for each
+     *  clip. All clips have already been transformed into device space.
+     */
+    void replayClips(ClipVisitor*) const;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -701,17 +945,17 @@ public:
         call made on the canvas. Ownership of all pointers in the iterator stays
         with the canvas, so none of them should be modified or deleted.
     */
-    class LayerIter /*: SkNoncopyable*/ {
+    class SK_API LayerIter /*: SkNoncopyable*/ {
     public:
         /** Initialize iterator with canvas, and set values for 1st device */
         LayerIter(SkCanvas*, bool skipEmptyClips);
         ~LayerIter();
-        
+
         /** Return true if the iterator is done */
         bool done() const { return fDone; }
         /** Cycle to the next device */
         void next();
-        
+
         // These reflect the current device in the iterator
 
         SkDevice*       device() const;
@@ -720,27 +964,54 @@ public:
         const SkPaint&  paint() const;
         int             x() const;
         int             y() const;
-        
+
     private:
         // used to embed the SkDrawIter object directly in our instance, w/o
         // having to expose that class def to the public. There is an assert
         // in our constructor to ensure that fStorage is large enough
         // (though needs to be a compile-time-assert!). We use intptr_t to work
         // safely with 32 and 64 bit machines (to ensure the storage is enough)
-        intptr_t          fStorage[12];
+        intptr_t          fStorage[32];
         class SkDrawIter* fImpl;    // this points at fStorage
         SkPaint           fDefaultPaint;
         bool              fDone;
     };
 
 protected:
+    // Returns the canvas to be used by DrawIter. Default implementation
+    // returns this. Subclasses that encapsulate an indirect canvas may
+    // need to overload this method. The impl must keep track of this, as it
+    // is not released or deleted by the caller.
+    virtual SkCanvas* canvasForDrawIter();
+
     // all of the drawBitmap variants call this guy
-    virtual void commonDrawBitmap(const SkBitmap&, const SkMatrix& m,
-                                  const SkPaint& paint);
-    
+    void commonDrawBitmap(const SkBitmap&, const SkIRect*, const SkMatrix&,
+                          const SkPaint& paint);
+
+    // Clip rectangle bounds. Called internally by saveLayer.
+    // returns false if the entire rectangle is entirely clipped out
+    bool clipRectBounds(const SkRect* bounds, SaveFlags flags,
+                        SkIRect* intersection);
+
+    // notify our surface (if we have one) that we are about to draw, so it
+    // can perform copy-on-write or invalidate any cached images
+    void predrawNotify();
+
+    /** DEPRECATED -- use constructor(device)
+
+     Marked as 'protected' to avoid new clients using this before we can
+     completely remove it.
+
+     Specify a device for this canvas to draw into. If it is not null, its
+     reference count is incremented. If the canvas was already holding a
+     device, its reference count is decremented. The new device is returned.
+     */
+    virtual SkDevice* setDevice(SkDevice* device);
+
 private:
     class MCRec;
 
+    SkClipStack fClipStack;
     SkDeque     fMCStack;
     // points to top of stack
     MCRec*      fMCRec;
@@ -748,54 +1019,84 @@ private:
     uint32_t    fMCRecStorage[32];
 
     SkBounder*  fBounder;
-    SkDevice*   fLastDeviceToGainFocus;
+    int         fSaveLayerCount;    // number of successful saveLayer calls
 
-    void prepareForDeviceDraw(SkDevice*);
-    
+    SkMetaData* fMetaData;
+
+    SkSurface_Base*  fSurfaceBase;
+    SkSurface_Base* getSurfaceBase() const { return fSurfaceBase; }
+    void setSurfaceBase(SkSurface_Base* sb) {
+        fSurfaceBase = sb;
+    }
+    friend class SkSurface_Base;
+
     bool fDeviceCMDirty;            // cleared by updateDeviceCMCache()
     void updateDeviceCMCache();
 
     friend class SkDrawIter;    // needs setupDrawForLayerDevice()
+    friend class AutoDrawLooper;
+
+    SkDevice* createLayerDevice(SkBitmap::Config, int width, int height,
+                                bool isOpaque);
 
     SkDevice* init(SkDevice*);
-    void internalDrawBitmap(const SkBitmap&, const SkMatrix& m,
+
+    // internal methods are not virtual, so they can safely be called by other
+    // canvas apis, without confusing subclasses (like SkPictureRecording)
+    void internalDrawBitmap(const SkBitmap&, const SkIRect*, const SkMatrix& m,
                                   const SkPaint* paint);
-    void drawDevice(SkDevice*, int x, int y, const SkPaint*);
+    void internalDrawBitmapRect(const SkBitmap& bitmap, const SkRect* src,
+                                const SkRect& dst, const SkPaint* paint);
+    void internalDrawBitmapNine(const SkBitmap& bitmap, const SkIRect& center,
+                                const SkRect& dst, const SkPaint* paint);
+    void internalDrawPaint(const SkPaint& paint);
+    int internalSaveLayer(const SkRect* bounds, const SkPaint* paint,
+                          SaveFlags, bool justForImageFilter);
+    void internalDrawDevice(SkDevice*, int x, int y, const SkPaint*);
+
     // shared by save() and saveLayer()
     int internalSave(SaveFlags flags);
     void internalRestore();
-    
+    static void DrawRect(const SkDraw& draw, const SkPaint& paint,
+                         const SkRect& r, SkScalar textSize);
+    static void DrawTextDecorations(const SkDraw& draw, const SkPaint& paint,
+                                    const char text[], size_t byteLength,
+                                    SkScalar x, SkScalar y);
+
     /*  These maintain a cache of the clip bounds in local coordinates,
         (converted to 2s-compliment if floats are slow).
      */
     mutable SkRectCompareType fLocalBoundsCompareType;
     mutable bool              fLocalBoundsCompareTypeDirty;
+    bool fAllowSoftClip;
 
-    mutable SkRectCompareType fLocalBoundsCompareTypeBW;
-    mutable bool              fLocalBoundsCompareTypeDirtyBW;
-
-    /* Get the local clip bounds with an anti-aliased edge.
-     */
     const SkRectCompareType& getLocalClipBoundsCompareType() const {
-        return getLocalClipBoundsCompareType(kAA_EdgeType);
-    }
-
-    const SkRectCompareType& getLocalClipBoundsCompareType(EdgeType et) const {
-        if (et == kAA_EdgeType) {
-            if (fLocalBoundsCompareTypeDirty) {
-                this->computeLocalClipBoundsCompareType(et);
-                fLocalBoundsCompareTypeDirty = false;
-            }
-            return fLocalBoundsCompareType;
-        } else {
-            if (fLocalBoundsCompareTypeDirtyBW) {
-                this->computeLocalClipBoundsCompareType(et);
-                fLocalBoundsCompareTypeDirtyBW = false;
-            }
-            return fLocalBoundsCompareTypeBW;
+        if (fLocalBoundsCompareTypeDirty) {
+            this->computeLocalClipBoundsCompareType();
+            fLocalBoundsCompareTypeDirty = false;
         }
+        return fLocalBoundsCompareType;
     }
-    void computeLocalClipBoundsCompareType(EdgeType et) const;
+    void computeLocalClipBoundsCompareType() const;
+
+    class AutoValidateClip : ::SkNoncopyable {
+    public:
+        explicit AutoValidateClip(SkCanvas* canvas) : fCanvas(canvas) {
+            fCanvas->validateClip();
+        }
+        ~AutoValidateClip() { fCanvas->validateClip(); }
+
+    private:
+        const SkCanvas* fCanvas;
+    };
+
+#ifdef SK_DEBUG
+    void validateClip() const;
+#else
+    void validateClip() const {}
+#endif
+
+    typedef SkRefCnt INHERITED;
 };
 
 /** Stack helper class to automatically call restoreToCount() on the canvas
@@ -812,7 +1113,20 @@ public:
         }
     }
     ~SkAutoCanvasRestore() {
-        fCanvas->restoreToCount(fSaveCount);
+        if (fCanvas) {
+            fCanvas->restoreToCount(fSaveCount);
+        }
+    }
+
+    /**
+     *  Perform the restore now, instead of waiting for the destructor. Will
+     *  only do this once.
+     */
+    void restore() {
+        if (fCanvas) {
+            fCanvas->restoreToCount(fSaveCount);
+            fCanvas = NULL;
+        }
     }
 
 private:
@@ -821,4 +1135,3 @@ private:
 };
 
 #endif
-

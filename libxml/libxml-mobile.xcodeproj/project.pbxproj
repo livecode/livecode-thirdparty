@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D4546F517D61F580090134E /* buf.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D4546F217D61F580090134E /* buf.c */; };
+		4D4546F617D61F580090134E /* nanoftp.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D4546F317D61F580090134E /* nanoftp.c */; };
+		4D4546F717D61F580090134E /* nanohttp.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D4546F417D61F580090134E /* nanohttp.c */; };
 		4DA0B8AE12E82A6B00B4F692 /* c14n.c in Sources */ = {isa = PBXBuildFile; fileRef = 4DA0B87C12E82A6B00B4F692 /* c14n.c */; };
 		4DA0B8AF12E82A6B00B4F692 /* catalog.c in Sources */ = {isa = PBXBuildFile; fileRef = 4DA0B87D12E82A6B00B4F692 /* catalog.c */; };
 		4DA0B8B012E82A6B00B4F692 /* chvalid.c in Sources */ = {isa = PBXBuildFile; fileRef = 4DA0B87E12E82A6B00B4F692 /* chvalid.c */; };
@@ -60,6 +63,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4D4546F217D61F580090134E /* buf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = buf.c; path = src/buf.c; sourceTree = "<group>"; };
+		4D4546F317D61F580090134E /* nanoftp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = nanoftp.c; path = src/nanoftp.c; sourceTree = "<group>"; };
+		4D4546F417D61F580090134E /* nanohttp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = nanohttp.c; path = src/nanohttp.c; sourceTree = "<group>"; };
 		4D7EFD6312E72A5A00D67888 /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../../rules/Debug Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4D7EFD6412E72A5A00D67888 /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../../rules/Release Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4D7EFD6512E72A5A00D67888 /* Global Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Global Mobile.xcconfig"; path = "../../rules/Global Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
@@ -157,6 +163,9 @@
 		4DA0B87B12E82A3900B4F692 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				4D4546F217D61F580090134E /* buf.c */,
+				4D4546F317D61F580090134E /* nanoftp.c */,
+				4D4546F417D61F580090134E /* nanohttp.c */,
 				4DA0B87C12E82A6B00B4F692 /* c14n.c */,
 				4DA0B87D12E82A6B00B4F692 /* catalog.c */,
 				4DA0B87E12E82A6B00B4F692 /* chvalid.c */,
@@ -321,6 +330,9 @@
 				4DA0B8DD12E82A6C00B4F692 /* xmlwriter.c in Sources */,
 				4DA0B8DE12E82A6C00B4F692 /* xpath.c in Sources */,
 				4DA0B8DF12E82A6C00B4F692 /* xpointer.c in Sources */,
+				4D4546F517D61F580090134E /* buf.c in Sources */,
+				4D4546F617D61F580090134E /* nanoftp.c in Sources */,
+				4D4546F717D61F580090134E /* nanohttp.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

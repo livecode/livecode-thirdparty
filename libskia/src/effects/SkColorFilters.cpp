@@ -1,131 +1,60 @@
+
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #include "SkBlitRow.h"
 #include "SkColorFilter.h"
 #include "SkColorPriv.h"
+#include "SkFlattenableBuffers.h"
 #include "SkUtils.h"
 
-// common baseclass
-class Sk_XfermodeColorFilter : public SkColorFilter {
-protected:
-    Sk_XfermodeColorFilter(SkColor color)
-        : fPMColor(SkPreMultiplyColor(color)) {}
+#define ILLEGAL_XFERMODE_MODE   ((SkXfermode::Mode)-1)
 
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) {
-        buffer.write32(fPMColor);
-    }
-
-    Sk_XfermodeColorFilter(SkFlattenableReadBuffer& buffer) {
-        fPMColor = buffer.readU32();
-    }
-
-    SkPMColor   fPMColor;
-};
-
-class SkSrc_XfermodeColorFilter : public Sk_XfermodeColorFilter {
+// baseclass for filters that store a color and mode
+class SkModeColorFilter : public SkColorFilter {
 public:
-    SkSrc_XfermodeColorFilter(SkColor color) : INHERITED(color) {}
+    SkModeColorFilter(SkColor color) {
+        fColor = color;
+        fMode = ILLEGAL_XFERMODE_MODE;
+        this->updateCache();
+    }
 
-    virtual uint32_t getFlags() {
-        if (SkGetPackedA32(fPMColor) == 0xFF) {
-            return kAlphaUnchanged_Flag | kHasFilter16_Flag;
-        } else {
-            return 0;
+    SkModeColorFilter(SkColor color, SkXfermode::Mode mode) {
+        fColor = color;
+        fMode = mode;
+        this->updateCache();
+    };
+
+    SkColor getColor() const { return fColor; }
+    SkXfermode::Mode getMode() const { return fMode; }
+    bool isModeValid() const { return ILLEGAL_XFERMODE_MODE != fMode; }
+    SkPMColor getPMColor() const { return fPMColor; }
+
+    virtual bool asColorMode(SkColor* color, SkXfermode::Mode* mode) const SK_OVERRIDE {
+        if (ILLEGAL_XFERMODE_MODE == fMode) {
+            return false;
         }
-    }
 
-    virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
-        sk_memset32(result, fPMColor, count);
-    }
-
-    virtual void filterSpan16(const uint16_t shader[], int count,
-                              uint16_t result[]) {
-        SkASSERT(this->getFlags() & kHasFilter16_Flag);
-        sk_memset16(result, SkPixel32ToPixel16(fPMColor), count);
-    }
-
-protected:
-    virtual Factory getFactory() { return CreateProc; }
-
-    SkSrc_XfermodeColorFilter(SkFlattenableReadBuffer& buffer)
-        : INHERITED(buffer) {}
-    
-private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkSrc_XfermodeColorFilter, (buffer));
-    }
-
-    typedef Sk_XfermodeColorFilter INHERITED;
-};
-
-class SkSrcOver_XfermodeColorFilter : public Sk_XfermodeColorFilter {
-public:
-    SkSrcOver_XfermodeColorFilter(SkColor color) : INHERITED(color) {}
-
-    virtual uint32_t getFlags() {
-        if (SkGetPackedA32(fPMColor) == 0xFF) {
-            return kAlphaUnchanged_Flag | kHasFilter16_Flag;
-        } else {
-            return 0;
+        if (color) {
+            *color = fColor;
         }
-    }
-    
-    virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
-        SkBlitRow::Color32(result, shader, count, fPMColor);
+        if (mode) {
+            *mode = fMode;
+        }
+        return true;
     }
 
-    virtual void filterSpan16(const uint16_t shader[], int count,
-                              uint16_t result[]) {
-        SkASSERT(this->getFlags() & kHasFilter16_Flag);
-        sk_memset16(result, SkPixel32ToPixel16(fPMColor), count);
-    }
-        
-protected:
-    virtual Factory getFactory() { return CreateProc;  }
-    
-    SkSrcOver_XfermodeColorFilter(SkFlattenableReadBuffer& buffer)
-        : INHERITED(buffer) {}
-    
-private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkSrcOver_XfermodeColorFilter, (buffer));
-    }
-    
-    typedef Sk_XfermodeColorFilter INHERITED;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-
-class SkXfermodeColorFilter : public Sk_XfermodeColorFilter {
-public:
-    SkXfermodeColorFilter(SkColor color, SkXfermodeProc proc,
-                          SkXfermodeProc16 proc16) : INHERITED(color) {
-        fProc = proc;
-        fProc16 = proc16;
-    }
-    
-    virtual uint32_t getFlags() {
+    virtual uint32_t getFlags() const SK_OVERRIDE {
         return fProc16 ? (kAlphaUnchanged_Flag | kHasFilter16_Flag) : 0;
     }
 
     virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
+                            SkPMColor result[]) const SK_OVERRIDE {
         SkPMColor       color = fPMColor;
         SkXfermodeProc  proc = fProc;
 
@@ -133,52 +62,124 @@ public:
             result[i] = proc(color, shader[i]);
         }
     }
-    
+
     virtual void filterSpan16(const uint16_t shader[], int count,
-                              uint16_t result[]) {
+                              uint16_t result[]) const SK_OVERRIDE {
         SkASSERT(this->getFlags() & kHasFilter16_Flag);
-        
+
         SkPMColor        color = fPMColor;
         SkXfermodeProc16 proc16 = fProc16;
-        
+
         for (int i = 0; i < count; i++) {
             result[i] = proc16(color, shader[i]);
         }
     }
-    
+
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkModeColorFilter)
+
 protected:
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) {
+    virtual void flatten(SkFlattenableWriteBuffer& buffer) const SK_OVERRIDE {
         this->INHERITED::flatten(buffer);
-        buffer.writeFunctionPtr((void*)fProc);
-        buffer.writeFunctionPtr((void*)fProc16);
-    }
-    
-    virtual Factory getFactory() { 
-        return CreateProc;
+        buffer.writeColor(fColor);
+        buffer.writeUInt(fMode);
     }
 
-    SkXfermodeColorFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
-        fProc = (SkXfermodeProc) buffer.readFunctionPtr();
-        fProc16 = (SkXfermodeProc16) buffer.readFunctionPtr();
+    SkModeColorFilter(SkFlattenableReadBuffer& buffer) {
+        fColor = buffer.readColor();
+        fMode = (SkXfermode::Mode)buffer.readUInt();
+        this->updateCache();
     }
+
 private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkXfermodeColorFilter, (buffer));
+    SkColor             fColor;
+    SkXfermode::Mode    fMode;
+    // cache
+    SkPMColor           fPMColor;
+    SkXfermodeProc      fProc;
+    SkXfermodeProc16    fProc16;
+
+    void updateCache() {
+        fPMColor = SkPreMultiplyColor(fColor);
+        fProc = SkXfermode::GetProc(fMode);
+        fProc16 = SkXfermode::GetProc16(fMode, fColor);
     }
 
-    SkXfermodeProc   fProc;
-    SkXfermodeProc16 fProc16;
-    
-    typedef Sk_XfermodeColorFilter INHERITED;
+    typedef SkColorFilter INHERITED;
 };
 
-SkColorFilter* SkColorFilter::CreateProcFilter(SkColor color,
-                                               SkXfermodeProc proc,
-                                               SkXfermodeProc16 proc16) {
-    return proc ?
-            SkNEW_ARGS(SkXfermodeColorFilter, (color, proc, proc16)) :
-            NULL;
-}
+class Src_SkModeColorFilter : public SkModeColorFilter {
+public:
+    Src_SkModeColorFilter(SkColor color) : INHERITED(color, SkXfermode::kSrc_Mode) {}
+
+    virtual uint32_t getFlags() const SK_OVERRIDE {
+        if (SkGetPackedA32(this->getPMColor()) == 0xFF) {
+            return kAlphaUnchanged_Flag | kHasFilter16_Flag;
+        } else {
+            return 0;
+        }
+    }
+
+    virtual void filterSpan(const SkPMColor shader[], int count,
+                            SkPMColor result[]) const SK_OVERRIDE {
+        sk_memset32(result, this->getPMColor(), count);
+    }
+
+    virtual void filterSpan16(const uint16_t shader[], int count,
+                              uint16_t result[]) const SK_OVERRIDE {
+        SkASSERT(this->getFlags() & kHasFilter16_Flag);
+        sk_memset16(result, SkPixel32ToPixel16(this->getPMColor()), count);
+    }
+
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(Src_SkModeColorFilter)
+
+protected:
+    Src_SkModeColorFilter(SkFlattenableReadBuffer& buffer)
+        : INHERITED(buffer) {}
+
+private:
+    typedef SkModeColorFilter INHERITED;
+};
+
+class SrcOver_SkModeColorFilter : public SkModeColorFilter {
+public:
+    SrcOver_SkModeColorFilter(SkColor color)
+            : INHERITED(color, SkXfermode::kSrcOver_Mode) {
+        fColor32Proc = SkBlitRow::ColorProcFactory();
+    }
+
+    virtual uint32_t getFlags() const SK_OVERRIDE {
+        if (SkGetPackedA32(this->getPMColor()) == 0xFF) {
+            return kAlphaUnchanged_Flag | kHasFilter16_Flag;
+        } else {
+            return 0;
+        }
+    }
+
+    virtual void filterSpan(const SkPMColor shader[], int count,
+                            SkPMColor result[]) const SK_OVERRIDE {
+        fColor32Proc(result, shader, count, this->getPMColor());
+    }
+
+    virtual void filterSpan16(const uint16_t shader[], int count,
+                              uint16_t result[]) const SK_OVERRIDE {
+        SkASSERT(this->getFlags() & kHasFilter16_Flag);
+        sk_memset16(result, SkPixel32ToPixel16(this->getPMColor()), count);
+    }
+
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SrcOver_SkModeColorFilter)
+
+protected:
+    SrcOver_SkModeColorFilter(SkFlattenableReadBuffer& buffer)
+        : INHERITED(buffer) {
+            fColor32Proc = SkBlitRow::ColorProcFactory();
+        }
+
+private:
+
+    SkBlitRow::ColorProc fColor32Proc;
+
+    typedef SkModeColorFilter INHERITED;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -211,15 +212,14 @@ SkColorFilter* SkColorFilter::CreateModeFilter(SkColor color,
             (0xFF == alpha && SkXfermode::kDstIn_Mode == mode)) {
         return NULL;
     }
-        
+
     switch (mode) {
-    case SkXfermode::kSrc_Mode:
-        return SkNEW_ARGS(SkSrc_XfermodeColorFilter, (color));
-    case SkXfermode::kSrcOver_Mode:
-        return SkNEW_ARGS(SkSrcOver_XfermodeColorFilter, (color));
-    default:
-        return SkColorFilter::CreateProcFilter(color, SkXfermode::GetProc(mode),
-                                            SkXfermode::GetProc16(mode, color));
+        case SkXfermode::kSrc_Mode:
+            return SkNEW_ARGS(Src_SkModeColorFilter, (color));
+        case SkXfermode::kSrcOver_Mode:
+            return SkNEW_ARGS(SrcOver_SkModeColorFilter, (color));
+        default:
+            return SkNEW_ARGS(SkModeColorFilter, (color, mode));
     }
 }
 
@@ -232,27 +232,16 @@ static inline unsigned pin(unsigned value, unsigned max) {
     return value;
 }
 
-static inline unsigned SkUClampMax(unsigned value, unsigned max) {
-    SkASSERT((int32_t)value >= 0);
-    SkASSERT((int32_t)max >= 0);
-
-    int diff = max - value;
-    // clear diff if diff is positive
-    diff &= diff >> 31;
-
-    return value + diff;
-}
-
 class SkLightingColorFilter : public SkColorFilter {
 public:
     SkLightingColorFilter(SkColor mul, SkColor add) : fMul(mul), fAdd(add) {}
 
     virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
+                            SkPMColor result[]) const SK_OVERRIDE {
         unsigned scaleR = SkAlpha255To256(SkColorGetR(fMul));
         unsigned scaleG = SkAlpha255To256(SkColorGetG(fMul));
         unsigned scaleB = SkAlpha255To256(SkColorGetB(fMul));
-        
+
         unsigned addR = SkColorGetR(fAdd);
         unsigned addG = SkColorGetG(fAdd);
         unsigned addB = SkColorGetB(fAdd);
@@ -261,7 +250,7 @@ public:
             SkPMColor c = shader[i];
             if (c) {
                 unsigned a = SkGetPackedA32(c);
-                unsigned scaleA = SkAlpha255To256(a);                
+                unsigned scaleA = SkAlpha255To256(a);
                 unsigned r = pin(SkAlphaMul(SkGetPackedR32(c), scaleR) + SkAlphaMul(addR, scaleA), a);
                 unsigned g = pin(SkAlphaMul(SkGetPackedG32(c), scaleG) + SkAlphaMul(addG, scaleA), a);
                 unsigned b = pin(SkAlphaMul(SkGetPackedB32(c), scaleB) + SkAlphaMul(addB, scaleA), a);
@@ -271,27 +260,24 @@ public:
         }
     }
 
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLightingColorFilter)
+
 protected:
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) {
-        buffer.write32(fMul);
-        buffer.write32(fAdd);
-    }
-    
-    virtual Factory getFactory() {
-        return CreateProc;
+    virtual void flatten(SkFlattenableWriteBuffer& buffer) const SK_OVERRIDE {
+        this->INHERITED::flatten(buffer);
+        buffer.writeColor(fMul);
+        buffer.writeColor(fAdd);
     }
 
     SkLightingColorFilter(SkFlattenableReadBuffer& buffer) {
-        fMul = buffer.readU32();
-        fAdd = buffer.readU32();
+        fMul = buffer.readColor();
+        fAdd = buffer.readColor();
     }
-    
+
     SkColor fMul, fAdd;
 
 private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkLightingColorFilter, (buffer));
-    }
+    typedef SkColorFilter INHERITED;
 };
 
 class SkLightingColorFilter_JustAdd : public SkLightingColorFilter {
@@ -300,7 +286,7 @@ public:
         : INHERITED(mul, add) {}
 
     virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
+                            SkPMColor result[]) const SK_OVERRIDE {
         unsigned addR = SkColorGetR(fAdd);
         unsigned addG = SkColorGetG(fAdd);
         unsigned addB = SkColorGetB(fAdd);
@@ -309,7 +295,7 @@ public:
             SkPMColor c = shader[i];
             if (c) {
                 unsigned a = SkGetPackedA32(c);
-                unsigned scaleA = SkAlpha255To256(a);                
+                unsigned scaleA = SkAlpha255To256(a);
                 unsigned r = pin(SkGetPackedR32(c) + SkAlphaMul(addR, scaleA), a);
                 unsigned g = pin(SkGetPackedG32(c) + SkAlphaMul(addG, scaleA), a);
                 unsigned b = pin(SkGetPackedB32(c) + SkAlphaMul(addB, scaleA), a);
@@ -319,16 +305,13 @@ public:
         }
     }
 
-protected:
-    virtual Factory getFactory() { return CreateProc; }
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLightingColorFilter_JustAdd)
 
+protected:
     SkLightingColorFilter_JustAdd(SkFlattenableReadBuffer& buffer)
         : INHERITED(buffer) {}
 
 private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer)  {
-        return SkNEW_ARGS(SkLightingColorFilter_JustAdd, (buffer));
-    }
     typedef SkLightingColorFilter INHERITED;
 };
 
@@ -338,11 +321,11 @@ public:
         : INHERITED(mul, add) {}
 
     virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
+                            SkPMColor result[]) const SK_OVERRIDE {
         unsigned scaleR = SkAlpha255To256(SkColorGetR(fMul));
         unsigned scaleG = SkAlpha255To256(SkColorGetG(fMul));
         unsigned scaleB = SkAlpha255To256(SkColorGetB(fMul));
-        
+
         for (int i = 0; i < count; i++) {
             SkPMColor c = shader[i];
             if (c) {
@@ -356,17 +339,13 @@ public:
         }
     }
 
-protected:
-    virtual Factory getFactory() { return CreateProc; }
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLightingColorFilter_JustMul)
 
+protected:
     SkLightingColorFilter_JustMul(SkFlattenableReadBuffer& buffer)
         : INHERITED(buffer) {}
-    
-private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkLightingColorFilter_JustMul, (buffer));
-    }
 
+private:
     typedef SkLightingColorFilter INHERITED;
 };
 
@@ -380,13 +359,13 @@ public:
         SkASSERT(SkColorGetR(mul) == SkColorGetG(mul));
         SkASSERT(SkColorGetR(mul) == SkColorGetB(mul));
     }
-    
-    virtual uint32_t getFlags() {
+
+    virtual uint32_t getFlags() const SK_OVERRIDE {
         return this->INHERITED::getFlags() | (kAlphaUnchanged_Flag | kHasFilter16_Flag);
     }
 
     virtual void filterSpan16(const uint16_t shader[], int count,
-                              uint16_t result[]) {
+                              uint16_t result[]) const SK_OVERRIDE {
         // all mul components are the same
         unsigned scale = SkAlpha255To256(SkColorGetR(fMul));
 
@@ -397,17 +376,13 @@ public:
         }
     }
 
-protected:
-    virtual Factory getFactory() { return CreateProc; }
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLightingColorFilter_SingleMul)
 
+protected:
     SkLightingColorFilter_SingleMul(SkFlattenableReadBuffer& buffer)
         : INHERITED(buffer) {}
 
 private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkLightingColorFilter_SingleMul, (buffer));
-    }
-    
     typedef SkLightingColorFilter INHERITED;
 };
 
@@ -415,22 +390,22 @@ class SkLightingColorFilter_NoPin : public SkLightingColorFilter {
 public:
     SkLightingColorFilter_NoPin(SkColor mul, SkColor add)
     : INHERITED(mul, add) {}
-    
+
     virtual void filterSpan(const SkPMColor shader[], int count,
-                            SkPMColor result[]) {
+                            SkPMColor result[]) const SK_OVERRIDE {
         unsigned scaleR = SkAlpha255To256(SkColorGetR(fMul));
         unsigned scaleG = SkAlpha255To256(SkColorGetG(fMul));
         unsigned scaleB = SkAlpha255To256(SkColorGetB(fMul));
-        
+
         unsigned addR = SkColorGetR(fAdd);
         unsigned addG = SkColorGetG(fAdd);
         unsigned addB = SkColorGetB(fAdd);
-        
+
         for (int i = 0; i < count; i++) {
             SkPMColor c = shader[i];
             if (c) {
                 unsigned a = SkGetPackedA32(c);
-                unsigned scaleA = SkAlpha255To256(a);                
+                unsigned scaleA = SkAlpha255To256(a);
                 unsigned r = SkAlphaMul(SkGetPackedR32(c), scaleR) + SkAlphaMul(addR, scaleA);
                 unsigned g = SkAlphaMul(SkGetPackedG32(c), scaleG) + SkAlphaMul(addG, scaleA);
                 unsigned b = SkAlphaMul(SkGetPackedB32(c), scaleB) + SkAlphaMul(addB, scaleA);
@@ -439,40 +414,39 @@ public:
             result[i] = c;
         }
     }
-    
+
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLightingColorFilter_NoPin)
+
 protected:
-    virtual Factory getFactory() { return CreateProc; }
-    
     SkLightingColorFilter_NoPin(SkFlattenableReadBuffer& buffer)
         : INHERITED(buffer) {}
-    
+
 private:
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkLightingColorFilter_NoPin, (buffer));
-    }
-    
     typedef SkLightingColorFilter INHERITED;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
 class SkSimpleColorFilter : public SkColorFilter {
+public:
+    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
+        return SkNEW(SkSimpleColorFilter);
+    }
+
 protected:
-    void filterSpan(const SkPMColor src[], int count, SkPMColor result[]) {
+    void filterSpan(const SkPMColor src[], int count, SkPMColor
+                    result[]) const SK_OVERRIDE {
         if (result != src) {
             memcpy(result, src, count * sizeof(SkPMColor));
         }
     }
 
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) {}
-    
+    virtual void flatten(SkFlattenableWriteBuffer& buffer) const SK_OVERRIDE {}
+
     virtual Factory getFactory() {
         return CreateProc;
     }
 
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW(SkSimpleColorFilter);
-    }
 };
 
 SkColorFilter* SkColorFilter::CreateLightingFilter(SkColor mul, SkColor add) {
@@ -504,4 +478,16 @@ SkColorFilter* SkColorFilter::CreateLightingFilter(SkColor mul, SkColor add) {
 
     return SkNEW_ARGS(SkLightingColorFilter, (mul, add));
 }
+
+SK_DEFINE_FLATTENABLE_REGISTRAR_GROUP_START(SkColorFilter)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkModeColorFilter)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(Src_SkModeColorFilter)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SrcOver_SkModeColorFilter)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkLightingColorFilter)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkLightingColorFilter_JustAdd)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkLightingColorFilter_JustMul)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkLightingColorFilter_SingleMul)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkLightingColorFilter_NoPin)
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkSimpleColorFilter)
+SK_DEFINE_FLATTENABLE_REGISTRAR_GROUP_END
 

@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #ifndef SkPostConfig_DEFINED
 #define SkPostConfig_DEFINED
@@ -34,16 +27,15 @@
 #if defined(SK_SCALAR_IS_FIXED) && defined(SK_SCALAR_IS_FLOAT)
     #error "cannot define both SK_SCALAR_IS_FIXED and SK_SCALAR_IS_FLOAT"
 #elif !defined(SK_SCALAR_IS_FIXED) && !defined(SK_SCALAR_IS_FLOAT)
-    #ifdef SK_CAN_USE_FLOAT
-        #define SK_SCALAR_IS_FLOAT
-    #else
-        #define SK_SCALAR_IS_FIXED
-    #endif
+    #define SK_SCALAR_IS_FLOAT
 #endif
 
-#if defined(SK_SCALAR_IS_FLOAT) && !defined(SK_CAN_USE_FLOAT)
-    #define SK_CAN_USE_FLOAT
-    // we do nothing in the else case: fixed-scalars can have floats or not
+#if defined(SK_MSCALAR_IS_DOUBLE) && defined(SK_MSCALAR_IS_FLOAT)
+    #error "cannot define both SK_MSCALAR_IS_DOUBLE and SK_MSCALAR_IS_FLOAT"
+#elif !defined(SK_MSCALAR_IS_DOUBLE) && !defined(SK_MSCALAR_IS_FLOAT)
+    // default is double, as that is faster given our impl uses doubles
+    // for intermediate calculations.
+    #define SK_MSCALAR_IS_DOUBLE
 #endif
 
 #if defined(SK_CPU_LENDIAN) && defined(SK_CPU_BENDIAN)
@@ -63,22 +55,70 @@
     #endif
 #endif
 
+#if !defined(SK_HAS_COMPILER_FEATURE)
+    #if defined(__has_feature)
+        #define SK_HAS_COMPILER_FEATURE(x) __has_feature(x)
+    #else
+        #define SK_HAS_COMPILER_FEATURE(x) 0
+    #endif
+#endif
+
+#if !defined(SK_SUPPORT_GPU)
+    #define SK_SUPPORT_GPU 1
+#endif
+
+/**
+ * The clang static analyzer likes to know that when the program is not
+ * expected to continue (crash, assertion failure, etc). It will notice that
+ * some combination of parameters lead to a function call that does not return.
+ * It can then make appropriate assumptions about the parameters in code
+ * executed only if the non-returning function was *not* called.
+ */
+#if !defined(SkNO_RETURN_HINT)
+    #if SK_HAS_COMPILER_FEATURE(attribute_analyzer_noreturn)
+        static inline void SkNO_RETURN_HINT() __attribute__((analyzer_noreturn));
+        static inline void SkNO_RETURN_HINT() {}
+    #else
+        #define SkNO_RETURN_HINT() do {} while (false)
+    #endif
+#endif
+
+#if defined(SK_ZLIB_INCLUDE) && defined(SK_SYSTEM_ZLIB)
+    #error "cannot define both SK_ZLIB_INCLUDE and SK_SYSTEM_ZLIB"
+#elif defined(SK_ZLIB_INCLUDE) || defined(SK_SYSTEM_ZLIB)
+    #define SK_HAS_ZLIB
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef SkNEW
-    #define SkNEW(type_name)                new type_name
-    #define SkNEW_ARGS(type_name, args)     new type_name args
-    #define SkNEW_ARRAY(type_name, count)   new type_name[count]
-    #define SkDELETE(obj)                   delete obj
-    #define SkDELETE_ARRAY(array)           delete[] array
+    #define SkNEW(type_name)                (new type_name)
+    #define SkNEW_ARGS(type_name, args)     (new type_name args)
+    #define SkNEW_ARRAY(type_name, count)   (new type_name[(count)])
+    #define SkNEW_PLACEMENT(buf, type_name) (new (buf) type_name)
+    #define SkNEW_PLACEMENT_ARGS(buf, type_name, args) \
+                                            (new (buf) type_name args)
+    #define SkDELETE(obj)                   (delete (obj))
+    #define SkDELETE_ARRAY(array)           (delete[] (array))
 #endif
 
 #ifndef SK_CRASH
 #if 1   // set to 0 for infinite loop, which can help connecting gdb
-    #define SK_CRASH() *(int *)(uintptr_t)0xbbadbeef = 0
+    #define SK_CRASH() do { SkNO_RETURN_HINT(); *(int *)(uintptr_t)0xbbadbeef = 0; } while (false)
 #else
-    #define SK_CRASH()  do {} while (true)
+    #define SK_CRASH() do { SkNO_RETURN_HINT(); } while (true)
 #endif
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+
+// SK_ENABLE_INST_COUNT defaults to 1 in DEBUG and 0 in RELEASE
+#ifndef SK_ENABLE_INST_COUNT
+    #ifdef SK_DEBUG
+        #define SK_ENABLE_INST_COUNT 1
+    #else
+        #define SK_ENABLE_INST_COUNT 0
+    #endif
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -107,11 +147,51 @@
     #endif
 
     #ifndef SK_DEBUGBREAK
-        #define SK_DEBUGBREAK(cond)     do { if (!(cond)) DebugBreak(); } while (false)
+        #define SK_DEBUGBREAK(cond)     do { if (!(cond)) { SkNO_RETURN_HINT(); __debugbreak(); }} while (false)
     #endif
-#elif defined(SK_BUILD_FOR_MAC)
+
+    #ifndef SK_A32_SHIFT
+        #define SK_A32_SHIFT 24
+        #define SK_R32_SHIFT 16
+        #define SK_G32_SHIFT 8
+        #define SK_B32_SHIFT 0
+    #endif
+
+#elif defined(SK_BUILD_FOR_MAC) || defined(SK_BUILD_FOR_IOS)
+	#ifndef SK_A32_SHIFT
+		#if defined(SK_BUILD_FOR_MAC)
+			// MM-2013-02-14: Fiddled with byte order.
+			#define SK_R32_SHIFT    16
+			#define SK_G32_SHIFT    8
+			#define SK_B32_SHIFT    0
+			#define SK_A32_SHIFT    24
+		#else
+			// IM-2013-08-21: [[ RefactorGraphics ]] Use GL byte order for iOS
+			#define SK_R32_SHIFT    0
+			#define SK_G32_SHIFT    8
+			#define SK_B32_SHIFT    16
+			#define SK_A32_SHIFT    24
+		#endif
+	#endif
+			
     #ifndef SK_DEBUGBREAK
         #define SK_DEBUGBREAK(cond)     do { if (!(cond)) SK_CRASH(); } while (false)
+    #endif
+#elif defined(SK_BUILD_FOR_UNIX)
+    #ifndef SK_A32_SHIFT
+        #define SK_A32_SHIFT 24
+        #define SK_R32_SHIFT 16
+        #define SK_G32_SHIFT 8
+        #define SK_B32_SHIFT 0
+    #endif
+    
+    #ifdef SK_DEBUG
+        #include <stdio.h>
+        #ifndef SK_DEBUGBREAK
+            #define SK_DEBUGBREAK(cond) do { if (cond) break; \
+                SkDebugf("%s:%d: failed assertion \"%s\"\n", \
+                __FILE__, __LINE__, #cond); SK_CRASH(); } while (false)
+        #endif
     #endif
 #else
     #ifdef SK_DEBUG
@@ -121,6 +201,25 @@
                 SkDebugf("%s:%d: failed assertion \"%s\"\n", \
                 __FILE__, __LINE__, #cond); SK_CRASH(); } while (false)
         #endif
+    #endif
+#endif
+
+/*
+ *  We check to see if the SHIFT value has already been defined.
+ *  if not, we define it ourself to some default values. We default to OpenGL
+ *  order (in memory: r,g,b,a)
+ */
+#ifndef SK_A32_SHIFT
+    #ifdef SK_CPU_BENDIAN
+        #define SK_R32_SHIFT    24
+        #define SK_G32_SHIFT    16
+        #define SK_B32_SHIFT    8
+        #define SK_A32_SHIFT    0
+    #else
+		#define SK_R32_SHIFT    0
+		#define SK_G32_SHIFT    8
+		#define SK_B32_SHIFT    16
+		#define SK_A32_SHIFT    24
     #endif
 #endif
 
@@ -225,7 +324,54 @@
 #define DEBUG_CLIENTBLOCK
 #endif // _DEBUG
 
-#endif
 
 #endif
 
+#endif
+
+//////////////////////////////////////////////////////////////////////
+
+#ifndef SK_OVERRIDE
+    #if defined(_MSC_VER)
+        #define SK_OVERRIDE override
+    #elif defined(__clang__) && !defined(SK_BUILD_FOR_IOS)
+        #if __has_feature(cxx_override_control)
+            // Some documentation suggests we should be using __attribute__((override)),
+            // but it doesn't work.
+            #define SK_OVERRIDE override
+        #elif defined(__has_extension)
+            #if __has_extension(cxx_override_control)
+                #define SK_OVERRIDE override
+            #endif
+        #endif
+    #else
+        // Linux GCC ignores "__attribute__((override))" and rejects "override".
+        #define SK_OVERRIDE
+    #endif
+#endif
+
+//////////////////////////////////////////////////////////////////////
+
+#ifndef SK_PRINTF_LIKE
+#if defined(__clang__) || defined(__GNUC__)
+#define SK_PRINTF_LIKE(A, B) __attribute__((format(printf, (A), (B))))
+#else
+#define SK_PRINTF_LIKE(A, B)
+#endif
+#endif
+
+//////////////////////////////////////////////////////////////////////
+
+#ifndef SK_SIZE_T_SPECIFIER
+#if defined(_MSC_VER)
+#define SK_SIZE_T_SPECIFIER "%Iu"
+#else
+#define SK_SIZE_T_SPECIFIER "%zu"
+#endif
+#endif
+
+//////////////////////////////////////////////////////////////////////
+
+#ifndef SK_ALLOW_STATIC_GLOBAL_INITIALIZERS
+#define SK_ALLOW_STATIC_GLOBAL_INITIALIZERS 1
+#endif

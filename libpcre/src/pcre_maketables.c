@@ -6,7 +6,7 @@
 and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
-           Copyright (c) 1997-2006 University of Cambridge
+           Copyright (c) 1997-2012 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -43,9 +43,14 @@ character tables for PCRE in the current locale. The file is compiled on its
 own as part of the PCRE library. However, it is also included in the
 compilation of dftables.c, in which case the macro DFTABLES is defined. */
 
+// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
+#define HAVE_CONFIG_H   1
 
 #ifndef DFTABLES
-#include "pcre_internal.h"
+#  ifdef HAVE_CONFIG_H
+#  include "config.h"
+#  endif
+#  include "pcre_internal.h"
 #endif
 
 
@@ -56,21 +61,29 @@ compilation of dftables.c, in which case the macro DFTABLES is defined. */
 /* This function builds a set of character tables for use by PCRE and returns
 a pointer to them. They are build using the ctype functions, and consequently
 their contents will depend upon the current locale setting. When compiled as
-part of the library, the store is obtained via pcre_malloc(), but when compiled
-inside dftables, use malloc().
+part of the library, the store is obtained via PUBL(malloc)(), but when
+compiled inside dftables, use malloc().
 
 Arguments:   none
 Returns:     pointer to the contiguous block of data
 */
 
+#if defined COMPILE_PCRE8
 const unsigned char *
 pcre_maketables(void)
+#elif defined COMPILE_PCRE16
+const unsigned char *
+pcre16_maketables(void)
+#elif defined COMPILE_PCRE32
+const unsigned char *
+pcre32_maketables(void)
+#endif
 {
 unsigned char *yield, *p;
 int i;
 
 #ifndef DFTABLES
-yield = (unsigned char*)(pcre_malloc)(tables_length);
+yield = (unsigned char*)(PUBL(malloc))(tables_length);
 #else
 yield = (unsigned char*)malloc(tables_length);
 #endif
@@ -119,7 +132,7 @@ within regexes. */
 for (i = 0; i < 256; i++)
   {
   int x = 0;
-  if (i != 0x0b && isspace(i)) x += ctype_space;
+  if (i != CHAR_VT && isspace(i)) x += ctype_space;
   if (isalpha(i)) x += ctype_letter;
   if (isdigit(i)) x += ctype_digit;
   if (isxdigit(i)) x += ctype_xdigit;
@@ -130,7 +143,7 @@ for (i = 0; i < 256; i++)
   meta-character, which in this sense is any character that terminates a run
   of data characters. */
 
-  if (strchr("*+?{^.$|()[", i) != 0) x += ctype_meta;
+  if (strchr("\\*+?{^.$|()[", i) != 0) x += ctype_meta;
   *p++ = x;
   }
 

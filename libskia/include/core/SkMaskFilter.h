@@ -1,30 +1,24 @@
+
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #ifndef SkMaskFilter_DEFINED
 #define SkMaskFilter_DEFINED
 
 #include "SkFlattenable.h"
 #include "SkMask.h"
+#include "SkPaint.h"
 
 class SkBlitter;
 class SkBounder;
 class SkMatrix;
 class SkPath;
-class SkRegion;
+class SkRasterClip;
 
 /** \class SkMaskFilter
 
@@ -37,14 +31,16 @@ class SkRegion;
 
     Blur and emboss are implemented as subclasses of SkMaskFilter.
 */
-class SkMaskFilter : public SkFlattenable {
+class SK_API SkMaskFilter : public SkFlattenable {
 public:
+    SK_DECLARE_INST_COUNT(SkMaskFilter)
+
     SkMaskFilter() {}
 
     /** Returns the format of the resulting mask that this subclass will return
         when its filterMask() method is called.
     */
-    virtual SkMask::Format  getFormat() = 0;
+    virtual SkMask::Format getFormat() const = 0;
 
     /** Create a new mask by filter the src mask.
         If src.fImage == null, then do not allocate or create the dst image
@@ -59,41 +55,93 @@ public:
                         applying the filter. If returning false, ignore this parameter.
         @return true if the dst mask was correctly created.
     */
-    virtual bool filterMask(SkMask* dst, const SkMask& src, const SkMatrix&, SkIPoint* margin);
+    virtual bool filterMask(SkMask* dst, const SkMask& src, const SkMatrix&,
+                            SkIPoint* margin) const;
 
-    /** Helper method that, given a path in device space, will rasterize it into a kA8_Format mask
-        and then call filterMask(). If this returns true, the specified blitter will be called
-        to render that mask. Returns false if filterMask() returned false.
-        This method is not exported to java.
-    */
-    bool filterPath(const SkPath& devPath, const SkMatrix& devMatrix,
-                    const SkRegion& devClip, SkBounder*, SkBlitter* blitter);
+    enum BlurType {
+        kNone_BlurType,    //!< this maskfilter is not a blur
+        kNormal_BlurType,  //!< fuzzy inside and outside
+        kSolid_BlurType,   //!< solid inside, fuzzy outside
+        kOuter_BlurType,   //!< nothing inside, fuzzy outside
+        kInner_BlurType    //!< fuzzy inside, nothing outside
+    };
 
-    virtual void flatten(SkFlattenableWriteBuffer& ) {}
+    struct BlurInfo {
+        SkScalar fRadius;
+        bool     fIgnoreTransform;
+        bool     fHighQuality;
+    };
+
+    /**
+     *  Optional method for maskfilters that can be described as a blur. If so,
+     *  they return the corresponding BlurType and set the fields in BlurInfo
+     *  (if not null). If they cannot be described as a blur, they return
+     *  kNone_BlurType and ignore the info parameter.
+     */
+    virtual BlurType asABlur(BlurInfo*) const;
+
+    /**
+     * The fast bounds function is used to enable the paint to be culled early
+     * in the drawing pipeline. This function accepts the current bounds of the
+     * paint as its src param and the filter adjust those bounds using its
+     * current mask and returns the result using the dest param. Callers are
+     * allowed to provide the same struct for both src and dest so each
+     * implementation must accomodate that behavior.
+     *
+     *  The default impl calls filterMask with the src mask having no image,
+     *  but subclasses may override this if they can compute the rect faster.
+     */
+    virtual void computeFastBounds(const SkRect& src, SkRect* dest) const;
+
 protected:
     // empty for now, but lets get our subclass to remember to init us for the future
-    SkMaskFilter(SkFlattenableReadBuffer&) {}
-};
+    SkMaskFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}
 
-/** \class SkAutoMaskImage
+    enum FilterReturn {
+        kFalse_FilterReturn,
+        kTrue_FilterReturn,
+        kUnimplemented_FilterReturn
+    };
 
-    Stack class used to manage the fImage buffer in a SkMask.
-    When this object loses scope, the buffer is freed with SkMask::FreeImage().
-*/
-class SkAutoMaskImage {
-public:
-    SkAutoMaskImage(SkMask* mask, bool alloc)
-    {
-        if (alloc)
-            mask->fImage = SkMask::AllocImage(mask->computeImageSize());
-        fImage = mask->fImage;
-    }
-    ~SkAutoMaskImage()
-    {
-        SkMask::FreeImage(fImage);
-    }
+    struct NinePatch {
+        SkMask      fMask;      // fBounds must have [0,0] in its top-left
+        SkIRect     fOuterRect; // width/height must be >= fMask.fBounds'
+        SkIPoint    fCenter;    // identifies center row/col for stretching
+    };
+
+    /**
+     *  Override if your subclass can filter a rect, and return the answer as
+     *  a ninepatch mask to be stretched over the returned outerRect. On success
+     *  return kTrue_FilterReturn. On failure (e.g. out of memory) return
+     *  kFalse_FilterReturn. If the normal filterMask() entry-point should be
+     *  called (the default) return kUnimplemented_FilterReturn.
+     *
+     *  By convention, the caller will take the center rol/col from the returned
+     *  mask as the slice it can replicate horizontally and vertically as we
+     *  stretch the mask to fit inside outerRect. It is an error for outerRect
+     *  to be smaller than the mask's bounds. This would imply that the width
+     *  and height of the mask should be odd. This is not required, just that
+     *  the caller will call mask.fBounds.centerX() and centerY() to find the
+     *  strips that will be replicated.
+     */
+    virtual FilterReturn filterRectsToNine(const SkRect[], int count,
+                                           const SkMatrix&,
+                                           const SkIRect& clipBounds,
+                                           NinePatch*) const;
+
 private:
-    uint8_t*    fImage;
+    friend class SkDraw;
+
+    /** Helper method that, given a path in device space, will rasterize it into a kA8_Format mask
+     and then call filterMask(). If this returns true, the specified blitter will be called
+     to render that mask. Returns false if filterMask() returned false.
+     This method is not exported to java.
+     */
+    bool filterPath(const SkPath& devPath, const SkMatrix& devMatrix,
+                    const SkRasterClip&, SkBounder*, SkBlitter* blitter,
+                    SkPaint::Style style) const;
+
+    typedef SkFlattenable INHERITED;
 };
 
 #endif

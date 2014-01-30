@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright 2008 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #ifndef SkDither_DEFINED
 #define SkDither_DEFINED
@@ -78,7 +71,7 @@
 static inline SkPMColor SkDitherARGB32For565(SkPMColor c, unsigned dither)
 {
     SkASSERT(dither <= SK_DitherValueMax565);
-    
+
     unsigned sa = SkGetPackedA32(c);
     dither = SkAlphaMul(dither, SkAlpha255To256(sa));
 
@@ -88,21 +81,21 @@ static inline SkPMColor SkDitherARGB32For565(SkPMColor c, unsigned dither)
     sr = SkDITHER_R32_FOR_565(sr, dither);
     sg = SkDITHER_G32_FOR_565(sg, dither);
     sb = SkDITHER_B32_FOR_565(sb, dither);
-    
+
     return SkPackARGB32(sa, sr, sg, sb);
 }
 
 static inline SkPMColor SkDitherRGB32For565(SkPMColor c, unsigned dither)
 {
     SkASSERT(dither <= SK_DitherValueMax565);
-    
+
     unsigned sr = SkGetPackedR32(c);
     unsigned sg = SkGetPackedG32(c);
     unsigned sb = SkGetPackedB32(c);
     sr = SkDITHER_R32_FOR_565(sr, dither);
     sg = SkDITHER_G32_FOR_565(sg, dither);
     sb = SkDITHER_B32_FOR_565(sb, dither);
-    
+
     return SkPackARGB32(0xFF, sr, sg, sb);
 }
 
@@ -119,29 +112,29 @@ static inline uint16_t SkDitherRGBTo565(U8CPU r, U8CPU g, U8CPU b,
 static inline uint16_t SkDitherRGB32To565(SkPMColor c, unsigned dither)
 {
     SkASSERT(dither <= SK_DitherValueMax565);
-    
+
     unsigned sr = SkGetPackedR32(c);
     unsigned sg = SkGetPackedG32(c);
     unsigned sb = SkGetPackedB32(c);
     sr = SkDITHER_R32To565(sr, dither);
     sg = SkDITHER_G32To565(sg, dither);
     sb = SkDITHER_B32To565(sb, dither);
-    
+
     return SkPackRGB16(sr, sg, sb);
 }
 
 static inline uint16_t SkDitherARGB32To565(U8CPU sa, SkPMColor c, unsigned dither)
 {
-    SkASSERT(dither <= SK_DitherValueMax565);    
+    SkASSERT(dither <= SK_DitherValueMax565);
     dither = SkAlphaMul(dither, SkAlpha255To256(sa));
-    
+
     unsigned sr = SkGetPackedR32(c);
     unsigned sg = SkGetPackedG32(c);
     unsigned sb = SkGetPackedB32(c);
     sr = SkDITHER_R32To565(sr, dither);
     sg = SkDITHER_G32To565(sg, dither);
     sb = SkDITHER_B32To565(sb, dither);
-    
+
     return SkPackRGB16(sr, sg, sb);
 }
 
@@ -156,7 +149,7 @@ static inline SkPMColor16 SkDitherARGB32To4444(U8CPU a, U8CPU r, U8CPU g,
     r = SkDITHER_R32To4444(r, dither);
     g = SkDITHER_G32To4444(g, dither);
     b = SkDITHER_B32To4444(b, dither);
-    
+
     return SkPackARGB4444(a, r, g, b);
 }
 
@@ -173,7 +166,7 @@ static inline SkPMColor16 SkDitherARGB32To4444(SkPMColor c, unsigned dither)
     r = SkDITHER_R32To4444(r, dither);
     g = SkDITHER_G32To4444(g, dither);
     b = SkDITHER_B32To4444(b, dither);
-    
+
     return SkPackARGB4444(a, r, g, b);
 }
 

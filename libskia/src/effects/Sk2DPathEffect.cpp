@@ -1,68 +1,55 @@
-/* libs/graphics/effects/Sk2DPathEffect.cpp
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "Sk2DPathEffect.h"
-#include "SkBlitter.h"
+#include "SkFlattenableBuffers.h"
 #include "SkPath.h"
-#include "SkScan.h"
+#include "SkRegion.h"
 
-class Sk2DPathEffectBlitter : public SkBlitter {
-public:
-    Sk2DPathEffectBlitter(Sk2DPathEffect* pe, SkPath* dst)
-        : fPE(pe), fDst(dst)
-    {}
-    virtual void blitH(int x, int y, int count)
-    {
-        fPE->nextSpan(x, y, count, fDst);
-    }
-private:
-    Sk2DPathEffect* fPE;
-    SkPath*         fDst;
-};
-
-////////////////////////////////////////////////////////////////////////////////////
-
-Sk2DPathEffect::Sk2DPathEffect(const SkMatrix& mat) : fMatrix(mat)
-{
-    mat.invert(&fInverse);
+Sk2DPathEffect::Sk2DPathEffect(const SkMatrix& mat) : fMatrix(mat) {
+    fMatrixIsInvertible = mat.invert(&fInverse);
 }
 
-bool Sk2DPathEffect::filterPath(SkPath* dst, const SkPath& src, SkScalar* width)
-{
-    Sk2DPathEffectBlitter   blitter(this, dst);
-    SkPath                  tmp;
-    SkIRect                 ir;
+bool Sk2DPathEffect::filterPath(SkPath* dst, const SkPath& src,
+                                SkStrokeRec*) const {
+    if (!fMatrixIsInvertible) {
+        return false;
+    }
+
+    SkPath  tmp;
+    SkIRect ir;
 
     src.transform(fInverse, &tmp);
     tmp.getBounds().round(&ir);
     if (!ir.isEmpty()) {
-        // need to pass a clip to fillpath, required for inverse filltypes,
-        // even though those do not make sense for this patheffect
-        SkRegion clip(ir);
-        
         this->begin(ir, dst);
-        SkScan::FillPath(tmp, clip, &blitter);
+
+        SkRegion rgn;
+        rgn.setPath(tmp, SkRegion(ir));
+        SkRegion::Iterator iter(rgn);
+        for (; !iter.done(); iter.next()) {
+            const SkIRect& rect = iter.rect();
+            for (int y = rect.fTop; y < rect.fBottom; ++y) {
+                this->nextSpan(rect.fLeft, y, rect.width(), dst);
+            }
+        }
+
         this->end(dst);
     }
     return true;
 }
 
-void Sk2DPathEffect::nextSpan(int x, int y, int count, SkPath* path)
-{
+void Sk2DPathEffect::nextSpan(int x, int y, int count, SkPath* path) const {
+    if (!fMatrixIsInvertible) {
+        return;
+    }
+
     const SkMatrix& mat = this->getMatrix();
     SkPoint src, dst;
 
@@ -74,32 +61,72 @@ void Sk2DPathEffect::nextSpan(int x, int y, int count, SkPath* path)
     } while (--count > 0);
 }
 
-void Sk2DPathEffect::begin(const SkIRect& uvBounds, SkPath* dst) {}
-void Sk2DPathEffect::next(const SkPoint& loc, int u, int v, SkPath* dst) {}
-void Sk2DPathEffect::end(SkPath* dst) {}
+void Sk2DPathEffect::begin(const SkIRect& uvBounds, SkPath* dst) const {}
+void Sk2DPathEffect::next(const SkPoint& loc, int u, int v, SkPath* dst) const {}
+void Sk2DPathEffect::end(SkPath* dst) const {}
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-void Sk2DPathEffect::flatten(SkFlattenableWriteBuffer& buffer)
-{
-    buffer.writeMul4(&fMatrix, sizeof(fMatrix));
+void Sk2DPathEffect::flatten(SkFlattenableWriteBuffer& buffer) const {
+    this->INHERITED::flatten(buffer);
+    buffer.writeMatrix(fMatrix);
 }
 
-Sk2DPathEffect::Sk2DPathEffect(SkFlattenableReadBuffer& buffer)
-{
-    buffer.read(&fMatrix, sizeof(fMatrix));
-    fMatrix.invert(&fInverse);
+Sk2DPathEffect::Sk2DPathEffect(SkFlattenableReadBuffer& buffer) {
+    buffer.readMatrix(&fMatrix);
+    fMatrixIsInvertible = fMatrix.invert(&fInverse);
 }
 
-SkFlattenable::Factory Sk2DPathEffect::getFactory()
-{
-    return CreateProc;
+///////////////////////////////////////////////////////////////////////////////
+
+bool SkLine2DPathEffect::filterPath(SkPath* dst, const SkPath& src,
+                                    SkStrokeRec* rec) const {
+    if (this->INHERITED::filterPath(dst, src, rec)) {
+        rec->setStrokeStyle(fWidth);
+        return true;
+    }
+    return false;
 }
 
-SkFlattenable* Sk2DPathEffect::CreateProc(SkFlattenableReadBuffer& buffer)
-{
-    return SkNEW_ARGS(Sk2DPathEffect, (buffer));
+void SkLine2DPathEffect::nextSpan(int u, int v, int ucount, SkPath* dst) const {
+    if (ucount > 1) {
+        SkPoint    src[2], dstP[2];
+
+        src[0].set(SkIntToScalar(u) + SK_ScalarHalf, SkIntToScalar(v) + SK_ScalarHalf);
+        src[1].set(SkIntToScalar(u+ucount) + SK_ScalarHalf, SkIntToScalar(v) + SK_ScalarHalf);
+        this->getMatrix().mapPoints(dstP, src, 2);
+
+        dst->moveTo(dstP[0]);
+        dst->lineTo(dstP[1]);
+    }
 }
 
+SkLine2DPathEffect::SkLine2DPathEffect(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
+    fWidth = buffer.readScalar();
+}
 
+void SkLine2DPathEffect::flatten(SkFlattenableWriteBuffer &buffer) const {
+    this->INHERITED::flatten(buffer);
+    buffer.writeScalar(fWidth);
+}
 
+///////////////////////////////////////////////////////////////////////////////
+
+SkPath2DPathEffect::SkPath2DPathEffect(const SkMatrix& m, const SkPath& p)
+    : INHERITED(m), fPath(p) {
+}
+
+SkPath2DPathEffect::SkPath2DPathEffect(SkFlattenableReadBuffer& buffer)
+        : INHERITED(buffer) {
+    buffer.readPath(&fPath);
+}
+
+void SkPath2DPathEffect::flatten(SkFlattenableWriteBuffer& buffer) const {
+    this->INHERITED::flatten(buffer);
+    buffer.writePath(fPath);
+}
+
+void SkPath2DPathEffect::next(const SkPoint& loc, int u, int v,
+                              SkPath* dst) const {
+    dst->addPath(fPath, loc.fX, loc.fY);
+}

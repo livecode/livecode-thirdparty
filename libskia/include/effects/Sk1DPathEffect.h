@@ -1,17 +1,8 @@
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
 
 #ifndef Sk1DPathEffect_DEFINED
@@ -22,38 +13,38 @@
 
 class SkPathMeasure;
 
-//  This class is not exported to java.
-class Sk1DPathEffect : public SkPathEffect {
+// This class is not exported to java.
+class SK_API Sk1DPathEffect : public SkPathEffect {
 public:
-    //  override from SkPathEffect
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath* dst, const SkPath& src,
+                            SkStrokeRec*) const SK_OVERRIDE;
 
 protected:
     /** Called at the start of each contour, returns the initial offset
         into that contour.
     */
-    virtual SkScalar begin(SkScalar contourLength) = 0;
+    virtual SkScalar begin(SkScalar contourLength) const = 0;
     /** Called with the current distance along the path, with the current matrix
         for the point/tangent at the specified distance.
         Return the distance to travel for the next call. If return <= 0, then that
         contour is done.
     */
-    virtual SkScalar next(SkPath* dst, SkScalar distance, SkPathMeasure&) = 0;
+    virtual SkScalar next(SkPath* dst, SkScalar dist, SkPathMeasure&) const = 0;
 
 private:
     typedef SkPathEffect INHERITED;
 };
 
-class SkPath1DPathEffect : public Sk1DPathEffect {
+class SK_API SkPath1DPathEffect : public Sk1DPathEffect {
 public:
     enum Style {
         kTranslate_Style,   // translate the shape to each position
         kRotate_Style,      // rotate the shape about its center
         kMorph_Style,       // transform each point, and turn lines into curves
-        
+
         kStyleCount
     };
-    
+
     /** Dash by replicating the specified path.
         @param path The path to replicate (dash)
         @param advance The space between instances of path
@@ -63,31 +54,26 @@ public:
     */
     SkPath1DPathEffect(const SkPath& path, SkScalar advance, SkScalar phase, Style);
 
-    // override from SkPathEffect
-    virtual bool filterPath(SkPath* dst, const SkPath& src, SkScalar* width);
+    virtual bool filterPath(SkPath*, const SkPath&,
+                            SkStrokeRec*) const SK_OVERRIDE;
+
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkPath1DPathEffect)
 
 protected:
     SkPath1DPathEffect(SkFlattenableReadBuffer& buffer);
+    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
 
     // overrides from Sk1DPathEffect
-    virtual SkScalar begin(SkScalar contourLength);
-    virtual SkScalar next(SkPath* dst, SkScalar distance, SkPathMeasure&);
-    // overrides from SkFlattenable
-    virtual void flatten(SkFlattenableWriteBuffer& );
-    virtual Factory getFactory() { return CreateProc; }
-    
+    virtual SkScalar begin(SkScalar contourLength) const SK_OVERRIDE;
+    virtual SkScalar next(SkPath*, SkScalar, SkPathMeasure&) const SK_OVERRIDE;
+
 private:
     SkPath      fPath;          // copied from constructor
     SkScalar    fAdvance;       // copied from constructor
     SkScalar    fInitialOffset; // computed from phase
     Style       fStyle;         // copied from constructor
-    
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer& buffer) {
-        return SkNEW_ARGS(SkPath1DPathEffect, (buffer));
-    }
 
     typedef Sk1DPathEffect INHERITED;
 };
-
 
 #endif

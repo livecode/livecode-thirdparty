@@ -1,19 +1,11 @@
-/* libs/graphics/sgl/SkBitmapShader16BilerpTemplate.h
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkFilterProc.h"
 
@@ -29,7 +21,7 @@ public:
     virtual void shadeSpan(int x, int y, SkPMColor dstC[], int count)
     {
         SkASSERT(count > 0);
-        
+
         U8CPU alpha = this->getPaintAlpha();
 
         const SkMatrix& inv = this->getTotalInverse();
@@ -165,7 +157,7 @@ public:
                     SkFixed fy = *srcXY++ - SK_FixedHalf;
                     int ix = fx >> 16;
                     int iy = fy >> 16;
-                    
+
                     const BILERP_BITMAP16_SHADER_TYPE *p00, *p01, *p10, *p11;
 
                     p00 = p01 = ((const BILERP_BITMAP16_SHADER_TYPE*)((const char*)srcPixels +
@@ -215,7 +207,7 @@ public:
             do {
                 int ix = fx >> 16;
                 int iy = fy >> 16;
-                
+
                 const BILERP_BITMAP16_SHADER_TYPE *p00, *p01, *p10, *p11;
 
                 p00 = p01 = ((const BILERP_BITMAP16_SHADER_TYPE*)((const char*)srcPixels +

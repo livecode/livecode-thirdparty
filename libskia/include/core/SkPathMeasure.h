@@ -1,18 +1,11 @@
+
 /*
- * Copyright (C) 2006 The Android Open Source Project
+ * Copyright 2006 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
  */
+
 
 #ifndef SkPathMeasure_DEFINED
 #define SkPathMeasure_DEFINED
@@ -36,7 +29,7 @@ public:
         a different path (or null), since the measure object keeps a pointer to the
         path object (does not copy its data).
     */
-    void    setPath(const SkPath*, bool forceClosed);
+    void setPath(const SkPath*, bool forceClosed);
 
     /** Return the total length of the current contour, or 0 if no path
         is associated (e.g. resetPath(null))
@@ -48,19 +41,23 @@ public:
         Returns false if there is no path, or a zero-length path was specified, in which case
         position and tangent are unchanged.
     */
-    bool getPosTan(SkScalar distance, SkPoint* position, SkVector* tangent);
+    bool SK_WARN_UNUSED_RESULT getPosTan(SkScalar distance, SkPoint* position,
+                                         SkVector* tangent);
 
     enum MatrixFlags {
         kGetPosition_MatrixFlag     = 0x01,
         kGetTangent_MatrixFlag      = 0x02,
         kGetPosAndTan_MatrixFlag    = kGetPosition_MatrixFlag | kGetTangent_MatrixFlag
     };
+
     /** Pins distance to 0 <= distance <= getLength(), and then computes
         the corresponding matrix (by calling getPosTan).
         Returns false if there is no path, or a zero-length path was specified, in which case
         matrix is unchanged.
     */
-    bool getMatrix(SkScalar distance, SkMatrix* matrix, MatrixFlags flags = kGetPosAndTan_MatrixFlag);
+    bool SK_WARN_UNUSED_RESULT getMatrix(SkScalar distance, SkMatrix* matrix,
+                                  MatrixFlags flags = kGetPosAndTan_MatrixFlag);
+
     /** Given a start and stop distance, return in dst the intervening segment(s).
         If the segment is zero-length, return false, else return true.
         startD and stopD are pinned to legal values (0..getLength()). If startD <= stopD
@@ -92,13 +89,14 @@ private:
 
     struct Segment {
         SkScalar    fDistance;  // total distance up to this point
-        unsigned    fPtIndex : 15;
+        unsigned    fPtIndex : 15; // index into the fPts array
         unsigned    fTValue : 15;
         unsigned    fType : 2;
 
         SkScalar getScalarT() const;
     };
     SkTDArray<Segment>  fSegments;
+    SkTDArray<SkPoint>  fPts; // Points used to define the segments
 
     static const Segment* NextSegment(const Segment*);
 
@@ -111,4 +109,3 @@ private:
 };
 
 #endif
-

@@ -1,19 +1,11 @@
-/* libs/graphics/sgl/SkTSearch.cpp
-**
-** Copyright 2006, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
-**
-**     http://www.apache.org/licenses/LICENSE-2.0 
-**
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
-** limitations under the License.
-*/
+
+/*
+ * Copyright 2006 The Android Open Source Project
+ *
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
 
 #include "SkTSearch.h"
 #include <ctype.h>
@@ -101,7 +93,7 @@ SkAutoAsciiToLC::SkAutoAsciiToLC(const char str[], size_t len)
         lc = (char*)sk_malloc_throw(len + 1);
     }
     fLC = lc;
-    
+
     // convert any asii to lower-case. we let non-ascii (utf8) chars pass
     // through unchanged
     for (int i = (int)(len - 1); i >= 0; --i) {
@@ -119,69 +111,5 @@ SkAutoAsciiToLC::~SkAutoAsciiToLC()
     if (fLC != fStorage) {
         sk_free(fLC);
     }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-
-#define SK_QSortTempSize    16
-
-static inline void sk_qsort_swap(char a[], char b[], size_t elemSize)
-{
-    char    tmp[SK_QSortTempSize];
-
-    while (elemSize > 0)
-    {
-        size_t size = elemSize;
-        if (size > SK_QSortTempSize)
-            size = SK_QSortTempSize;
-        elemSize -= size;
-
-        memcpy(tmp, a, size);
-        memcpy(a, b, size);
-        memcpy(b, tmp, size);
-        a += size;
-        b += size;
-    }
-}
-
-static void SkQSort_Partition(char* first, char* last, size_t elemSize, SkQSortCompareProc compare)
-{
-    char*   left = first;
-    char*   rite = last;
-    char*   pivot = left;
-
-    while (left <= rite)
-    {
-        while (left < last && compare(left, pivot) < 0)
-            left += elemSize;
-        while (first < rite && compare(rite, pivot) > 0)
-            rite -= elemSize;
-        if (left <= rite)
-        {
-            if (left < rite)
-            {
-                SkASSERT(compare(left, rite) >= 0);
-                sk_qsort_swap(left, rite, elemSize);
-            }
-            left += elemSize;
-            rite -= elemSize;
-        }
-    }
-    if (first < rite)
-        SkQSort_Partition(first, rite, elemSize, compare);
-    if (left < last)
-        SkQSort_Partition(left, last, elemSize, compare);
-}
-
-void SkQSort(void* base, size_t count, size_t elemSize, SkQSortCompareProc compare)
-{
-    SkASSERT(base);
-    SkASSERT(compare);
-    SkASSERT(elemSize > 0);
-
-    if (count <= 1)
-        return;
-
-    SkQSort_Partition((char*)base, (char*)base + (count - 1) * elemSize, elemSize, compare);
 }
 

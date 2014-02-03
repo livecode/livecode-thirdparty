@@ -11,7 +11,9 @@
 /** Windows Interlocked atomics. */
 
 #include <intrin.h>
-#include <stdint.h>
+
+// MM-2014-01-17: [[ RefactorGraphics ]] Updated to use old sk_stdint.h since stdint.h is not present in VS 2005.
+#include <sk_stdint.h>
 
 //MSDN says in order to declare an interlocked function for use as an
 //intrinsic, include intrin.h and put the function in a #pragma intrinsic

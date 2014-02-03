@@ -121,6 +121,8 @@ void SkBitmapProcState::platformConvolutionProcs(SkConvolutionProcs* procs) {
 }
 
 void SkBitmapProcState::platformProcs() {
+	// MM-2014-01-17: [[ RefactorGraphics ]] Remove any calls to SSE3 functions if we're not compiling them.
+#if SK_CPU_SSE_LEVEL >= SK_CPU_SSE_LEVEL_SSSE3
     if (cachedHasSSSE3()) {
         if (fSampleProc32 == S32_opaque_D32_filter_DX) {
             fSampleProc32 = S32_opaque_D32_filter_DX_SSSE3;
@@ -133,7 +135,9 @@ void SkBitmapProcState::platformProcs() {
         } else if (fSampleProc32 == S32_alpha_D32_filter_DXDY) {
             fSampleProc32 = S32_alpha_D32_filter_DXDY_SSSE3;
         }
-    } else if (cachedHasSSE2()) {
+    } else
+#endif
+	if (cachedHasSSE2()) {
         if (fSampleProc32 == S32_opaque_D32_filter_DX) {
             fSampleProc32 = S32_opaque_D32_filter_DX_SSE2;
         } else if (fSampleProc32 == S32_alpha_D32_filter_DX) {

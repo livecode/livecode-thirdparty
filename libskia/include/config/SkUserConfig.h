@@ -225,4 +225,32 @@
     #define SK_FONTHOST_DOES_NOT_USE_FONTMGR
 #endif
 
+#ifdef SK_BUILD_FOR_WIN32
+	// MM-2014-01-17: [[ RefactorGraphics ]] Define SK_RESTRICT to empty to prevent VS 2005 from complaining.
+	#if defined(SK_RESTRICT)
+        #undef SK_RESTRICT 
+    #endif
+	#define SK_RESTRICT
+
+	// MM-2014-01-17: [[ RefactorGraphics ]] Workaround to prevent VS 2005 from complaing when both windows.h and intrin.h are included.
+	//  Taken from http://blog.assarbad.net/20120425/annoyance-in-the-windows-sdk-headers/ and 
+	//  https://developer.mozilla.org/en-US/docs/Developer_Guide/Build_Instructions/Intrin.h
+	#if _MSC_VER >= 1400
+		#pragma push_macro("_interlockedbittestandset")
+		#pragma push_macro("_interlockedbittestandreset")
+		#pragma push_macro("_interlockedbittestandset64")
+		#pragma push_macro("_interlockedbittestandreset64")
+		#define _interlockedbittestandset _local_interlockedbittestandset
+		#define _interlockedbittestandreset _local_interlockedbittestandreset
+		#define _interlockedbittestandset64 _local_interlockedbittestandset64
+		#define _interlockedbittestandreset64 _local_interlockedbittestandreset64
+		#include <intrin.h>
+		#pragma pop_macro("_interlockedbittestandreset64")
+		#pragma pop_macro("_interlockedbittestandset64")
+		#pragma pop_macro("_interlockedbittestandreset")
+		#pragma pop_macro("_interlockedbittestandset")
+		#pragma intrinsic(_ReadWriteBarrier)
+	#endif
+#endif
+
 #endif

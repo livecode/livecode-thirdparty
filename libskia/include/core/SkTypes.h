@@ -11,7 +11,9 @@
 #include "SkPreConfig.h"
 #include "SkUserConfig.h"
 #include "SkPostConfig.h"
-#include <stdint.h>
+
+// MM-2014-01-17: [[ RefactorGraphics ]] Updated to use old sk_stdint.h since stdint.h is not present in VS 2005.
+#include <sk_stdint.h>
 
 //#define SK_SUPPORT_LEGACY_SK64
 

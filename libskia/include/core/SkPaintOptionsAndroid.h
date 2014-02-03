@@ -60,7 +60,8 @@ class SkPaintOptionsAndroid {
 public:
     SkPaintOptionsAndroid() {
         fFontVariant = kDefault_Variant;
-        fUseFontFallbacks = false;
+        // MM-2014-01-20: [[ RefactorGraphics ]] Use fallback fonts by default.
+        fUseFontFallbacks = true;
     }
 
     SkPaintOptionsAndroid& operator=(const SkPaintOptionsAndroid& b) {

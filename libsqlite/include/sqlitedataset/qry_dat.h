@@ -100,6 +100,8 @@ public:
   float get_asFloat() const;
   double get_asDouble() const;
 
+	void set_isBinary(void) { field_type = ft_Object; }
+	
   field_value& operator= (const char *s)
     {set_asString(s); return *this;}
   field_value& operator= (const string &s)

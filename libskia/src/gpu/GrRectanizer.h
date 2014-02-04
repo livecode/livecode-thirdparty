@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2010 Google Inc.
  *
@@ -6,12 +5,10 @@
  * found in the LICENSE file.
  */
 
-
-
 #ifndef GrRectanizer_DEFINED
 #define GrRectanizer_DEFINED
 
-#include "GrRect.h"
+#include "GrPoint.h"
 
 class GrRectanizerPurgeListener {
 public:
@@ -23,11 +20,13 @@ public:
 class GrRectanizer {
 public:
     GrRectanizer(int width, int height) : fWidth(width), fHeight(height) {
-        GrAssert(width >= 0);
-        GrAssert(height >= 0);
+        SkASSERT(width >= 0);
+        SkASSERT(height >= 0);
     }
 
     virtual ~GrRectanizer() {}
+
+    virtual void reset() = 0;
 
     int width() const { return fWidth; }
     int height() const { return fHeight; }
@@ -52,5 +51,3 @@ private:
 };
 
 #endif
-
-

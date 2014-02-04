@@ -8,10 +8,10 @@
 #ifndef SkNativeGLContext_DEFINED
 #define SkNativeGLContext_DEFINED
 
-#include "SkGLContext.h"
+#include "SkGLContextHelper.h"
 
 #if defined(SK_BUILD_FOR_MAC)
-    #include <AGL/agl.h>
+    #include <OpenGL/OpenGL.h>
 #elif defined(SK_BUILD_FOR_ANDROID) || defined(SK_BUILD_FOR_NACL)
     #include <GLES2/gl2.h>
     #include <EGL/egl.h>
@@ -19,17 +19,18 @@
     #include <X11/Xlib.h>
     #include <GL/glx.h>
 #elif defined(SK_BUILD_FOR_WIN32)
-    #include <Windows.h>
+    #include <windows.h>
     #include <GL/GL.h>
 #endif
 
-class SkNativeGLContext : public SkGLContext {
+class SkNativeGLContext : public SkGLContextHelper {
 public:
     SkNativeGLContext();
 
     virtual ~SkNativeGLContext();
 
     virtual void makeCurrent() const SK_OVERRIDE;
+    virtual void swapBuffers() const SK_OVERRIDE;
 
     class AutoContextRestore {
     public:
@@ -38,7 +39,7 @@ public:
 
     private:
     #if defined(SK_BUILD_FOR_MAC)
-        AGLContext fOldAGLContext;
+        CGLContextObj fOldCGLContext;
     #elif defined(SK_BUILD_FOR_ANDROID) || defined(SK_BUILD_FOR_NACL)
         EGLContext fOldEGLContext;
         EGLDisplay fOldDisplay;
@@ -62,7 +63,7 @@ protected:
 
 private:
 #if defined(SK_BUILD_FOR_MAC)
-    AGLContext fContext;
+    CGLContextObj fContext;
 #elif defined(SK_BUILD_FOR_ANDROID) || defined(SK_BUILD_FOR_NACL)
     EGLContext fContext;
     EGLDisplay fDisplay;

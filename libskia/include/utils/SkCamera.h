@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2006 The Android Open Source Project
  *
@@ -6,30 +5,19 @@
  * found in the LICENSE file.
  */
 
-
-
-
 //  Inspired by Rob Johnson's most excellent QuickDraw GX sample code
 
 #ifndef SkCamera_DEFINED
 #define SkCamera_DEFINED
 
-#include "Sk64.h"
 #include "SkMatrix.h"
 
 class SkCanvas;
 
-#ifdef SK_SCALAR_IS_FIXED
-    typedef SkFract SkUnitScalar;
-    #define SK_UnitScalar1          SK_Fract1
-    #define SkUnitScalarMul(a, b)   SkFractMul(a, b)
-    #define SkUnitScalarDiv(a, b)   SkFractDiv(a, b)
-#else
-    typedef float   SkUnitScalar;
-    #define SK_UnitScalar1          SK_Scalar1
-    #define SkUnitScalarMul(a, b)   SkScalarMul(a, b)
-    #define SkUnitScalarDiv(a, b)   SkScalarDiv(a, b)
-#endif
+typedef float   SkUnitScalar;
+#define SK_UnitScalar1          SK_Scalar1
+#define SkUnitScalarMul(a, b)   SkScalarMul(a, b)
+#define SkUnitScalarDiv(a, b)   SkScalarDiv(a, b)
 
 struct SkUnit3D {
     SkUnitScalar    fX, fY, fZ;
@@ -173,4 +161,3 @@ private:
 };
 
 #endif
-

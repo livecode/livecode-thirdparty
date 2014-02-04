@@ -11,14 +11,16 @@
 #ifndef SkData_DEFINED
 #define SkData_DEFINED
 
-#include "SkFlattenable.h"
+#include "SkRefCnt.h"
+
+struct SkFILE;
 
 /**
  *  SkData holds an immutable data buffer. Not only is the data immutable,
  *  but the actual ptr that is returned (by data() or bytes()) is guaranteed
  *  to always be the same for the life of this instance.
  */
-class SK_API SkData : public SkFlattenable {
+class SK_API SkData : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(SkData)
 
@@ -89,6 +91,30 @@ public:
     static SkData* NewFromMalloc(const void* data, size_t length);
 
     /**
+     *  Create a new dataref the file with the specified path.
+     *  If the file cannot be opened, this returns NULL.
+     */
+    static SkData* NewFromFileName(const char path[]);
+
+    /**
+     *  Create a new dataref from a SkFILE.
+     *  This does not take ownership of the SkFILE, nor close it.
+     *  The caller is free to close the SkFILE at its convenience.
+     *  The SkFILE must be open for reading only.
+     *  Returns NULL on failure.
+     */
+    static SkData* NewFromFILE(SkFILE* f);
+
+    /**
+     *  Create a new dataref from a file descriptor.
+     *  This does not take ownership of the file descriptor, nor close it.
+     *  The caller is free to close the file descriptor at its convenience.
+     *  The file descriptor must be open for reading only.
+     *  Returns NULL on failure.
+     */
+    static SkData* NewFromFD(int fd);
+
+    /**
      *  Create a new dataref using a subset of the data in the specified
      *  src dataref.
      */
@@ -100,12 +126,6 @@ public:
      */
     static SkData* NewEmpty();
 
-    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkData)
-
-protected:
-    SkData(SkFlattenableReadBuffer&);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-
 private:
     ReleaseProc fReleaseProc;
     void*       fReleaseProcContext;
@@ -116,41 +136,13 @@ private:
     SkData(const void* ptr, size_t size, ReleaseProc, void* context);
     virtual ~SkData();
 
-    // This is here because SkAutoTUnref creates an internal helper class
-    // that derives from SkData (i.e., BlockRef) to prevent refs\unrefs.
-    // This helper class generates a compiler warning on Windows since the
-    // SkData's destructor is private. This friending gives the helper class
-    // access to the destructor.
-    friend class SkAutoTUnref<SkData>::BlockRef<SkData>;
+    // Called the first time someone calls NewEmpty to initialize the singleton.
+    static void NewEmptyImpl(SkData**);
 
-    typedef SkFlattenable INHERITED;
+    typedef SkRefCnt INHERITED;
 };
 
-/**
- *  Specialized version of SkAutoTUnref<SkData> for automatically unref-ing a
- *  SkData.
- */
-class SkAutoDataUnref : SkNoncopyable {
-public:
-    SkAutoDataUnref(SkData* data) : fRef(data) {}
-    ~SkAutoDataUnref() {
-        SkSafeUnref(fRef);
-    }
-
-    SkData* get() const { return fRef; }
-
-    void release() {
-        if (fRef) {
-            fRef->unref();
-            fRef = NULL;
-        }
-    }
-
-    SkData *operator->() const { return fRef; }
-    operator SkData*() { return fRef; }
-
-private:
-    SkData*     fRef;
-};
+/** Typedef of SkAutoTUnref<SkData> for automatically unref-ing a SkData. */
+typedef SkAutoTUnref<SkData> SkAutoDataUnref;
 
 #endif

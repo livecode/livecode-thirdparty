@@ -10,8 +10,9 @@
 #define GrTexture_DEFINED
 
 #include "GrSurface.h"
+#include "SkPoint.h"
+#include "GrRenderTarget.h"
 
-class GrRenderTarget;
 class GrResourceKey;
 class GrTextureParams;
 
@@ -41,6 +42,14 @@ public:
     }
     bool isSetFlag(GrTextureFlags flags) const {
         return 0 != (fDesc.fFlags & flags);
+    }
+
+    void dirtyMipMaps(bool mipMapsDirty) {
+        fMipMapsDirty = mipMapsDirty;
+    }
+
+    bool mipMapsAreDirty() const {
+        return fMipMapsDirty;
     }
 
     /**
@@ -79,10 +88,10 @@ public:
      *            render target
      */
     virtual GrRenderTarget* asRenderTarget() SK_OVERRIDE {
-        return fRenderTarget;
+        return fRenderTarget.get();
     }
     virtual const GrRenderTarget* asRenderTarget() const SK_OVERRIDE {
-        return fRenderTarget;
+        return fRenderTarget.get();
     }
 
     // GrTexture
@@ -91,20 +100,13 @@ public:
      * only.
      */
     GrFixed normalizeFixedX(GrFixed x) const {
-        GrAssert(GrIsPow2(fDesc.fWidth));
+        SkASSERT(GrIsPow2(fDesc.fWidth));
         return x >> fShiftFixedX;
     }
     GrFixed normalizeFixedY(GrFixed y) const {
-        GrAssert(GrIsPow2(fDesc.fHeight));
+        SkASSERT(GrIsPow2(fDesc.fHeight));
         return y >> fShiftFixedY;
     }
-
-    /**
-     * Removes the reference on the associated GrRenderTarget held by this
-     * texture. Afterwards asRenderTarget() will return NULL. The
-     * GrRenderTarget survives the release if another ref is held on it.
-     */
-    void releaseRenderTarget();
 
     /**
      *  Return the native ID or handle to the texture, depending on the
@@ -118,36 +120,37 @@ public:
      */
     virtual void invalidateCachedState() = 0;
 
-#if GR_DEBUG
+#ifdef SK_DEBUG
     void validate() const {
         this->INHERITED::validate();
 
         this->validateDesc();
     }
-#else
-    void validate() const {}
 #endif
+
     static GrResourceKey ComputeKey(const GrGpu* gpu,
                                     const GrTextureParams* params,
                                     const GrTextureDesc& desc,
                                     const GrCacheID& cacheID);
     static GrResourceKey ComputeScratchKey(const GrTextureDesc& desc);
     static bool NeedsResizing(const GrResourceKey& key);
-    static bool NeedsFiltering(const GrResourceKey& key);
+    static bool NeedsBilerp(const GrResourceKey& key);
 
 protected:
-    GrRenderTarget* fRenderTarget; // texture refs its rt representation
-                                   // base class cons sets to NULL
-                                   // subclass cons can create and set
+    // A texture refs its rt representation but not vice-versa. It is up to
+    // the subclass constructor to initialize this pointer.
+    SkAutoTUnref<GrRenderTarget> fRenderTarget;
 
-    GrTexture(GrGpu* gpu, const GrTextureDesc& desc, Origin origin)
-    : INHERITED(gpu, desc, origin)
-    , fRenderTarget(NULL) {
+    GrTexture(GrGpu* gpu, bool isWrapped, const GrTextureDesc& desc)
+    : INHERITED(gpu, isWrapped, desc)
+    , fRenderTarget(NULL)
+    , fMipMapsDirty(true) {
 
         // only make sense if alloc size is pow2
         fShiftFixedX = 31 - SkCLZ(fDesc.fWidth);
         fShiftFixedY = 31 - SkCLZ(fDesc.fHeight);
     }
+    virtual ~GrTexture();
 
     // GrResource overrides
     virtual void onRelease() SK_OVERRIDE;
@@ -161,10 +164,49 @@ private:
     int                 fShiftFixedX;
     int                 fShiftFixedY;
 
+    bool                fMipMapsDirty;
+
     virtual void internal_dispose() const SK_OVERRIDE;
 
     typedef GrSurface INHERITED;
 };
 
-#endif
+/**
+ * Represents a texture that is intended to be accessed in device coords with an offset.
+ */
+class GrDeviceCoordTexture {
+public:
+    GrDeviceCoordTexture() { fOffset.set(0, 0); }
 
+    GrDeviceCoordTexture(const GrDeviceCoordTexture& other) {
+        *this = other;
+    }
+
+    GrDeviceCoordTexture(GrTexture* texture, const SkIPoint& offset)
+        : fTexture(SkSafeRef(texture))
+        , fOffset(offset) {
+    }
+
+    GrDeviceCoordTexture& operator=(const GrDeviceCoordTexture& other) {
+        fTexture.reset(SkSafeRef(other.fTexture.get()));
+        fOffset = other.fOffset;
+        return *this;
+    }
+
+    const SkIPoint& offset() const { return fOffset; }
+
+    void setOffset(const SkIPoint& offset) { fOffset = offset; }
+    void setOffset(int ox, int oy) { fOffset.set(ox, oy); }
+
+    GrTexture* texture() const { return fTexture.get(); }
+
+    GrTexture* setTexture(GrTexture* texture) {
+        fTexture.reset(SkSafeRef(texture));
+        return texture;
+    }
+private:
+    SkAutoTUnref<GrTexture> fTexture;
+    SkIPoint                fOffset;
+};
+
+#endif

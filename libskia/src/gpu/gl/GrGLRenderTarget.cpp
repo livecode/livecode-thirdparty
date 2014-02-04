@@ -20,21 +20,21 @@ void GrGLRenderTarget::init(const Desc& desc,
     fTexFBOID               = desc.fTexFBOID;
     fMSColorRenderbufferID  = desc.fMSColorRenderbufferID;
     fViewport               = viewport;
-    fOwnIDs                 = desc.fOwnIDs;
-    fTexIDObj               = texID;
-    GrSafeRef(fTexIDObj);
+    fTexIDObj.reset(SkSafeRef(texID));
 }
 
 namespace {
 GrTextureDesc MakeDesc(GrTextureFlags flags,
                        int width, int height,
-                       GrPixelConfig config, int sampleCnt) {
+                       GrPixelConfig config, int sampleCnt,
+                       GrSurfaceOrigin origin) {
     GrTextureDesc temp;
     temp.fFlags = flags;
     temp.fWidth = width;
     temp.fHeight = height;
     temp.fConfig = config;
     temp.fSampleCnt = sampleCnt;
+    temp.fOrigin = origin;
     return temp;
 }
 
@@ -46,21 +46,21 @@ GrGLRenderTarget::GrGLRenderTarget(GrGpuGL* gpu,
                                    GrGLTexID* texID,
                                    GrGLTexture* texture)
     : INHERITED(gpu,
+                desc.fIsWrapped,
                 texture,
                 MakeDesc(kNone_GrTextureFlags,
                          viewport.fWidth, viewport.fHeight,
-                         desc.fConfig, desc.fSampleCnt),
-                texture->origin()) {
-    GrAssert(kBottomLeft_Origin == texture->origin());
-    GrAssert(NULL != texID);
-    GrAssert(NULL != texture);
+                         desc.fConfig, desc.fSampleCnt,
+                         desc.fOrigin)) {
+    SkASSERT(NULL != texID);
+    SkASSERT(NULL != texture);
     // FBO 0 can't also be a texture, right?
-    GrAssert(0 != desc.fRTFBOID);
-    GrAssert(0 != desc.fTexFBOID);
+    SkASSERT(0 != desc.fRTFBOID);
+    SkASSERT(0 != desc.fTexFBOID);
 
     // we assume this is true, TODO: get rid of viewport as a param.
-    GrAssert(viewport.fWidth == texture->width());
-    GrAssert(viewport.fHeight == texture->height());
+    SkASSERT(viewport.fWidth == texture->width());
+    SkASSERT(viewport.fHeight == texture->height());
 
     this->init(desc, viewport, texID);
 }
@@ -69,17 +69,18 @@ GrGLRenderTarget::GrGLRenderTarget(GrGpuGL* gpu,
                                    const Desc& desc,
                                    const GrGLIRect& viewport)
     : INHERITED(gpu,
+                desc.fIsWrapped,
                 NULL,
                 MakeDesc(kNone_GrTextureFlags,
                          viewport.fWidth, viewport.fHeight,
-                         desc.fConfig, desc.fSampleCnt),
-                kBottomLeft_Origin) {
+                         desc.fConfig, desc.fSampleCnt,
+                         desc.fOrigin)) {
     this->init(desc, viewport, NULL);
 }
 
 void GrGLRenderTarget::onRelease() {
     GPUGL->notifyRenderTargetDelete(this);
-    if (fOwnIDs) {
+    if (!this->isWrapped()) {
         if (fTexFBOID) {
             GL_CALL(DeleteFramebuffers(1, &fTexFBOID));
         }
@@ -93,8 +94,7 @@ void GrGLRenderTarget::onRelease() {
     fRTFBOID                = 0;
     fTexFBOID               = 0;
     fMSColorRenderbufferID  = 0;
-    GrSafeUnref(fTexIDObj);
-    fTexIDObj = NULL;
+    fTexIDObj.reset(NULL);
     INHERITED::onRelease();
 }
 
@@ -102,10 +102,9 @@ void GrGLRenderTarget::onAbandon() {
     fRTFBOID                = 0;
     fTexFBOID               = 0;
     fMSColorRenderbufferID  = 0;
-    if (NULL != fTexIDObj) {
+    if (NULL != fTexIDObj.get()) {
         fTexIDObj->abandon();
-        fTexIDObj = NULL;
+        fTexIDObj.reset(NULL);
     }
     INHERITED::onAbandon();
 }
-

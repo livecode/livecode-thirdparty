@@ -105,8 +105,9 @@ void SkProxyCanvas::drawBitmap(const SkBitmap& bitmap, SkScalar x, SkScalar y,
 }
 
 void SkProxyCanvas::drawBitmapRectToRect(const SkBitmap& bitmap, const SkRect* src,
-                                   const SkRect& dst, const SkPaint* paint) {
-    fProxy->drawBitmapRectToRect(bitmap, src, dst, paint);
+                                   const SkRect& dst, const SkPaint* paint,
+                                   DrawBitmapRectFlags flags) {
+    fProxy->drawBitmapRectToRect(bitmap, src, dst, paint, flags);
 }
 
 void SkProxyCanvas::drawBitmapMatrix(const SkBitmap& bitmap, const SkMatrix& m,
@@ -158,6 +159,18 @@ void SkProxyCanvas::drawData(const void* data, size_t length) {
     fProxy->drawData(data, length);
 }
 
+void SkProxyCanvas::beginCommentGroup(const char* description) {
+    fProxy->beginCommentGroup(description);
+}
+
+void SkProxyCanvas::addComment(const char* kywd, const char* value) {
+    fProxy->addComment(kywd, value);
+}
+
+void SkProxyCanvas::endCommentGroup() {
+    fProxy->endCommentGroup();
+}
+
 SkBounder* SkProxyCanvas::setBounder(SkBounder* bounder) {
     return fProxy->setBounder(bounder);
 }
@@ -165,4 +178,3 @@ SkBounder* SkProxyCanvas::setBounder(SkBounder* bounder) {
 SkDrawFilter* SkProxyCanvas::setDrawFilter(SkDrawFilter* filter) {
     return fProxy->setDrawFilter(filter);
 }
-

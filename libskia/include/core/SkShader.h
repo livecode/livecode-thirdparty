@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2006 The Android Open Source Project
  *
@@ -312,14 +311,17 @@ public:
         SkPoint     fPoint[2];      //!< Type specific, see above.
         SkScalar    fRadius[2];     //!< Type specific, see above.
         TileMode    fTileMode;      //!< The tile mode used.
+        uint32_t    fGradientFlags; //!< see SkGradientShader::Flags
     };
 
     virtual GradientType asAGradient(GradientInfo* info) const;
 
     /**
-     *  If the shader subclass has a GrEffect implementation, this installs an effect on the stage.
-     *  The GrContext may be used by the effect to create textures. The GPU device does not call
-     *  setContext. Instead we pass the paint here in case the shader needs paint info.
+     *  If the shader subclass has a GrEffect implementation, this resturns the effect to install.
+     *  The incoming color to the effect has r=g=b=a all extracted from the SkPaint's alpha.
+     *  The output color should be the computed SkShader premul color modulated by the incoming
+     *  color. The GrContext may be used by the effect to create textures. The GPU device does not
+     *  call setContext. Instead we pass the SkPaint here in case the shader needs paint info.
      */
     virtual GrEffectRef* asNewEffect(GrContext* context, const SkPaint& paint) const;
 
@@ -332,6 +334,9 @@ public:
      *  exceed implementation limits (currently at 64K - 1)) then SkEmptyShader
      *  may be returned.
      *
+     *  If the src is kA8_Config then that mask will be colorized using the color on
+     *  the paint.
+     *
      *  @param src  The bitmap to use inside the shader
      *  @param tmx  The tiling mode to use when sampling the bitmap in the x-direction.
      *  @param tmy  The tiling mode to use when sampling the bitmap in the y-direction.
@@ -341,6 +346,8 @@ public:
                                         TileMode tmx, TileMode tmy);
 
     SkDEVCODE(virtual void toString(SkString* str) const;)
+
+    SK_DEFINE_FLATTENABLE_TYPE(SkShader)
 
 protected:
     enum MatrixClass {
@@ -374,4 +381,3 @@ private:
 };
 
 #endif
-

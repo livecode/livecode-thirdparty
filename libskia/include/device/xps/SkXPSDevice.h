@@ -13,10 +13,10 @@
 #include <XpsObjectModel.h>
 
 #include "SkAutoCoInitialize.h"
+#include "SkBitmapDevice.h"
 #include "SkBitSet.h"
 #include "SkCanvas.h"
 #include "SkColor.h"
-#include "SkDevice.h"
 #include "SkPaint.h"
 #include "SkPath.h"
 #include "SkPoint.h"
@@ -30,7 +30,7 @@
 
     The drawing context for the XPS backend.
 */
-class SkXPSDevice : public SkDevice {
+class SkXPSDevice : public SkBitmapDevice {
 public:
     SK_API SkXPSDevice();
     SK_API virtual ~SkXPSDevice();
@@ -85,6 +85,11 @@ protected:
         const SkRect& r,
         const SkPaint& paint) SK_OVERRIDE;
 
+    virtual void drawRRect(
+        const SkDraw&,
+        const SkRRect&,
+        const SkPaint& paint) SK_OVERRIDE;
+
     virtual void drawPath(
         const SkDraw&,
         const SkPath& platonicPath,
@@ -95,7 +100,6 @@ protected:
     virtual void drawBitmap(
         const SkDraw&,
         const SkBitmap& bitmap,
-        const SkIRect* srcRectOrNull,
         const SkMatrix& matrix,
         const SkPaint& paint) SK_OVERRIDE;
 
@@ -135,7 +139,7 @@ protected:
 
     virtual void drawDevice(
         const SkDraw&,
-        SkDevice* device,
+        SkBaseDevice* device,
         int x, int y,
         const SkPaint& paint) SK_OVERRIDE;
 
@@ -150,6 +154,7 @@ private:
     class TypefaceUse : ::SkNoncopyable {
     public:
         SkFontID typefaceId;
+        int ttcIndex;
         SkStream* fontData;
         IXpsOMFontResource* xpsFont;
         SkBitSet* glyphsUsed;
@@ -247,7 +252,7 @@ private:
         const SkDraw& d,
         IXpsOMObjectFactory* xpsFactory,
         IXpsOMCanvas* canvas,
-        IXpsOMFontResource* font,
+        TypefaceUse* font,
         LPCWSTR text,
         XPS_GLYPH_INDEX* xpsGlyphs,
         UINT32 xpsGlyphsLen,
@@ -307,18 +312,17 @@ private:
         const SkVector& ppuScale,
         IXpsOMPath* shadedPath);
 
-    // override from SkDevice
-    virtual SkDevice* onCreateCompatibleDevice(
-        SkBitmap::Config config,
-        int width, int height,
-        bool isOpaque,
-        Usage usage) SK_OVERRIDE;
+    // override from SkBaseDevice
+    virtual SkBaseDevice* onCreateCompatibleDevice(SkBitmap::Config config,
+                                                   int width, int height,
+                                                   bool isOpaque,
+                                                   Usage usage) SK_OVERRIDE;
 
     // Disable the default copy and assign implementation.
     SkXPSDevice(const SkXPSDevice&);
     void operator=(const SkXPSDevice&);
 
-    typedef SkDevice INHERITED;
+    typedef SkBitmapDevice INHERITED;
 };
 
 #endif

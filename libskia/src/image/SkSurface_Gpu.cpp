@@ -14,16 +14,16 @@ class SkSurface_Gpu : public SkSurface_Base {
 public:
     SK_DECLARE_INST_COUNT(SkSurface_Gpu)
 
-    SkSurface_Gpu(GrContext*, const SkImage::Info&, int sampleCount);
+    SkSurface_Gpu(GrContext*, const SkImageInfo&, int sampleCount);
     SkSurface_Gpu(GrContext*, GrRenderTarget*);
     virtual ~SkSurface_Gpu();
 
     virtual SkCanvas* onNewCanvas() SK_OVERRIDE;
-    virtual SkSurface* onNewSurface(const SkImage::Info&) SK_OVERRIDE;
-    virtual SkImage* onNewImageShapshot() SK_OVERRIDE;
+    virtual SkSurface* onNewSurface(const SkImageInfo&) SK_OVERRIDE;
+    virtual SkImage* onNewImageSnapshot() SK_OVERRIDE;
     virtual void onDraw(SkCanvas*, SkScalar x, SkScalar y,
                         const SkPaint*) SK_OVERRIDE;
-    virtual void onCopyOnWrite(SkImage*, SkCanvas*) SK_OVERRIDE;
+    virtual void onCopyOnWrite(ContentChangeMode) SK_OVERRIDE;
 
 private:
     SkGpuDevice* fDevice;
@@ -31,19 +31,16 @@ private:
     typedef SkSurface_Base INHERITED;
 };
 
-SK_DEFINE_INST_COUNT(SkSurface_Gpu)
-
 ///////////////////////////////////////////////////////////////////////////////
 
-SkSurface_Gpu::SkSurface_Gpu(GrContext* ctx, const SkImage::Info& info,
+SkSurface_Gpu::SkSurface_Gpu(GrContext* ctx, const SkImageInfo& info,
                              int sampleCount)
         : INHERITED(info.fWidth, info.fHeight) {
-    bool isOpaque;
-    SkBitmap::Config config = SkImageInfoToBitmapConfig(info, &isOpaque);
+    SkBitmap::Config config = SkImageInfoToBitmapConfig(info);
 
     fDevice = SkNEW_ARGS(SkGpuDevice, (ctx, config, info.fWidth, info.fHeight, sampleCount));
 
-    if (!isOpaque) {
+    if (!SkAlphaTypeIsOpaque(info.fAlphaType)) {
         fDevice->clear(0x0);
     }
 }
@@ -65,17 +62,14 @@ SkCanvas* SkSurface_Gpu::onNewCanvas() {
     return SkNEW_ARGS(SkCanvas, (fDevice));
 }
 
-SkSurface* SkSurface_Gpu::onNewSurface(const SkImage::Info& info) {
-    GrRenderTarget* rt = (GrRenderTarget*) fDevice->accessRenderTarget();
+SkSurface* SkSurface_Gpu::onNewSurface(const SkImageInfo& info) {
+    GrRenderTarget* rt = fDevice->accessRenderTarget();
     int sampleCount = rt->numSamples();
     return SkSurface::NewRenderTarget(fDevice->context(), info, sampleCount);
 }
 
-SkImage* SkSurface_Gpu::onNewImageShapshot() {
-
-    GrRenderTarget* rt = (GrRenderTarget*) fDevice->accessRenderTarget();
-
-    return SkImage::NewTexture(rt->asTexture());
+SkImage* SkSurface_Gpu::onNewImageSnapshot() {
+    return SkImage::NewTexture(fDevice->accessBitmap(false));
 }
 
 void SkSurface_Gpu::onDraw(SkCanvas* canvas, SkScalar x, SkScalar y,
@@ -83,31 +77,26 @@ void SkSurface_Gpu::onDraw(SkCanvas* canvas, SkScalar x, SkScalar y,
     canvas->drawBitmap(fDevice->accessBitmap(false), x, y, paint);
 }
 
-// Copy the contents of the SkGpuDevice into a new texture and give that
-// texture to the SkImage. Note that this flushes the SkGpuDevice but
+// Create a new SkGpuDevice and, if necessary, copy the contents of the old
+// device into it. Note that this flushes the SkGpuDevice but
 // doesn't force an OpenGL flush.
-void SkSurface_Gpu::onCopyOnWrite(SkImage* image, SkCanvas* canvas) {
-    GrRenderTarget* rt = (GrRenderTarget*) fDevice->accessRenderTarget();
-
+void SkSurface_Gpu::onCopyOnWrite(ContentChangeMode mode) {
+    GrRenderTarget* rt = fDevice->accessRenderTarget();
     // are we sharing our render target with the image?
-    if (rt->asTexture() == SkTextureImageGetTexture(image)) {
-        GrTextureDesc desc;
-        // copyTexture requires a render target as the destination
-        desc.fFlags = kRenderTarget_GrTextureFlagBit;
-        desc.fWidth = fDevice->width();
-        desc.fHeight = fDevice->height();
-        desc.fConfig = SkBitmapConfig2GrPixelConfig(fDevice->config());
-        desc.fSampleCnt = 0;
-
-        SkAutoTUnref<GrTexture> tex(fDevice->context()->createUncachedTexture(desc, NULL, 0));
-        if (NULL == tex) {
-            SkTextureImageSetTexture(image, NULL);
-            return;
+    SkASSERT(NULL != this->getCachedImage());
+    if (rt->asTexture() == SkTextureImageGetTexture(this->getCachedImage())) {
+        SkGpuDevice* newDevice = static_cast<SkGpuDevice*>(
+            fDevice->createCompatibleDevice(fDevice->config(), fDevice->width(),
+            fDevice->height(), fDevice->isOpaque()));
+        SkAutoTUnref<SkGpuDevice> aurd(newDevice);
+        if (kRetain_ContentChangeMode == mode) {
+            fDevice->context()->copyTexture(rt->asTexture(),
+                reinterpret_cast<GrRenderTarget*>(newDevice->accessRenderTarget()));
         }
-
-        fDevice->context()->copyTexture(rt->asTexture(), tex->asRenderTarget());
-
-        SkTextureImageSetTexture(image, tex);
+        SkASSERT(NULL != this->getCachedCanvas());
+        SkASSERT(this->getCachedCanvas()->getDevice() == fDevice);
+        this->getCachedCanvas()->setDevice(newDevice);
+        SkRefCnt_SafeAssign(fDevice, newDevice);
     }
 }
 
@@ -122,16 +111,15 @@ SkSurface* SkSurface::NewRenderTargetDirect(GrContext* ctx,
     return SkNEW_ARGS(SkSurface_Gpu, (ctx, target));
 }
 
-SkSurface* SkSurface::NewRenderTarget(GrContext* ctx, const SkImage::Info& info, int sampleCount) {
+SkSurface* SkSurface::NewRenderTarget(GrContext* ctx, const SkImageInfo& info, int sampleCount) {
     if (NULL == ctx) {
         return NULL;
     }
 
-    bool isOpaque;
-    SkBitmap::Config config = SkImageInfoToBitmapConfig(info, &isOpaque);
+    SkBitmap::Config config = SkImageInfoToBitmapConfig(info);
 
     GrTextureDesc desc;
-    desc.fFlags = kRenderTarget_GrTextureFlagBit;
+    desc.fFlags = kRenderTarget_GrTextureFlagBit | kCheckAllocation_GrTextureFlagBit;
     desc.fWidth = info.fWidth;
     desc.fHeight = info.fHeight;
     desc.fConfig = SkBitmapConfig2GrPixelConfig(config);
@@ -144,4 +132,3 @@ SkSurface* SkSurface::NewRenderTarget(GrContext* ctx, const SkImage::Info& info,
 
     return SkNEW_ARGS(SkSurface_Gpu, (ctx, tex->asRenderTarget()));
 }
-

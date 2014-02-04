@@ -26,6 +26,12 @@ struct SK_API SkIRect {
         return r;
     }
 
+    static SkIRect SK_WARN_UNUSED_RESULT MakeLargest() {
+        SkIRect r;
+        r.setLargest();
+        return r;
+    }
+
     static SkIRect SK_WARN_UNUSED_RESULT MakeWH(int32_t w, int32_t h) {
         SkIRect r;
         r.set(0, 0, w, h);
@@ -93,6 +99,11 @@ struct SK_API SkIRect {
      *  Return true if the rectangle's width or height are <= 0
      */
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
+
+    bool isLargest() const { return SK_MinS32 == fLeft &&
+                                    SK_MinS32 == fTop &&
+                                    SK_MaxS32 == fRight &&
+                                    SK_MaxS32 == fBottom; }
 
     friend bool operator==(const SkIRect& a, const SkIRect& b) {
         return !memcmp(&a, &b, sizeof(a));
@@ -360,6 +371,12 @@ struct SK_API SkRect {
         return r;
     }
 
+    static SkRect SK_WARN_UNUSED_RESULT MakeLargest() {
+        SkRect r;
+        r.setLargest();
+        return r;
+    }
+
     static SkRect SK_WARN_UNUSED_RESULT MakeWH(SkScalar w, SkScalar h) {
         SkRect r;
         r.set(0, 0, w, h);
@@ -384,7 +401,17 @@ struct SK_API SkRect {
         return r;
     }
 
+    SK_ATTR_DEPRECATED("use Make()")
     static SkRect SK_WARN_UNUSED_RESULT MakeFromIRect(const SkIRect& irect) {
+        SkRect r;
+        r.set(SkIntToScalar(irect.fLeft),
+              SkIntToScalar(irect.fTop),
+              SkIntToScalar(irect.fRight),
+              SkIntToScalar(irect.fBottom));
+        return r;
+    }
+
+    static SkRect SK_WARN_UNUSED_RESULT Make(const SkIRect& irect) {
         SkRect r;
         r.set(SkIntToScalar(irect.fLeft),
               SkIntToScalar(irect.fTop),
@@ -398,13 +425,17 @@ struct SK_API SkRect {
      */
     bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
 
+    bool isLargest() const { return SK_ScalarMin == fLeft &&
+                                    SK_ScalarMin == fTop &&
+                                    SK_ScalarMax == fRight &&
+                                    SK_ScalarMax == fBottom; }
+
     /**
      *  Returns true iff all values in the rect are finite. If any are
      *  infinite or NaN (or SK_FixedNaN when SkScalar is fixed) then this
      *  returns false.
      */
     bool isFinite() const {
-#ifdef SK_SCALAR_IS_FLOAT
         float accum = 0;
         accum *= fLeft;
         accum *= fTop;
@@ -417,13 +448,6 @@ struct SK_API SkRect {
         // value==value will be true iff value is not NaN
         // TODO: is it faster to say !accum or accum==accum?
         return accum == accum;
-#else
-        // use bit-or for speed, since we don't care about short-circuting the
-        // tests, and we expect the common case will be that we need to check all.
-        int isNaN = (SK_FixedNaN == fLeft)  | (SK_FixedNaN == fTop) |
-                    (SK_FixedNaN == fRight) | (SK_FixedNaN == fBottom);
-        return !isNaN;
-#endif
     }
 
     SkScalar    x() const { return fLeft; }
@@ -445,8 +469,9 @@ struct SK_API SkRect {
         return !SkScalarsEqual((SkScalar*)&a, (SkScalar*)&b, 4);
     }
 
-    /** return the 4 points that enclose the rectangle
-    */
+    /** return the 4 points that enclose the rectangle (top-left, top-right, bottom-right,
+        bottom-left). TODO: Consider adding param to control whether quad is CW or CCW.
+     */
     void toQuad(SkPoint quad[4]) const;
 
     /** Set this rectangle to the empty rectangle (0,0,0,0)
@@ -600,6 +625,7 @@ struct SK_API SkRect {
         If either rectangle is empty, do nothing and return false.
     */
     bool intersect(const SkRect& r);
+    bool intersect2(const SkRect& r);
 
     /** If this rectangle intersects the rectangle specified by left, top, right, bottom,
         return true and set this rectangle to that intersection, otherwise return false
@@ -669,32 +695,19 @@ struct SK_API SkRect {
         fBottom = SkMaxScalar(y, fBottom);
     }
 
-    /**
-     *  Returns true if (p.fX,p.fY) is inside the rectangle, and the rectangle
-     *  is not empty.
-     *
-     *  Contains treats the left and top differently from the right and bottom.
-     *  The left and top coordinates of the rectangle are themselves considered
-     *  to be inside, while the right and bottom are not. Thus for the rectangle
-     *  {0, 0, 5, 10}, (0,0) is contained, but (0,10), (5,0) and (5,10) are not.
-     */
-    bool contains(const SkPoint& p) const {
-        return !this->isEmpty() &&
-               fLeft <= p.fX && p.fX < fRight && fTop <= p.fY && p.fY < fBottom;
+    /** Bulk version of growToInclude */
+    void growToInclude(const SkPoint pts[], int count) {
+        this->growToInclude(pts, sizeof(SkPoint), count);
     }
 
-    /**
-     *  Returns true if (x,y) is inside the rectangle, and the rectangle
-     *  is not empty.
-     *
-     *  Contains treats the left and top differently from the right and bottom.
-     *  The left and top coordinates of the rectangle are themselves considered
-     *  to be inside, while the right and bottom are not. Thus for the rectangle
-     *  {0, 0, 5, 10}, (0,0) is contained, but (0,10), (5,0) and (5,10) are not.
-     */
-    bool contains(SkScalar x, SkScalar y) const {
-        return  !this->isEmpty() &&
-                fLeft <= x && x < fRight && fTop <= y && y < fBottom;
+    /** Bulk version of growToInclude with stride. */
+    void growToInclude(const SkPoint pts[], size_t stride, int count) {
+        SkASSERT(count >= 0);
+        SkASSERT(stride >= sizeof(SkPoint));
+        const SkPoint* end = (const SkPoint*)((intptr_t)pts + count * stride);
+        for (; pts < end; pts = (const SkPoint*)((intptr_t)pts + stride)) {
+            this->growToInclude(pts->fX, pts->fY);
+        }
     }
 
     /**
@@ -702,6 +715,7 @@ struct SK_API SkRect {
      *  not empty.
      */
     bool contains(const SkRect& r) const {
+        // todo: can we eliminate the this->isEmpty check?
         return  !r.isEmpty() && !this->isEmpty() &&
                 fLeft <= r.fLeft && fTop <= r.fTop &&
                 fRight >= r.fRight && fBottom >= r.fBottom;
@@ -709,7 +723,7 @@ struct SK_API SkRect {
 
     /**
      *  Set the dst rectangle by rounding this rectangle's coordinates to their
-     *  nearest integer values using SkScalarRound.
+     *  nearest integer values using SkScalarRoundToInt.
      */
     void round(SkIRect* dst) const {
         SkASSERT(dst);
@@ -751,6 +765,15 @@ struct SK_API SkRect {
                  SkScalarFloorToInt(fRight), SkScalarFloorToInt(fBottom));
     }
 
+    /**
+     *  Return a new SkIRect which is contains the rounded coordinates of this
+     *  rect using SkScalarRoundToInt.
+     */
+    SkIRect round() const {
+        SkIRect ir;
+        this->round(&ir);
+        return ir;
+    }
 
     /**
      *  Swap top/bottom or left/right if there are flipped (i.e. if width()
@@ -759,7 +782,11 @@ struct SK_API SkRect {
      *  other. When this returns, left <= right && top <= bottom
      */
     void sort();
+
+    /**
+     *  cast-safe way to treat the rect as an array of (4) SkScalars.
+     */
+    const SkScalar* asScalars() const { return &fLeft; }
 };
 
 #endif
-

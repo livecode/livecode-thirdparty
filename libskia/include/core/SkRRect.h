@@ -12,6 +12,7 @@
 #include "SkPoint.h"
 
 class SkPath;
+class SkMatrix;
 
 // Path forward:
 //   core work
@@ -25,7 +26,7 @@ class SkPath;
 //      use growToInclude to fit skp round rects & generate stats (RRs vs. real paths)
 //      check on # of rectorus's the RRs could handle
 //   rendering work
-//      add entry points (clipRRect, drawRRect) - plumb down to SkDevice
+//      add entry points (clipRRect, drawRRect) - plumb down to SkBaseDevice
 //      update SkPath.addRRect() to take an SkRRect - only use quads
 //          -- alternatively add addRRectToPath here
 //      add GM and bench
@@ -188,37 +189,15 @@ public:
 
     friend bool operator==(const SkRRect& a, const SkRRect& b) {
         return a.fRect == b.fRect &&
-               SkScalarsEqual((SkScalar*) a.fRadii, (SkScalar*) b.fRadii, 8);
+               SkScalarsEqual(a.fRadii[0].asScalars(),
+                              b.fRadii[0].asScalars(), 8);
     }
 
     friend bool operator!=(const SkRRect& a, const SkRRect& b) {
         return a.fRect != b.fRect ||
-               !SkScalarsEqual((SkScalar*) a.fRadii, (SkScalar*) b.fRadii, 8);
+               !SkScalarsEqual(a.fRadii[0].asScalars(),
+                               b.fRadii[0].asScalars(), 8);
     }
-
-    /**
-     *  Returns true if (p.fX,p.fY) is inside the RR, and the RR
-     *  is not empty.
-     *
-     *  Contains treats the left and top differently from the right and bottom.
-     *  The left and top coordinates of the RR are themselves considered
-     *  to be inside, while the right and bottom are not. All the points on the
-     *  edges of the corners are considered to be inside.
-     */
-    bool contains(const SkPoint& p) const {
-        return contains(p.fX, p.fY);
-    }
-
-    /**
-     *  Returns true if (x,y) is inside the RR, and the RR
-     *  is not empty.
-     *
-     *  Contains treats the left and top differently from the right and bottom.
-     *  The left and top coordinates of the RR are themselves considered
-     *  to be inside, while the right and bottom are not. All the points on the
-     *  edges of the corners are considered to be inside.
-     */
-    bool contains(SkScalar x, SkScalar y) const;
 
     /**
      *  Call inset on the bounds, and adjust the radii to reflect what happens
@@ -249,6 +228,12 @@ public:
         this->inset(-dx, -dy, this);
     }
 
+    /**
+     *  Returns true if 'rect' is wholy inside the RR, and both
+     *  are not empty.
+     */
+    bool contains(const SkRect& rect) const;
+
     SkDEBUGCODE(void validate() const;)
 
     enum {
@@ -260,14 +245,31 @@ public:
      *  write kSizeInMemory bytes, and that value is guaranteed to always be
      *  a multiple of 4. Return kSizeInMemory.
      */
-    uint32_t writeToMemory(void* buffer) const;
+    size_t writeToMemory(void* buffer) const;
 
     /**
-     *  Read the rrect from the specified buffer. This is guaranteed to always
-     *  read kSizeInMemory bytes, and that value is guaranteed to always be
-     *  a multiple of 4. Return kSizeInMemory.
+     * Reads the rrect from the specified buffer
+     *
+     * If the specified buffer is large enough, this will read kSizeInMemory bytes,
+     * and that value is guaranteed to always be a multiple of 4.
+     *
+     * @param buffer Memory to read from
+     * @param length Amount of memory available in the buffer
+     * @return number of bytes read (must be a multiple of 4) or
+     *         0 if there was not enough memory available
      */
-    uint32_t readFromMemory(const void* buffer);
+    size_t readFromMemory(const void* buffer, size_t length);
+
+    /**
+     *  Transform by the specified matrix, and put the result in dst.
+     *
+     *  @param matrix SkMatrix specifying the transform. Must only contain
+     *      scale and/or translate, or this call will fail.
+     *  @param dst SkRRect to store the result. It is an error to use this,
+     *      which would make this function no longer const.
+     *  @return true on success, false on failure. If false, dst is unmodified.
+     */
+    bool transform(const SkMatrix& matrix, SkRRect* dst) const;
 
 private:
     SkRect fRect;
@@ -278,6 +280,7 @@ private:
     // uninitialized data
 
     void computeType() const;
+    bool checkCornerContainment(SkScalar x, SkScalar y) const;
 
     // to access fRadii directly
     friend class SkPath;

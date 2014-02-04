@@ -10,6 +10,11 @@
 #ifndef GrGLDefines_DEFINED
 #define GrGLDefines_DEFINED
 
+/* Profiles */
+#define GR_GL_CONTEXT_PROFILE_MASK              0x9126
+#define GR_GL_CONTEXT_CORE_PROFILE_BIT          0x00000001
+#define GR_GL_CONTEXT_COMPATIBILITY_PROFILE_BIT 0x00000002
+
 // The following constants consist of the intersection of GL constants
 // exported by GLES 1.0, GLES 2.0, and desktop GL required by the system.
 
@@ -356,6 +361,9 @@
 #define GR_GL_VERSION                        0x1F02
 #define GR_GL_EXTENSIONS                     0x1F03
 
+/* StringCounts */
+#define GR_GL_NUM_EXTENSIONS                 0x821D
+
 /* Pixel Mode / Transfer */
 #define GR_GL_UNPACK_ROW_LENGTH              0x0CF2
 #define GR_GL_PACK_ROW_LENGTH                0x0D02
@@ -431,6 +439,7 @@
 #define GR_GL_TEXTURE31                      0x84DF
 #define GR_GL_ACTIVE_TEXTURE                 0x84E0
 #define GR_GL_MAX_TEXTURE_UNITS              0x84E2
+#define GR_GL_MAX_TEXTURE_COORDS             0x8871
 
 /* TextureWrapMode */
 #define GR_GL_REPEAT                         0x2901
@@ -456,6 +465,8 @@
 #define GR_GL_TEXTURE_ENV_COLOR             0x2201
 #define GR_GL_TEXTURE_GEN_S                 0x0C60
 #define GR_GL_TEXTURE_GEN_T                 0x0C61
+#define GR_GL_TEXTURE_GEN_R                 0x0C62
+#define GR_GL_TEXTURE_GEN_Q                 0x0C63
 #define GR_GL_TEXTURE_GEN_MODE              0x2500
 #define GR_GL_TEXTURE_BORDER_COLOR          0x1004
 #define GR_GL_TEXTURE_WIDTH                 0x1000
@@ -548,6 +559,7 @@
 #define GR_GL_VERTEX_ARRAY                       0x8074
 #define GR_GL_NORMAL_ARRAY                       0x8075
 #define GR_GL_COLOR_ARRAY                        0x8076
+#define GR_GL_SECONDARY_COLOR_ARRAY              0x845E
 #define GR_GL_INDEX_ARRAY                        0x8077
 #define GR_GL_TEXTURE_COORD_ARRAY                0x8078
 #define GR_GL_EDGE_FLAG_ARRAY                    0x8079
@@ -650,6 +662,8 @@
 #define GR_GL_DEPTH24_STENCIL8               0x88F0
 
 #define GR_GL_MAX_SAMPLES                    0x8D57
+// GL_IMG_multisampled_render_to_texture uses a different value for GL_MAX_SAMPLES
+#define GR_GL_MAX_SAMPLES_IMG                0x9135
 
 #define GR_GL_RENDERBUFFER_WIDTH             0x8D42
 #define GR_GL_RENDERBUFFER_HEIGHT            0x8D43

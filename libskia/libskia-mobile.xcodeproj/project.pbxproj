@@ -1930,6 +1930,7 @@
 					"$(PROJECT_DIR)/include/ports",
 					"$(PROJECT_DIR)/include/images",
 					"$(PROJECT_DIR)/include/utils",
+					"$(PROJECT_DIR)/src/opts",
 				);
 				OWNER = ..;
 			};
@@ -1955,6 +1956,7 @@
 					"$(PROJECT_DIR)/include/ports",
 					"$(PROJECT_DIR)/include/images",
 					"$(PROJECT_DIR)/include/utils",
+					"$(PROJECT_DIR)/src/opts",
 				);
 				OWNER = ..;
 			};
@@ -1980,6 +1982,7 @@
 					"$(PROJECT_DIR)/include/ports",
 					"$(PROJECT_DIR)/include/images",
 					"$(PROJECT_DIR)/include/utils",
+					"$(PROJECT_DIR)/src/opts",
 				);
 				OWNER = ..;
 			};

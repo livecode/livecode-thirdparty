@@ -11,18 +11,18 @@
 #define SkUserConfig_DEFINED
 
 /*  SkTypes.h, the root of the public header files, does the following trick:
- 
+
     #include "SkPreConfig.h"
     #include "SkUserConfig.h"
     #include "SkPostConfig.h"
- 
+
     SkPreConfig.h runs first, and it is responsible for initializing certain
     skia defines.
- 
+
     SkPostConfig.h runs last, and its job is to just check that the final
     defines are consistent (i.e. that we don't have mutually conflicting
     defines).
- 
+
     SkUserConfig.h (this file) runs in the middle. It gets to change or augment
     the list of flags initially set in preconfig, and then postconfig checks
     that everything still makes sense.
@@ -57,7 +57,7 @@
     parameter checking, but sometimes it can be quite intrusive (e.g. check that
     each 32bit pixel is in premultiplied form). This code can be very useful
     during development, but will slow things down in a shipping product.
- 
+
     By default, these mutually exclusive flags are defined in SkPreConfig.h,
     based on the presence or absence of NDEBUG, but that decision can be changed
     here.
@@ -122,10 +122,12 @@
  */
 //#define SK_DEFAULT_FONT_CACHE_LIMIT   (1024 * 1024)
 
-/* If defined, use CoreText instead of ATSUI on OS X.
-*/
-//#define SK_USE_MAC_CORE_TEXT
-
+/*
+ *  To specify the default size of the image cache, undefine this and set it to
+ *  the desired value (in bytes). SkGraphics.h as a runtime API to set this
+ *  value as well. If this is undefined, a built-in value will be used.
+ */
+//#define SK_DEFAULT_IMAGE_CACHE_LIMIT (1024 * 1024)
 
 /*  If zlib is available and you want to support the flate compression
     algorithm (used in PDF generation), define SK_ZLIB_INCLUDE to be the
@@ -143,17 +145,6 @@
 /*  Define this to provide font subsetter in PDF generation.
  */
 //#define SK_SFNTLY_SUBSETTER "sfntly/subsetter/font_subsetter.h"
-
-/*  Define this to remove dimension checks on bitmaps. Not all blits will be
-    correct yet, so this is mostly for debugging the implementation.
- */
-#define SK_ALLOW_OVER_32K_BITMAPS
-
-/**
- *  To revert to int-only srcrect behavior in drawBitmapRect(ToRect),
- *  define this symbol.
- */
-//#define SK_SUPPORT_INT_SRCRECT_DRAWBITMAPRECT
 
 /*  Define this to set the upper limit for text to support LCD. Values that
     are very large increase the cost in the font cache and draw slower, without
@@ -199,7 +190,67 @@
    directories from your include search path when you're not building the GPU
    backend. Defaults to 1 (build the GPU code).
  */
-
 #define SK_SUPPORT_GPU 0
+
+/* The PDF generation code uses Path Ops to generate inverse fills and complex
+ * clipping paths, but at this time, Path Ops is not release ready yet. So,
+ * the code is hidden behind this #define guard. If you are feeling adventurous
+ * and want the latest and greatest PDF generation code, uncomment the #define.
+ * When Path Ops is release ready, the define guards and this user config
+ * define should be removed entirely.
+ */
+//#define SK_PDF_USE_PATHOPS
+
+#if defined(SK_BUILD_FOR_MAC)
+    // MM-2013-02-14: Fiddled with byte order.
+    #define SK_R32_SHIFT    16
+    #define SK_G32_SHIFT    8
+    #define SK_B32_SHIFT    0
+    #define SK_A32_SHIFT    24
+#elif defined(SK_BUILD_FOR_IOS)
+    // IM-2013-08-21: [[ RefactorGraphics ]] Use GL byte order for iOS
+    #define SK_R32_SHIFT    0
+    #define SK_G32_SHIFT    8
+    #define SK_B32_SHIFT    16
+    #define SK_A32_SHIFT    24
+#endif
+
+// MM-2014-01-09: [[ RefactorGraphics ]] SkAtomics_synch.h doesn't appear to compile on Linux.
+#if defined(SK_BUILD_FOR_UNIX)
+   #define SK_ATOMICS_PLATFORM_H "../../src/ports/SkAtomics_none.h"
+#endif
+
+// MM-2014-01-14: [[ RefactorGraphics ]] SK_FONTHOST_DOES_NOT_USE_FONTMGR is required for fonr support on Android.
+#if defined(SK_BUILD_FOR_ANDROID)
+    #define SK_FONTHOST_DOES_NOT_USE_FONTMGR
+#endif
+
+#ifdef SK_BUILD_FOR_WIN32
+	// MM-2014-01-17: [[ RefactorGraphics ]] Define SK_RESTRICT to empty to prevent VS 2005 from complaining.
+	#if defined(SK_RESTRICT)
+        #undef SK_RESTRICT 
+    #endif
+	#define SK_RESTRICT
+
+	// MM-2014-01-17: [[ RefactorGraphics ]] Workaround to prevent VS 2005 from complaing when both windows.h and intrin.h are included.
+	//  Taken from http://blog.assarbad.net/20120425/annoyance-in-the-windows-sdk-headers/ and 
+	//  https://developer.mozilla.org/en-US/docs/Developer_Guide/Build_Instructions/Intrin.h
+	#if _MSC_VER >= 1400
+		#pragma push_macro("_interlockedbittestandset")
+		#pragma push_macro("_interlockedbittestandreset")
+		#pragma push_macro("_interlockedbittestandset64")
+		#pragma push_macro("_interlockedbittestandreset64")
+		#define _interlockedbittestandset _local_interlockedbittestandset
+		#define _interlockedbittestandreset _local_interlockedbittestandreset
+		#define _interlockedbittestandset64 _local_interlockedbittestandset64
+		#define _interlockedbittestandreset64 _local_interlockedbittestandreset64
+		#include <intrin.h>
+		#pragma pop_macro("_interlockedbittestandreset64")
+		#pragma pop_macro("_interlockedbittestandset64")
+		#pragma pop_macro("_interlockedbittestandreset")
+		#pragma pop_macro("_interlockedbittestandset")
+		#pragma intrinsic(_ReadWriteBarrier)
+	#endif
+#endif
 
 #endif

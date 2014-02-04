@@ -23,12 +23,7 @@ enum {
 
 static inline SkScalar tValue2Scalar(int t) {
     SkASSERT((unsigned)t <= kMaxTValue);
-
-#ifdef SK_SCALAR_IS_FLOAT
     return t * 3.05185e-5f; // t / 32767
-#else
-    return (t + (t >> 14)) << 1;
-#endif
 }
 
 SkScalar SkPathMeasure::Segment::getScalarT() const {
@@ -152,6 +147,9 @@ void SkPathMeasure::buildSegments() {
     bool done = false;
     do {
         switch (fIter.next(pts)) {
+            case SkPath::kConic_Verb:
+                SkASSERT(0);
+                break;
             case SkPath::kMove_Verb:
                 ptIndex += 1;
                 fPts.append(1, pts);
@@ -283,7 +281,7 @@ static void seg_to(const SkPoint pts[], int segType,
 
     switch (segType) {
         case kLine_SegType:
-            if (stopT == kMaxTValue) {
+            if (SK_Scalar1 == stopT) {
                 dst->lineTo(pts[1]);
             } else {
                 dst->lineTo(SkScalarInterp(pts[0].fX, pts[1].fX, stopT),
@@ -291,8 +289,8 @@ static void seg_to(const SkPoint pts[], int segType,
             }
             break;
         case kQuad_SegType:
-            if (startT == 0) {
-                if (stopT == SK_Scalar1) {
+            if (0 == startT) {
+                if (SK_Scalar1 == stopT) {
                     dst->quadTo(pts[1], pts[2]);
                 } else {
                     SkChopQuadAt(pts, tmp0, stopT);
@@ -300,7 +298,7 @@ static void seg_to(const SkPoint pts[], int segType,
                 }
             } else {
                 SkChopQuadAt(pts, tmp0, startT);
-                if (stopT == SK_Scalar1) {
+                if (SK_Scalar1 == stopT) {
                     dst->quadTo(tmp0[3], tmp0[4]);
                 } else {
                     SkChopQuadAt(&tmp0[2], tmp1, SkScalarDiv(stopT - startT,
@@ -310,8 +308,8 @@ static void seg_to(const SkPoint pts[], int segType,
             }
             break;
         case kCubic_SegType:
-            if (startT == 0) {
-                if (stopT == SK_Scalar1) {
+            if (0 == startT) {
+                if (SK_Scalar1 == stopT) {
                     dst->cubicTo(pts[1], pts[2], pts[3]);
                 } else {
                     SkChopCubicAt(pts, tmp0, stopT);
@@ -319,7 +317,7 @@ static void seg_to(const SkPoint pts[], int segType,
                 }
             } else {
                 SkChopCubicAt(pts, tmp0, startT);
-                if (stopT == SK_Scalar1) {
+                if (SK_Scalar1 == stopT) {
                     dst->cubicTo(tmp0[4], tmp0[5], tmp0[6]);
                 } else {
                     SkChopCubicAt(&tmp0[3], tmp1, SkScalarDiv(stopT - startT,
@@ -389,8 +387,7 @@ const SkPathMeasure::Segment* SkPathMeasure::distanceToSegment(
     const Segment*  seg = fSegments.begin();
     int             count = fSegments.count();
 
-    int index = SkTSearch<SkScalar>(&seg->fDistance, count, distance,
-                                    sizeof(Segment));
+    int index = SkTSearch<SkScalar>(&seg->fDistance, count, distance, sizeof(Segment));
     // don't care if we hit an exact match or not, so we xor index if it is negative
     index ^= (index >> 31);
     seg = &seg[index];

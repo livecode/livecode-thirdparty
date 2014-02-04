@@ -22,6 +22,7 @@
 #include "SkData.h"
 #include "SkDraw.h"
 #include "SkDrawProcs.h"
+#include "SkEndian.h"
 #include "SkFontHost.h"
 #include "SkGlyphCache.h"
 #include "SkHRESULT.h"
@@ -31,12 +32,15 @@
 #include "SkPaint.h"
 #include "SkPoint.h"
 #include "SkRasterizer.h"
+#include "SkSFNTHeader.h"
 #include "SkShader.h"
 #include "SkSize.h"
 #include "SkStream.h"
 #include "SkTDArray.h"
 #include "SkTLazy.h"
 #include "SkTScopedComPtr.h"
+#include "SkTTCFHeader.h"
+#include "SkTypefacePriv.h"
 #include "SkUtils.h"
 #include "SkXPSDevice.h"
 
@@ -79,6 +83,7 @@ static int format_guid(const GUID& guid,
                       guid.Data4[6],
                       guid.Data4[7]);
 }
+
 /**
    Creates a GUID based id and places it into buffer.
    buffer should have space for at least GUID_ID_LEN wide characters.
@@ -106,7 +111,7 @@ static SkBitmap make_fake_bitmap(int width, int height) {
 }
 
 SkXPSDevice::SkXPSDevice()
-    : SkDevice(make_fake_bitmap(10000, 10000))
+    : SkBitmapDevice(make_fake_bitmap(10000, 10000))
     , fCurrentPage(0) {
 }
 
@@ -178,10 +183,10 @@ HRESULT SkXPSDevice::createXpsThumbnail(IXpsOMPage* page,
         "Could not create thumbnail generator.");
 
     SkTScopedComPtr<IOpcPartUri> partUri;
-    static const size_t size = SK_MAX(
+    static const size_t size = SkTUMax<
         SK_ARRAY_COUNT(L"/Documents/1/Metadata/.png") + SK_DIGITS_IN(pageNum),
         SK_ARRAY_COUNT(L"/Metadata/" L_GUID_ID L".png")
-    );
+    >::value;
     wchar_t buffer[size];
     if (pageNum > 0) {
         swprintf_s(buffer, size, L"/Documents/1/Metadata/%u.png", pageNum);
@@ -333,18 +338,20 @@ static HRESULT subset_typeface(SkXPSDevice::TypefaceUse* current) {
     SkTDArray<unsigned short> keepList;
     current->glyphsUsed->exportTo(&keepList);
 
+    int ttcCount = (current->ttcIndex + 1);
+
     //The following are declared with the types required by CreateFontPackage.
-    unsigned char *puchFontPackageBuffer;
-    unsigned long pulFontPackageBufferSize;
-    unsigned long pulBytesWritten;
+    unsigned char *fontPackageBufferRaw = NULL;
+    unsigned long fontPackageBufferSize;
+    unsigned long bytesWritten;
     unsigned long result = CreateFontPackage(
         (unsigned char *) current->fontData->getMemoryBase(),
         (unsigned long) current->fontData->getLength(),
-        &puchFontPackageBuffer,
-        &pulFontPackageBufferSize,
-        &pulBytesWritten,
-        TTFCFP_FLAGS_SUBSET | TTFCFP_FLAGS_GLYPHLIST,// | TTFCFP_FLAGS_TTC,
-        0,//TTC index
+        &fontPackageBufferRaw,
+        &fontPackageBufferSize,
+        &bytesWritten,
+        TTFCFP_FLAGS_SUBSET | TTFCFP_FLAGS_GLYPHLIST | (ttcCount > 0 ? TTFCFP_FLAGS_TTC : 0),
+        current->ttcIndex,
         TTFCFP_SUBSET,
         0,
         0,
@@ -355,15 +362,51 @@ static HRESULT subset_typeface(SkXPSDevice::TypefaceUse* current) {
         sk_realloc_throw,
         sk_free,
         NULL);
+    SkAutoTMalloc<unsigned char> fontPackageBuffer(fontPackageBufferRaw);
     if (result != NO_ERROR) {
         SkDEBUGF(("CreateFontPackage Error %lu", result));
         return E_UNEXPECTED;
     }
 
-    SkMemoryStream* newStream = new SkMemoryStream;
-    newStream->setMemoryOwned(puchFontPackageBuffer, pulBytesWritten);
+    // If it was originally a ttc, keep it a ttc.
+    // CreateFontPackage over-allocates, realloc usually decreases the size substantially.
+    size_t extra;
+    if (ttcCount > 0) {
+        // Create space for a ttc header.
+        extra = sizeof(SkTTCFHeader) + (ttcCount * sizeof(SK_OT_ULONG));
+        fontPackageBuffer.realloc(bytesWritten + extra);
+        //overlap is certain, use memmove
+        memmove(fontPackageBuffer.get() + extra, fontPackageBuffer.get(), bytesWritten);
+
+        // Write the ttc header.
+        SkTTCFHeader* ttcfHeader = reinterpret_cast<SkTTCFHeader*>(fontPackageBuffer.get());
+        ttcfHeader->ttcTag = SkTTCFHeader::TAG;
+        ttcfHeader->version = SkTTCFHeader::version_1;
+        ttcfHeader->numOffsets = SkEndian_SwapBE32(ttcCount);
+        SK_OT_ULONG* offsetPtr = SkTAfter<SK_OT_ULONG>(ttcfHeader);
+        for (int i = 0; i < ttcCount; ++i, ++offsetPtr) {
+            *offsetPtr = SkEndian_SwapBE32(extra);
+        }
+
+        // Fix up offsets in sfnt table entries.
+        SkSFNTHeader* sfntHeader = SkTAddOffset<SkSFNTHeader>(fontPackageBuffer.get(), extra);
+        int numTables = SkEndian_SwapBE16(sfntHeader->numTables);
+        SkSFNTHeader::TableDirectoryEntry* tableDirectory =
+            SkTAfter<SkSFNTHeader::TableDirectoryEntry>(sfntHeader);
+        for (int i = 0; i < numTables; ++i, ++tableDirectory) {
+            tableDirectory->offset = SkEndian_SwapBE32(
+                SkEndian_SwapBE32(tableDirectory->offset) + extra);
+        }
+    } else {
+        extra = 0;
+        fontPackageBuffer.realloc(bytesWritten);
+    }
+
+    SkAutoTUnref<SkMemoryStream> newStream(new SkMemoryStream());
+    newStream->setMemoryOwned(fontPackageBuffer.detach(), bytesWritten + extra);
+
     SkTScopedComPtr<IStream> newIStream;
-    SkIStream::CreateFromSkStream(newStream, true, &newIStream);
+    SkIStream::CreateFromSkStream(newStream.detach(), true, &newIStream);
 
     XPS_FONT_EMBEDDING embedding;
     HRM(current->xpsFont->GetEmbeddingOption(&embedding),
@@ -433,7 +476,7 @@ static XPS_SPREAD_METHOD xps_spread_method(SkShader::TileMode tileMode) {
     case SkShader::kMirror_TileMode:
         return XPS_SPREAD_METHOD_REFLECT;
     default:
-        SkASSERT(!"Unknown tile mode.");
+        SkDEBUGFAIL("Unknown tile mode.");
     }
     return XPS_SPREAD_METHOD_PAD;
 }
@@ -950,7 +993,7 @@ HRESULT SkXPSDevice::createXpsBrush(const SkPaint& skPaint,
         SkASSERT(1 == info.fColorCount);
         SkColor color;
         info.fColors = &color;
-        SkShader::GradientType gradientType = shader->asAGradient(&info);
+        shader->asAGradient(&info);
         SkAlpha alpha = skPaint.getAlpha();
         HR(this->createXpsSolidColorBrush(color, alpha, brush));
         return S_OK;
@@ -1160,6 +1203,14 @@ void SkXPSDevice::drawRect(const SkDraw& d,
     this->internalDrawRect(d, r, true, paint);
 }
 
+void SkXPSDevice::drawRRect(const SkDraw& d,
+                            const SkRRect& rr,
+                            const SkPaint& paint) {
+    SkPath path;
+    path.addRRect(rr);
+    this->drawPath(d, path, paint, NULL, true);
+}
+
 void SkXPSDevice::internalDrawRect(const SkDraw& d,
                                    const SkRect& r,
                                    bool transformRect,
@@ -1327,7 +1378,7 @@ HRESULT SkXPSDevice::addXpsPathGeometry(
                 // the corresponding line/quad/cubic verbs
                 break;
             default:
-                SkASSERT(!"unexpected verb");
+                SkDEBUGFAIL("unexpected verb");
                 break;
         }
     }
@@ -1499,21 +1550,6 @@ void SkXPSDevice::convertToPpm(const SkMaskFilter* filter,
                                SkMatrix* matrix,
                                SkVector* ppuScale,
                                const SkIRect& clip, SkIRect* clipIRect) {
-    //TODO: currently ignoring the ppm if blur ignoring transform.
-    if (filter) {
-        SkMaskFilter::BlurInfo blurInfo;
-        SkMaskFilter::BlurType blurType = filter->asABlur(&blurInfo);
-
-        if (SkMaskFilter::kNone_BlurType != blurType
-            && blurInfo.fIgnoreTransform) {
-
-            ppuScale->fX = SK_Scalar1;
-            ppuScale->fY = SK_Scalar1;
-            *clipIRect = clip;
-            return;
-        }
-    }
-
     //This action is in unit space, but the ppm is specified in physical space.
     ppuScale->fX = SkScalarDiv(this->fCurrentPixelsPerMeter.fX,
                                this->fCurrentUnitsPerMeter.fX);
@@ -1851,7 +1887,7 @@ void SkXPSDevice::drawPath(const SkDraw& d,
             break;
         }
         default:
-            SkASSERT(!"Unknown SkPath::FillType.");
+            SkDEBUGFAIL("Unknown SkPath::FillType.");
     }
     HRVM(shadedGeometry->SetFillRule(xpsFillRule),
          "Could not set fill rule for shaded path.");
@@ -1921,25 +1957,13 @@ HRESULT SkXPSDevice::clipToPath(IXpsOMVisual* xpsVisual,
 }
 
 void SkXPSDevice::drawBitmap(const SkDraw& d, const SkBitmap& bitmap,
-                             const SkIRect* srcRectOrNull,
                              const SkMatrix& matrix, const SkPaint& paint) {
     if (d.fClip->isEmpty()) {
         return;
     }
 
     SkIRect srcRect;
-    SkBitmap tmp;
-    const SkBitmap* bitmapPtr = &bitmap;
-    if (NULL == srcRectOrNull) {
-        srcRect.set(0, 0, bitmap.width(), bitmap.height());
-        bitmapPtr = &bitmap;
-    } else {
-        srcRect = *srcRectOrNull;
-        if (!bitmap.extractSubset(&tmp, srcRect)) {
-            return; // extraction failed
-        }
-        bitmapPtr = &tmp;
-    }
+    srcRect.set(0, 0, bitmap.width(), bitmap.height());
 
     //Create the new shaded path.
     SkTScopedComPtr<IXpsOMPath> shadedPath;
@@ -1979,7 +2003,7 @@ void SkXPSDevice::drawBitmap(const SkDraw& d, const SkBitmap& bitmap,
             SkShader::kClamp_TileMode,
         };
         SkTScopedComPtr<IXpsOMTileBrush> xpsImageBrush;
-        HRV(this->createXpsImageBrush(*bitmapPtr,
+        HRV(this->createXpsImageBrush(bitmap,
                                       transform,
                                       xy,
                                       paint.getAlpha(),
@@ -2013,10 +2037,10 @@ void SkXPSDevice::drawSprite(const SkDraw&, const SkBitmap& bitmap,
 
 HRESULT SkXPSDevice::CreateTypefaceUse(const SkPaint& paint,
                                        TypefaceUse** typefaceUse) {
-    const SkTypeface* typeface = paint.getTypeface();
+    SkAutoResolveDefaultTypeface typeface(paint.getTypeface());
 
     //Check cache.
-    const SkFontID typefaceID = SkTypeface::UniqueID(typeface);
+    const SkFontID typefaceID = typeface->uniqueID();
     if (!this->fTypefaces.empty()) {
         TypefaceUse* current = &this->fTypefaces.front();
         const TypefaceUse* last = &this->fTypefaces.back();
@@ -2033,7 +2057,9 @@ HRESULT SkXPSDevice::CreateTypefaceUse(const SkPaint& paint,
     XPS_FONT_EMBEDDING embedding = XPS_FONT_EMBEDDING_RESTRICTED;
 
     SkTScopedComPtr<IStream> fontStream;
-    SkStream* fontData = SkFontHost::OpenStream(typefaceID);
+    int ttcIndex;
+    SkStream* fontData = typeface->openStream(&ttcIndex);
+    //TODO: cannot handle FON fonts.
     HRM(SkIStream::CreateFromSkStream(fontData, true, &fontStream),
         "Could not create font stream.");
 
@@ -2056,12 +2082,19 @@ HRESULT SkXPSDevice::CreateTypefaceUse(const SkPaint& paint,
                                               &xpsFontResource),
         "Could not create font resource.");
 
+    //TODO: change openStream to return -1 for non-ttc, get rid of this.
+    uint8_t* data = (uint8_t*)fontData->getMemoryBase();
+    bool isTTC = (data &&
+                  fontData->getLength() >= sizeof(SkTTCFHeader) &&
+                  ((SkTTCFHeader*)data)->ttcTag == SkTTCFHeader::TAG);
+
     TypefaceUse& newTypefaceUse = this->fTypefaces.push_back();
     newTypefaceUse.typefaceId = typefaceID;
+    newTypefaceUse.ttcIndex = isTTC ? ttcIndex : -1;
     newTypefaceUse.fontData = fontData;
     newTypefaceUse.xpsFont = xpsFontResource.release();
 
-    SkAutoGlyphCache agc = SkAutoGlyphCache(paint, &SkMatrix::I());
+    SkAutoGlyphCache agc(paint, NULL, &SkMatrix::I());
     SkGlyphCache* glyphCache = agc.getCache();
     unsigned int glyphCount = glyphCache->getGlyphCount();
     newTypefaceUse.glyphsUsed = new SkBitSet(glyphCount);
@@ -2073,7 +2106,7 @@ HRESULT SkXPSDevice::CreateTypefaceUse(const SkPaint& paint,
 HRESULT SkXPSDevice::AddGlyphs(const SkDraw& d,
                                IXpsOMObjectFactory* xpsFactory,
                                IXpsOMCanvas* canvas,
-                               IXpsOMFontResource* font,
+                               TypefaceUse* font,
                                LPCWSTR text,
                                XPS_GLYPH_INDEX* xpsGlyphs,
                                UINT32 xpsGlyphsLen,
@@ -2083,7 +2116,8 @@ HRESULT SkXPSDevice::AddGlyphs(const SkDraw& d,
                                const SkMatrix& transform,
                                const SkPaint& paint) {
     SkTScopedComPtr<IXpsOMGlyphs> glyphs;
-    HRM(xpsFactory->CreateGlyphs(font, &glyphs), "Could not create glyphs.");
+    HRM(xpsFactory->CreateGlyphs(font->xpsFont, &glyphs), "Could not create glyphs.");
+    HRM(glyphs->SetFontFaceIndex(font->ttcIndex), "Could not set glyph font face index.");
 
     //XPS uses affine transformations for everything...
     //...except positioning text.
@@ -2100,7 +2134,7 @@ HRESULT SkXPSDevice::AddGlyphs(const SkDraw& d,
                 "Could not set transform matrix.");
             useCanvasForClip = true;
         } else {
-            SkASSERT(!"Attempt to add glyphs in perspective.");
+            SkDEBUGFAIL("Attempt to add glyphs in perspective.");
             useCanvasForClip = false;
         }
     }
@@ -2182,13 +2216,8 @@ static void xps_draw_1_glyph(const SkDraw1Glyph& state,
     SkXPSDrawProcs* procs = static_cast<SkXPSDrawProcs*>(state.fDraw->fProcs);
 
     //Draw pre-adds half the sampling frequency for floor rounding.
-    if (state.fCache->isSubpixel()) {
-        x -= (SK_FixedHalf >> SkGlyph::kSubBits);
-        y -= (SK_FixedHalf >> SkGlyph::kSubBits);
-    } else {
-        x -= SK_FixedHalf;
-        y -= SK_FixedHalf;
-    }
+    x -= state.fHalfSampleX;
+    y -= state.fHalfSampleY;
 
     XPS_GLYPH_INDEX* xpsGlyph = procs->xpsGlyphs.append();
     uint16_t glyphID = skGlyph.getGlyphID();
@@ -2213,7 +2242,7 @@ static void text_draw_init(const SkPaint& paint,
                            SkBitSet& glyphsUsed,
                            SkDraw& myDraw, SkXPSDrawProcs& procs) {
     procs.fD1GProc = xps_draw_1_glyph;
-    int numGlyphGuess;
+    size_t numGlyphGuess;
     switch (paint.getTextEncoding()) {
         case SkPaint::kUTF8_TextEncoding:
             numGlyphGuess = SkUTF8_CountUnichars(
@@ -2266,6 +2295,7 @@ void SkXPSDevice::drawText(const SkDraw& d,
     HRV(CreateTypefaceUse(paint, &typeface));
 
     SkDraw myDraw(d);
+    myDraw.fMatrix = &SkMatrix::I();
     SkXPSDrawProcs procs;
     text_draw_init(paint, text, byteLen, *typeface->glyphsUsed, myDraw, procs);
 
@@ -2286,7 +2316,7 @@ void SkXPSDevice::drawText(const SkDraw& d,
     HRV(AddGlyphs(d,
                   this->fXpsFactory.get(),
                   this->fCurrentXpsCanvas.get(),
-                  typeface->xpsFont,
+                  typeface,
                   NULL,
                   procs.xpsGlyphs.begin(), procs.xpsGlyphs.count(),
                   &origin,
@@ -2316,6 +2346,7 @@ void SkXPSDevice::drawPosText(const SkDraw& d,
     HRV(CreateTypefaceUse(paint, &typeface));
 
     SkDraw myDraw(d);
+    myDraw.fMatrix = &SkMatrix::I();
     SkXPSDrawProcs procs;
     text_draw_init(paint, text, byteLen, *typeface->glyphsUsed, myDraw, procs);
 
@@ -2338,7 +2369,7 @@ void SkXPSDevice::drawPosText(const SkDraw& d,
     HRV(AddGlyphs(d,
                   this->fXpsFactory.get(),
                   this->fCurrentXpsCanvas.get(),
-                  typeface->xpsFont,
+                  typeface,
                   NULL,
                   procs.xpsGlyphs.begin(), procs.xpsGlyphs.count(),
                   &origin,
@@ -2355,7 +2386,7 @@ void SkXPSDevice::drawTextOnPath(const SkDraw& d, const void* text, size_t len,
      d.drawTextOnPath((const char*)text, len, path, matrix, paint);
 }
 
-void SkXPSDevice::drawDevice(const SkDraw& d, SkDevice* dev,
+void SkXPSDevice::drawDevice(const SkDraw& d, SkBaseDevice* dev,
                              int x, int y,
                              const SkPaint&) {
     SkXPSDevice* that = static_cast<SkXPSDevice*>(dev);
@@ -2387,11 +2418,14 @@ bool SkXPSDevice::onReadPixels(const SkBitmap& bitmap, int x, int y,
     return false;
 }
 
-SkDevice* SkXPSDevice::onCreateCompatibleDevice(SkBitmap::Config config,
-                                                int width, int height,
-                                                bool isOpaque,
-                                                Usage usage) {
-    if (SkDevice::kGeneral_Usage == usage) {
+SkBaseDevice* SkXPSDevice::onCreateCompatibleDevice(SkBitmap::Config config,
+                                                    int width, int height,
+                                                    bool isOpaque,
+                                                    Usage usage) {
+
+//Conditional for bug compatibility with PDF device.
+#if 0
+    if (SkBaseDevice::kGeneral_Usage == usage) {
         return NULL;
         SK_CRASH();
         //To what stream do we write?
@@ -2400,12 +2434,12 @@ SkDevice* SkXPSDevice::onCreateCompatibleDevice(SkBitmap::Config config,
         //dev->BeginCanvas(s, s, SkMatrix::I());
         //return dev;
     }
-
+#endif
     return new SkXPSDevice(this->fXpsFactory.get());
 }
 
 SkXPSDevice::SkXPSDevice(IXpsOMObjectFactory* xpsFactory)
-    : SkDevice(make_fake_bitmap(10000, 10000))
+    : SkBitmapDevice(make_fake_bitmap(10000, 10000))
     , fCurrentPage(0) {
 
     HRVM(CoCreateInstance(
@@ -2422,4 +2456,3 @@ SkXPSDevice::SkXPSDevice(IXpsOMObjectFactory* xpsFactory)
 bool SkXPSDevice::allowImageFilter(SkImageFilter*) {
     return false;
 }
-

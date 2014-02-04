@@ -10,8 +10,9 @@
 #define GrGLProgram_DEFINED
 
 #include "GrDrawState.h"
-#include "GrGLEffect.h"
-#include "GrGLContextInfo.h"
+#include "GrGLContext.h"
+#include "GrGLProgramDesc.h"
+#include "GrGLShaderBuilder.h"
 #include "GrGLSL.h"
 #include "GrGLTexture.h"
 #include "GrGLUniformManager.h"
@@ -21,11 +22,8 @@
 
 class GrBinHashKeyBuilder;
 class GrGLEffect;
+class GrGLProgramEffects;
 class GrGLShaderBuilder;
-
-// optionally compile the experimental GS code. Set to GR_DEBUG
-// so that debug build bots will execute the code.
-#define GR_GL_EXPERIMENTAL_GS GR_DEBUG
 
 /**
  * This class manages a GPU program and records per-program information.
@@ -36,15 +34,14 @@ class GrGLShaderBuilder;
  * Uniforms are program-local so we can't rely on fHWState to hold the
  * previous uniform state after a program change.
  */
-class GrGLProgram : public GrRefCnt {
+class GrGLProgram : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(GrGLProgram)
 
-    struct Desc;
-
-    static GrGLProgram* Create(const GrGLContextInfo& gl,
-                               const Desc& desc,
-                               const GrEffectStage* stages[]);
+    static GrGLProgram* Create(GrGpuGL* gpu,
+                               const GrGLProgramDesc& desc,
+                               const GrEffectStage* colorStages[],
+                               const GrEffectStage* coverageStages[]);
 
     virtual ~GrGLProgram();
 
@@ -54,173 +51,156 @@ public:
     void abandon();
 
     /**
-     * The shader may modify the blend coefficients. Params are in/out
+     * The shader may modify the blend coefficients. Params are in/out.
      */
     void overrideBlend(GrBlendCoeff* srcCoeff, GrBlendCoeff* dstCoeff) const;
 
-    const Desc& getDesc() { return fDesc; }
+    const GrGLProgramDesc& getDesc() { return fDesc; }
 
     /**
-     * Attribute indices. These should not overlap.
+     * Gets the GL program ID for this program.
      */
-    static int PositionAttributeIdx() { return 0; }
-    static int ColorAttributeIdx() { return 1; }
-    static int CoverageAttributeIdx() { return 2; }
-    static int EdgeAttributeIdx() { return 3; }
-    static int TexCoordAttributeIdx(int tcIdx) { return 4 + tcIdx; }
+    GrGLuint programID() const { return fProgramID; }
+
+    bool hasVertexShader() const { return fHasVertexShader; }
+
+    /**
+     * Some GL state that is relevant to programs is not stored per-program. In particular color
+     * and coverage attributes can be global state. This struct is read and updated by
+     * GrGLProgram::setColor and GrGLProgram::setCoverage to allow us to avoid setting this state
+     * redundantly.
+     */
+    struct SharedGLState {
+        GrColor fConstAttribColor;
+        int     fConstAttribColorIndex;
+        GrColor fConstAttribCoverage;
+        int     fConstAttribCoverageIndex;
+
+        SharedGLState() { this->invalidate(); }
+        void invalidate() {
+            fConstAttribColor = GrColor_ILLEGAL;
+            fConstAttribColorIndex = -1;
+            fConstAttribCoverage = GrColor_ILLEGAL;
+            fConstAttribCoverageIndex = -1;
+        }
+    };
+
+    /**
+     * The GrDrawState's view matrix along with the aspects of the render target determine the
+     * matrix sent to GL. The size of the render target affects the GL matrix because we must
+     * convert from Skia device coords to GL's normalized coords. Also the origin of the render
+     * target may require us to perform a mirror-flip.
+     */
+    struct MatrixState {
+        SkMatrix        fViewMatrix;
+        SkISize         fRenderTargetSize;
+        GrSurfaceOrigin fRenderTargetOrigin;
+
+        MatrixState() { this->invalidate(); }
+        void invalidate() {
+            fViewMatrix = SkMatrix::InvalidMatrix();
+            fRenderTargetSize.fWidth = -1;
+            fRenderTargetSize.fHeight = -1;
+            fRenderTargetOrigin = (GrSurfaceOrigin) -1;
+        }
+        template<int Size> void getGLMatrix(GrGLfloat* destMatrix) {
+            SkMatrix combined;
+            if (kBottomLeft_GrSurfaceOrigin == fRenderTargetOrigin) {
+                combined.setAll(SkIntToScalar(2) / fRenderTargetSize.fWidth, 0, -SK_Scalar1,
+                                0, -SkIntToScalar(2) / fRenderTargetSize.fHeight, SK_Scalar1,
+                                0, 0, SkMatrix::I()[8]);
+            } else {
+                combined.setAll(SkIntToScalar(2) / fRenderTargetSize.fWidth, 0, -SK_Scalar1,
+                                0, SkIntToScalar(2) / fRenderTargetSize.fHeight, -SK_Scalar1,
+                                0, 0, SkMatrix::I()[8]);
+            }
+            combined.setConcat(combined, fViewMatrix);
+            GrGLGetMatrix<Size>(destMatrix, combined);
+        }
+    };
 
     /**
      * This function uploads uniforms and calls each GrGLEffect's setData. It is called before a
      * draw occurs using the program after the program has already been bound. It also uses the
-     * GrGpuGL object to bind the textures required by the GrGLEffects.
+     * GrGpuGL object to bind the textures required by the GrGLEffects. The color and coverage
+     * stages come from GrGLProgramDesc::Build().
      */
-    void setData(GrGpuGL*);
+    void setData(GrDrawState::BlendOptFlags,
+                 const GrEffectStage* colorStages[],
+                 const GrEffectStage* coverageStages[],
+                 const GrDeviceCoordTexture* dstCopy, // can be NULL
+                 SharedGLState*);
 
-    // Parameters that affect code generation
-    // This structs should be kept compact; it is input to an expensive hash key generator.
-    struct Desc {
-        Desc() {
-            // since we use this as part of a key we can't have any uninitialized
-            // padding
-            memset(this, 0, sizeof(Desc));
-        }
-
-        // returns this as a uint32_t array to be used as a key in the program cache
-        const uint32_t* asKey() const {
-            return reinterpret_cast<const uint32_t*>(this);
-        }
-
-        // Specifies where the initial color comes from before the stages are applied.
-        enum ColorInput {
-            kSolidWhite_ColorInput,
-            kTransBlack_ColorInput,
-            kAttribute_ColorInput,
-            kUniform_ColorInput,
-
-            kColorInputCnt
-        };
-        // Dual-src blending makes use of a secondary output color that can be
-        // used as a per-pixel blend coefficient. This controls whether a
-        // secondary source is output and what value it holds.
-        enum DualSrcOutput {
-            kNone_DualSrcOutput,
-            kCoverage_DualSrcOutput,
-            kCoverageISA_DualSrcOutput,
-            kCoverageISC_DualSrcOutput,
-
-            kDualSrcOutputCnt
-        };
-
-        // TODO: remove these two members when edge-aa can be rewritten as a GrEffect.
-        GrDrawState::VertexEdgeType fVertexEdgeType;
-        // should the FS discard if the edge-aa coverage is zero (to avoid stencil manipulation)
-        bool                        fDiscardIfOutsideEdge;
-
-        // stripped of bits that don't affect program generation
-        GrVertexLayout              fVertexLayout;
-
-        /** Non-zero if this stage has an effect */
-        GrGLEffect::EffectKey       fEffectKeys[GrDrawState::kNumStages];
-
-        // To enable experimental geometry shader code (not for use in
-        // production)
-#if GR_GL_EXPERIMENTAL_GS
-        bool                        fExperimentalGS;
-#endif
-        uint8_t                     fColorInput;            // casts to enum ColorInput
-        uint8_t                     fCoverageInput;         // casts to enum ColorInput
-        uint8_t                     fDualSrcOutput;         // casts to enum DualSrcOutput
-        int8_t                      fFirstCoverageStage;
-        SkBool8                     fEmitsPointSize;
-        uint8_t                     fColorFilterXfermode;   // casts to enum SkXfermode::Mode
-    };
 private:
-    GrGLProgram(const GrGLContextInfo& gl,
-                const Desc& desc,
-                const GrEffectStage* stages[]);
-
-    bool succeeded() const { return 0 != fProgramID; }
-
-    /**
-     *  This is the heavy initialization routine for building a GLProgram.
-     */
-    bool genProgram(const GrEffectStage* stages[]);
-
-    void genInputColor(GrGLShaderBuilder* builder, SkString* inColor);
-
-    void genGeometryShader(GrGLShaderBuilder* segments) const;
-
     typedef GrGLUniformManager::UniformHandle UniformHandle;
 
-    void genUniformCoverage(GrGLShaderBuilder* segments, SkString* inOutCoverage);
-
-    // generates code to compute coverage based on edge AA. Returns true if edge coverage was
-    // inserted in which case coverageVar will be updated to refer to a scalar. Otherwise,
-    // coverageVar is set to an empty string.
-    bool genEdgeCoverage(SkString* coverageVar, GrGLShaderBuilder* builder) const;
-
-    // Creates a GL program ID, binds shader attributes to GL vertex attrs, and links the program
-    bool bindOutputsAttribsAndLinkProgram(const GrGLShaderBuilder& builder,
-                                          SkString texCoordAttrNames[GrDrawState::kMaxTexCoords],
-                                          bool bindColorOut,
-                                          bool bindDualSrcOut);
-
-    // Sets the texture units for samplers
-    void initSamplerUniforms();
-
-    bool compileShaders(const GrGLShaderBuilder& builder);
-
-    const char* adjustInColor(const SkString& inColor) const;
-
-    typedef SkSTArray<4, UniformHandle, true> SamplerUniSArray;
-
+    // handles for uniforms (aside from per-effect samplers)
     struct UniformHandles {
         UniformHandle       fViewMatrixUni;
         UniformHandle       fColorUni;
         UniformHandle       fCoverageUni;
-        UniformHandle       fColorFilterUni;
+
         // We use the render target height to provide a y-down frag coord when specifying
         // origin_upper_left is not supported.
         UniformHandle       fRTHeightUni;
-        // An array of sampler uniform handles for each effect.
-        SamplerUniSArray    fSamplerUnis[GrDrawState::kNumStages];
 
-        UniformHandles() {
-            fViewMatrixUni = GrGLUniformManager::kInvalidUniformHandle;
-            fColorUni = GrGLUniformManager::kInvalidUniformHandle;
-            fCoverageUni = GrGLUniformManager::kInvalidUniformHandle;
-            fColorFilterUni = GrGLUniformManager::kInvalidUniformHandle;
-            fRTHeightUni = GrGLUniformManager::kInvalidUniformHandle;
-        }
+        // Uniforms for computing texture coords to do the dst-copy lookup
+        UniformHandle       fDstCopyTopLeftUni;
+        UniformHandle       fDstCopyScaleUni;
+        UniformHandle       fDstCopySamplerUni;
     };
 
-    // GL IDs
-    GrGLuint                    fVShaderID;
-    GrGLuint                    fGShaderID;
-    GrGLuint                    fFShaderID;
+    GrGLProgram(GrGpuGL* gpu,
+                const GrGLProgramDesc& desc,
+                const GrEffectStage* colorStages[],
+                const GrEffectStage* coverageStages[]);
+
+    bool succeeded() const { return 0 != fProgramID; }
+
+    /**
+     * This is the heavy initialization routine for building a GLProgram. colorStages and
+     * coverageStages correspond to the output of GrGLProgramDesc::Build().
+     */
+    bool genProgram(GrGLShaderBuilder* builder,
+                    const GrEffectStage* colorStages[],
+                    const GrEffectStage* coverageStages[]);
+
+    // Sets the texture units for samplers
+    void initSamplerUniforms();
+
+    // Helper for setData(). Makes GL calls to specify the initial color when there is not
+    // per-vertex colors.
+    void setColor(const GrDrawState&, GrColor color, SharedGLState*);
+
+    // Helper for setData(). Makes GL calls to specify the initial coverage when there is not
+    // per-vertex coverages.
+    void setCoverage(const GrDrawState&, GrColor coverage, SharedGLState*);
+
+    // Helper for setData() that sets the view matrix and loads the render target height uniform
+    void setMatrixAndRenderTargetHeight(const GrDrawState&);
+
+    // GL program ID
     GrGLuint                    fProgramID;
-    // The matrix sent to GL is determined by both the client's matrix and
-    // the size of the viewport.
-    SkMatrix                    fViewMatrix;
-    SkISize                     fViewportSize;
 
     // these reflect the current values of uniforms (GL uniform values travel with program)
-    GrColor                     fColor;
-    GrColor                     fCoverage;
-    GrColor                     fColorFilterColor;
-    int                         fRTHeight;
+    MatrixState                       fMatrixState;
+    GrColor                           fColor;
+    GrColor                           fCoverage;
+    int                               fDstCopyTexUnit;
 
-    GrGLEffect*                 fEffects[GrDrawState::kNumStages];
+    SkAutoTDelete<GrGLProgramEffects> fColorEffects;
+    SkAutoTDelete<GrGLProgramEffects> fCoverageEffects;
 
-    Desc                        fDesc;
-    const GrGLContextInfo&      fContextInfo;
+    GrGLProgramDesc                   fDesc;
+    GrGpuGL*                          fGpu;
 
-    GrGLUniformManager          fUniformManager;
-    UniformHandles              fUniformHandles;
+    GrGLUniformManager                fUniformManager;
+    UniformHandles                    fUniformHandles;
 
-    friend class GrGpuGL; // TODO: remove this by adding getters and moving functionality.
+    bool                              fHasVertexShader;
+    int                               fNumTexCoordSets;
 
-    typedef GrRefCnt INHERITED;
+    typedef SkRefCnt INHERITED;
 };
 
 #endif

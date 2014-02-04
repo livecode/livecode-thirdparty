@@ -9,67 +9,19 @@
 // with the following:
 //
 //  SkCanvas canvas(device);
-//  SkAutoTUnref<SkDevice> aur(device);
+//  SkAutoTUnref<SkBaseDevice> aur(device);
 //
 class OwnDeviceCanvas : public SkCanvas {
 public:
-    OwnDeviceCanvas(SkDevice* device) : SkCanvas(device) {
+    OwnDeviceCanvas(SkBaseDevice* device) : SkCanvas(device) {
         SkSafeUnref(device);
     }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 
-SkComposeImageFilter::~SkComposeImageFilter() {
-}
-
-bool SkComposeImageFilter::onFilterImage(Proxy* proxy,
-                                         const SkBitmap& src,
-                                         const SkMatrix& ctm,
-                                         SkBitmap* result,
-                                         SkIPoint* loc) {
-    SkImageFilter* outer = getInput(0);
-    SkImageFilter* inner = getInput(1);
-
-    if (!outer && !inner) {
-        return false;
-    }
-
-    if (!outer || !inner) {
-        return (outer ? outer : inner)->filterImage(proxy, src, ctm, result, loc);
-    }
-
-    SkBitmap tmp;
-    return inner->filterImage(proxy, src, ctm, &tmp, loc) &&
-           outer->filterImage(proxy, tmp, ctm, result, loc);
-}
-
-bool SkComposeImageFilter::onFilterBounds(const SkIRect& src,
-                                          const SkMatrix& ctm,
-                                          SkIRect* dst) {
-    SkImageFilter* outer = getInput(0);
-    SkImageFilter* inner = getInput(1);
-
-    if (!outer && !inner) {
-        return false;
-    }
-
-    if (!outer || !inner) {
-        return (outer ? outer : inner)->filterBounds(src, ctm, dst);
-    }
-
-    SkIRect tmp;
-    return inner->filterBounds(src, ctm, &tmp) &&
-           outer->filterBounds(tmp, ctm, dst);
-}
-
-SkComposeImageFilter::SkComposeImageFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 bool SkDownSampleImageFilter::onFilterImage(Proxy* proxy, const SkBitmap& src,
-                                            const SkMatrix& matrix,
+                                            const SkMatrix&,
                                             SkBitmap* result, SkIPoint*) {
     SkScalar scale = fScale;
     if (scale > SK_Scalar1 || scale <= 0) {
@@ -89,14 +41,14 @@ bool SkDownSampleImageFilter::onFilterImage(Proxy* proxy, const SkBitmap& src,
 
     // downsample
     {
-        SkDevice* dev = proxy->createDevice(dstW, dstH);
+        SkBaseDevice* dev = proxy->createDevice(dstW, dstH);
         if (NULL == dev) {
             return false;
         }
         OwnDeviceCanvas canvas(dev);
         SkPaint paint;
 
-        paint.setFilterBitmap(true);
+        paint.setFilterLevel(SkPaint::kLow_FilterLevel);
         canvas.scale(scale, scale);
         canvas.drawBitmap(src, 0, 0, &paint);
         tmp = dev->accessBitmap(false);
@@ -104,7 +56,7 @@ bool SkDownSampleImageFilter::onFilterImage(Proxy* proxy, const SkBitmap& src,
 
     // upscale
     {
-        SkDevice* dev = proxy->createDevice(src.width(), src.height());
+        SkBaseDevice* dev = proxy->createDevice(src.width(), src.height());
         if (NULL == dev) {
             return false;
         }
@@ -124,6 +76,8 @@ void SkDownSampleImageFilter::flatten(SkFlattenableWriteBuffer& buffer) const {
     buffer.writeScalar(fScale);
 }
 
-SkDownSampleImageFilter::SkDownSampleImageFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
+SkDownSampleImageFilter::SkDownSampleImageFilter(SkFlattenableReadBuffer& buffer)
+  : INHERITED(1, buffer) {
     fScale = buffer.readScalar();
+    buffer.validate(SkScalarIsFinite(fScale));
 }

@@ -1,12 +1,9 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-
-
 
 #ifndef GrInOrderDrawBuffer_DEFINED
 #define GrInOrderDrawBuffer_DEFINED
@@ -17,8 +14,8 @@
 #include "GrPath.h"
 
 #include "SkClipStack.h"
-#include "SkStrokeRec.h"
 #include "SkTemplates.h"
+#include "SkTypes.h"
 
 class GrGpu;
 class GrIndexBufferAllocPool;
@@ -40,26 +37,17 @@ public:
     /**
      * Creates a GrInOrderDrawBuffer
      *
-     * @param gpu        the gpu object where this will be played back
-     *                   (possible indirectly). GrResources used with the draw
-     *                   buffer are created by this gpu object.
+     * @param gpu        the gpu object that this draw buffer flushes to.
      * @param vertexPool pool where vertices for queued draws will be saved when
      *                   the vertex source is either reserved or array.
      * @param indexPool  pool where indices for queued draws will be saved when
      *                   the index source is either reserved or array.
      */
-    GrInOrderDrawBuffer(const GrGpu* gpu,
+    GrInOrderDrawBuffer(GrGpu* gpu,
                         GrVertexBufferAllocPool* vertexPool,
                         GrIndexBufferAllocPool* indexPool);
 
     virtual ~GrInOrderDrawBuffer();
-
-    /**
-     * Provides the buffer with an index buffer that can be used for quad rendering.
-     * The buffer may be able to batch consecutive drawRects if this is provided.
-     * @param indexBuffer   index buffer with quad indices.
-     */
-    void setQuadIndexBuffer(const GrIndexBuffer* indexBuffer);
 
     /**
      * Empties the draw buffer of any queued up draws. This must not be called while inside an
@@ -68,50 +56,29 @@ public:
     void reset();
 
     /**
-     * This plays the queued up draws to another target. It also resets this object (i.e. flushing
+     * This plays the queued up draws to its GrGpu target. It also resets this object (i.e. flushing
      * is destructive). This buffer must not have an active reserved vertex or index source. Any
      * reserved geometry on the target will be finalized because it's geometry source will be pushed
      * before flushing and popped afterwards.
-     *
-     * @return false if the playback trivially drew nothing because nothing was recorded.
-     *
-     * @param target    the target to receive the playback
      */
-    bool flushTo(GrDrawTarget* target);
+    void flush();
 
-    /**
-     * This function allows the draw buffer to automatically flush itself to another target. This
-     * means the buffer may internally call this->flushTo(target) when it is safe to do so.
-     *
-     * When the auto flush target is set to NULL (as it initially is) the draw buffer will never
-     * automatically flush itself.
-     */
-    void setAutoFlushTarget(GrDrawTarget* target);
+    // tracking for draws
+    virtual DrawToken getCurrentDrawToken() { return DrawToken(this, fDrawID); }
 
     // overrides from GrDrawTarget
-    virtual void drawRect(const GrRect& rect,
-                          const SkMatrix* matrix = NULL,
-                          const GrRect* srcRects[] = NULL,
-                          const SkMatrix* srcMatrices[] = NULL) SK_OVERRIDE;
-
-    virtual void drawIndexedInstances(GrPrimitiveType type,
-                                      int instanceCount,
-                                      int verticesPerInstance,
-                                      int indicesPerInstance)
-                                      SK_OVERRIDE;
-
-    virtual bool geometryHints(GrVertexLayout vertexLayout,
-                               int* vertexCount,
+    virtual bool geometryHints(int* vertexCount,
                                int* indexCount) const SK_OVERRIDE;
-
-    virtual void clear(const GrIRect* rect,
+    virtual void clear(const SkIRect* rect,
                        GrColor color,
+                       bool canIgnoreRect,
                        GrRenderTarget* renderTarget = NULL) SK_OVERRIDE;
 
+    virtual void initCopySurfaceDstDesc(const GrSurface* src, GrTextureDesc* desc) SK_OVERRIDE;
+
 protected:
-    virtual void willReserveVertexAndIndexSpace(GrVertexLayout vertexLayout,
-                                                int vertexCount,
-                                                int indexCount) SK_OVERRIDE;
+    virtual void clipWillBeSet(const GrClipData* newClip) SK_OVERRIDE;
+
 private:
     enum Cmd {
         kDraw_Cmd           = 1,
@@ -119,47 +86,61 @@ private:
         kSetState_Cmd       = 3,
         kSetClip_Cmd        = 4,
         kClear_Cmd          = 5,
+        kCopySurface_Cmd    = 6,
+        kDrawPath_Cmd       = 7,
     };
 
-    struct Draw {
-        GrPrimitiveType         fPrimitiveType;
-        int                     fStartVertex;
-        int                     fStartIndex;
-        int                     fVertexCount;
-        int                     fIndexCount;
-        GrVertexLayout          fVertexLayout;
+    class DrawRecord : public DrawInfo {
+    public:
+        DrawRecord(const DrawInfo& info) : DrawInfo(info) {}
         const GrVertexBuffer*   fVertexBuffer;
         const GrIndexBuffer*    fIndexBuffer;
     };
 
-    struct StencilPath {
+    struct StencilPath : public ::SkNoncopyable {
         StencilPath();
 
         SkAutoTUnref<const GrPath>  fPath;
-        SkStrokeRec                 fStroke;
         SkPath::FillType            fFill;
     };
 
-    struct Clear {
-        Clear() : fRenderTarget(NULL) {}
-        ~Clear() { GrSafeUnref(fRenderTarget); }
+    struct DrawPath : public ::SkNoncopyable {
+        DrawPath();
 
-        GrIRect         fRect;
+        SkAutoTUnref<const GrPath>  fPath;
+        SkPath::FillType            fFill;
+        GrDeviceCoordTexture        fDstCopy;
+    };
+
+    struct Clear : public ::SkNoncopyable {
+        Clear() : fRenderTarget(NULL) {}
+        ~Clear() { SkSafeUnref(fRenderTarget); }
+
+        SkIRect         fRect;
         GrColor         fColor;
+        bool            fCanIgnoreRect;
         GrRenderTarget* fRenderTarget;
     };
 
+    struct CopySurface : public ::SkNoncopyable {
+        SkAutoTUnref<GrSurface> fDst;
+        SkAutoTUnref<GrSurface> fSrc;
+        SkIRect                 fSrcRect;
+        SkIPoint                fDstPoint;
+    };
+
     // overrides from GrDrawTarget
-    virtual void onDrawIndexed(GrPrimitiveType primitiveType,
-                               int startVertex,
-                               int startIndex,
-                               int vertexCount,
-                               int indexCount) SK_OVERRIDE;
-    virtual void onDrawNonIndexed(GrPrimitiveType primitiveType,
-                                  int startVertex,
-                                  int vertexCount) SK_OVERRIDE;
-    virtual void onStencilPath(const GrPath*, const SkStrokeRec& stroke, SkPath::FillType) SK_OVERRIDE;
-    virtual bool onReserveVertexSpace(GrVertexLayout layout,
+    virtual void onDraw(const DrawInfo&) SK_OVERRIDE;
+    virtual void onDrawRect(const SkRect& rect,
+                            const SkMatrix* matrix,
+                            const SkRect* localRect,
+                            const SkMatrix* localMatrix) SK_OVERRIDE;
+
+    virtual void onStencilPath(const GrPath*, SkPath::FillType) SK_OVERRIDE;
+    virtual void onDrawPath(const GrPath*, SkPath::FillType,
+                            const GrDeviceCoordTexture* dstCopy) SK_OVERRIDE;
+
+    virtual bool onReserveVertexSpace(size_t vertexSize,
                                       int vertexCount,
                                       void** vertices) SK_OVERRIDE;
     virtual bool onReserveIndexSpace(int indexCount,
@@ -173,70 +154,76 @@ private:
     virtual void releaseVertexArray() SK_OVERRIDE;
     virtual void releaseIndexArray() SK_OVERRIDE;
     virtual void geometrySourceWillPush() SK_OVERRIDE;
-    virtual void geometrySourceWillPop(
-        const GeometrySrcState& restoredState) SK_OVERRIDE;
-    virtual void clipWillBeSet(const GrClipData* newClip) SK_OVERRIDE;
+    virtual void geometrySourceWillPop(const GeometrySrcState& restoredState) SK_OVERRIDE;
+    virtual void willReserveVertexAndIndexSpace(int vertexCount,
+                                                int indexCount) SK_OVERRIDE;
+    virtual bool onCopySurface(GrSurface* dst,
+                               GrSurface* src,
+                               const SkIRect& srcRect,
+                               const SkIPoint& dstPoint)  SK_OVERRIDE;
+    virtual bool onCanCopySurface(GrSurface* dst,
+                                  GrSurface* src,
+                                  const SkIRect& srcRect,
+                                  const SkIPoint& dstPoint) SK_OVERRIDE;
 
-    // we lazily record state and clip changes in order to skip clips and states
-    // that have no effect.
+    bool quickInsideClip(const SkRect& devBounds);
+
+    // Attempts to concat instances from info onto the previous draw. info must represent an
+    // instanced draw. The caller must have already recorded a new draw state and clip if necessary.
+    int concatInstancedDraw(const DrawInfo& info);
+
+    // we lazily record state and clip changes in order to skip clips and states that have no
+    // effect.
     bool needsNewState() const;
     bool needsNewClip() const;
 
     // these functions record a command
     void            recordState();
-    void            recordDefaultState();
     void            recordClip();
-    void            recordDefaultClip();
-    Draw*           recordDraw();
+    DrawRecord*     recordDraw(const DrawInfo&);
     StencilPath*    recordStencilPath();
+    DrawPath*       recordDrawPath();
     Clear*          recordClear();
+    CopySurface*    recordCopySurface();
 
-    // call this to invalidate the tracking data that is used to concatenate
-    // multiple draws into a single draw.
-    void resetDrawTracking();
-
+    // TODO: Use a single allocator for commands and records
     enum {
         kCmdPreallocCnt          = 32,
         kDrawPreallocCnt         = 8,
         kStencilPathPreallocCnt  = 8,
+        kDrawPathPreallocCnt     = 8,
         kStatePreallocCnt        = 8,
         kClipPreallocCnt         = 8,
         kClearPreallocCnt        = 4,
         kGeoPoolStatePreAllocCnt = 4,
+        kCopySurfacePreallocCnt  = 4,
     };
 
-    SkSTArray<kCmdPreallocCnt, uint8_t, true>           fCmds;
-    GrSTAllocator<kDrawPreallocCnt, Draw>               fDraws;
-    GrSTAllocator<kStatePreallocCnt, StencilPath>       fStencilPaths;
-    GrSTAllocator<kStatePreallocCnt, GrDrawState>       fStates;
-    GrSTAllocator<kClearPreallocCnt, Clear>             fClears;
+    SkSTArray<kCmdPreallocCnt, uint8_t, true>                          fCmds;
+    GrSTAllocator<kDrawPreallocCnt, DrawRecord>                        fDraws;
+    GrSTAllocator<kStatePreallocCnt, StencilPath>                      fStencilPaths;
+    GrSTAllocator<kStatePreallocCnt, DrawPath>                         fDrawPaths;
+    GrSTAllocator<kStatePreallocCnt, GrDrawState::DeferredState>       fStates;
+    GrSTAllocator<kClearPreallocCnt, Clear>                            fClears;
+    GrSTAllocator<kCopySurfacePreallocCnt, CopySurface>                fCopySurfaces;
+    GrSTAllocator<kClipPreallocCnt, SkClipStack>                       fClips;
+    GrSTAllocator<kClipPreallocCnt, SkIPoint>                          fClipOrigins;
 
-    GrSTAllocator<kClipPreallocCnt, SkClipStack>        fClips;
-    GrSTAllocator<kClipPreallocCnt, SkIPoint>           fClipOrigins;
-
-    GrDrawTarget*                   fAutoFlushTarget;
+    GrDrawTarget*                   fDstGpu;
 
     bool                            fClipSet;
+
+    enum ClipProxyState {
+        kUnknown_ClipProxyState,
+        kValid_ClipProxyState,
+        kInvalid_ClipProxyState
+    };
+    ClipProxyState                  fClipProxyState;
+    SkRect                          fClipProxy;
 
     GrVertexBufferAllocPool&        fVertexPool;
 
     GrIndexBufferAllocPool&         fIndexPool;
-
-    // these are used to attempt to concatenate drawRect calls
-    GrVertexLayout                  fLastRectVertexLayout;
-    const GrIndexBuffer*            fQuadIndexBuffer;
-    int                             fMaxQuads;
-    int                             fCurrQuad;
-
-    // bookkeeping to attempt to concatenate drawIndexedInstances calls
-    struct {
-        int            fVerticesPerInstance;
-        int            fIndicesPerInstance;
-        void reset() {
-            fVerticesPerInstance = 0;
-            fIndicesPerInstance = 0;
-        }
-    } fInstancedDrawTracker;
 
     struct GeometryPoolState {
         const GrVertexBuffer*           fPoolVertexBuffer;
@@ -251,7 +238,10 @@ private:
     };
     SkSTArray<kGeoPoolStatePreAllocCnt, GeometryPoolState> fGeoPoolStateStack;
 
+    virtual bool       isIssued(uint32_t drawID) { return drawID != fDrawID; }
+
     bool                            fFlushing;
+    uint32_t                        fDrawID;
 
     typedef GrDrawTarget INHERITED;
 };

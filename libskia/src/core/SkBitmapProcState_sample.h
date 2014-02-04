@@ -42,19 +42,19 @@ void MAKENAME(_nofilter_DXDY)(const SkBitmapProcState& s,
                               const uint32_t* SK_RESTRICT xy,
                               int count, DSTTYPE* SK_RESTRICT colors) {
     SkASSERT(count > 0 && colors != NULL);
-    SkASSERT(s.fDoFilter == false);
+    SkASSERT(SkPaint::kNone_FilterLevel == s.fFilterLevel);
     SkDEBUGCODE(CHECKSTATE(s);)
 
 #ifdef PREAMBLE
     PREAMBLE(s);
 #endif
     const char* SK_RESTRICT srcAddr = (const char*)s.fBitmap->getPixels();
-    int i, rb = s.fBitmap->rowBytes();
+    size_t rb = s.fBitmap->rowBytes();
 
     uint32_t XY;
     SRCTYPE src;
 
-    for (i = (count >> 1); i > 0; --i) {
+    for (int i = (count >> 1); i > 0; --i) {
         XY = *xy++;
         SkASSERT((XY >> 16) < (unsigned)s.fBitmap->height() &&
                  (XY & 0xFFFF) < (unsigned)s.fBitmap->width());
@@ -85,7 +85,7 @@ void MAKENAME(_nofilter_DX)(const SkBitmapProcState& s,
                             int count, DSTTYPE* SK_RESTRICT colors) {
     SkASSERT(count > 0 && colors != NULL);
     SkASSERT(s.fInvType <= (SkMatrix::kTranslate_Mask | SkMatrix::kScale_Mask));
-    SkASSERT(s.fDoFilter == false);
+    SkASSERT(SkPaint::kNone_FilterLevel == s.fFilterLevel);
     SkDEBUGCODE(CHECKSTATE(s);)
 
 #ifdef PREAMBLE
@@ -139,14 +139,14 @@ void MAKENAME(_filter_DX)(const SkBitmapProcState& s,
                           const uint32_t* SK_RESTRICT xy,
                            int count, DSTTYPE* SK_RESTRICT colors) {
     SkASSERT(count > 0 && colors != NULL);
-    SkASSERT(s.fDoFilter);
+    SkASSERT(s.fFilterLevel != SkPaint::kNone_FilterLevel);
     SkDEBUGCODE(CHECKSTATE(s);)
 
 #ifdef PREAMBLE
     PREAMBLE(s);
 #endif
     const char* SK_RESTRICT srcAddr = (const char*)s.fBitmap->getPixels();
-    unsigned rb = s.fBitmap->rowBytes();
+    size_t rb = s.fBitmap->rowBytes();
     unsigned subY;
     const SRCTYPE* SK_RESTRICT row0;
     const SRCTYPE* SK_RESTRICT row1;
@@ -185,14 +185,14 @@ void MAKENAME(_filter_DXDY)(const SkBitmapProcState& s,
                             const uint32_t* SK_RESTRICT xy,
                             int count, DSTTYPE* SK_RESTRICT colors) {
     SkASSERT(count > 0 && colors != NULL);
-    SkASSERT(s.fDoFilter);
+    SkASSERT(s.fFilterLevel != SkPaint::kNone_FilterLevel);
     SkDEBUGCODE(CHECKSTATE(s);)
 
 #ifdef PREAMBLE
         PREAMBLE(s);
 #endif
     const char* SK_RESTRICT srcAddr = (const char*)s.fBitmap->getPixels();
-    int rb = s.fBitmap->rowBytes();
+    size_t rb = s.fBitmap->rowBytes();
 
     do {
         uint32_t data = *xy++;

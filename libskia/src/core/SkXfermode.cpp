@@ -8,12 +8,16 @@
 
 
 #include "SkXfermode.h"
+#include "SkXfermode_proccoeff.h"
 #include "SkColorPriv.h"
 #include "SkFlattenableBuffers.h"
 #include "SkMathPriv.h"
 #include "SkString.h"
+#include "SkUtilsArm.h"
 
-SK_DEFINE_INST_COUNT(SkXfermode)
+#if !SK_ARM_NEON_IS_NONE
+#include "SkXfermode_opts_arm_neon.h"
+#endif
 
 #define SkAlphaMulAlpha(a, b)   SkMulDiv255Round(a, b)
 
@@ -59,13 +63,6 @@ static inline int clamp_div255round(int prod) {
     } else {
         return SkDiv255Round(prod);
     }
-}
-
-static inline int clamp_max(int value, int max) {
-    if (value > max) {
-        value = max;
-    }
-    return value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -182,8 +179,8 @@ static SkPMColor plus_modeproc(SkPMColor src, SkPMColor dst) {
     return SkPackARGB32(a, r, g, b);
 }
 
-// kMultiply_Mode
-static SkPMColor multiply_modeproc(SkPMColor src, SkPMColor dst) {
+// kModulate_Mode
+static SkPMColor modulate_modeproc(SkPMColor src, SkPMColor dst) {
     int a = SkAlphaMulAlpha(SkGetPackedA32(src), SkGetPackedA32(dst));
     int r = SkAlphaMulAlpha(SkGetPackedR32(src), SkGetPackedR32(dst));
     int g = SkAlphaMulAlpha(SkGetPackedG32(src), SkGetPackedG32(dst));
@@ -191,10 +188,28 @@ static SkPMColor multiply_modeproc(SkPMColor src, SkPMColor dst) {
     return SkPackARGB32(a, r, g, b);
 }
 
-// kScreen_Mode
 static inline int srcover_byte(int a, int b) {
     return a + b - SkAlphaMulAlpha(a, b);
 }
+
+// kMultiply_Mode
+// B(Cb, Cs) = Cb x Cs
+// multiply uses its own version of blendfunc_byte because sa and da are not needed
+static int blendfunc_multiply_byte(int sc, int dc, int sa, int da) {
+    return clamp_div255round(sc * (255 - da)  + dc * (255 - sa)  + sc * dc);
+}
+
+static SkPMColor multiply_modeproc(SkPMColor src, SkPMColor dst) {
+    int sa = SkGetPackedA32(src);
+    int da = SkGetPackedA32(dst);
+    int a = srcover_byte(sa, da);
+    int r = blendfunc_multiply_byte(SkGetPackedR32(src), SkGetPackedR32(dst), sa, da);
+    int g = blendfunc_multiply_byte(SkGetPackedG32(src), SkGetPackedG32(dst), sa, da);
+    int b = blendfunc_multiply_byte(SkGetPackedB32(src), SkGetPackedB32(dst), sa, da);
+    return SkPackARGB32(a, r, g, b);
+}
+
+// kScreen_Mode
 static SkPMColor screen_modeproc(SkPMColor src, SkPMColor dst) {
     int a = srcover_byte(SkGetPackedA32(src), SkGetPackedA32(dst));
     int r = srcover_byte(SkGetPackedR32(src), SkGetPackedR32(dst));
@@ -272,57 +287,41 @@ static SkPMColor lighten_modeproc(SkPMColor src, SkPMColor dst) {
 static inline int colordodge_byte(int sc, int dc, int sa, int da) {
     int diff = sa - sc;
     int rc;
-    if (0 == diff) {
+    if (0 == dc) {
+        return SkAlphaMulAlpha(sc, 255 - da);
+    } else if (0 == diff) {
         rc = sa * da + sc * (255 - da) + dc * (255 - sa);
-        rc = SkDiv255Round(rc);
     } else {
-        int tmp = (dc * sa << 15) / (da * diff);
-        rc = SkDiv255Round(sa * da) * tmp >> 15;
-        // don't clamp here, since we'll do it in our modeproc
+        diff = dc * sa / diff;
+        rc = sa * ((da < diff) ? da : diff) + sc * (255 - da) + dc * (255 - sa);
     }
-    return rc;
+    return clamp_div255round(rc);
 }
 static SkPMColor colordodge_modeproc(SkPMColor src, SkPMColor dst) {
-    // added to avoid div-by-zero in colordodge_byte
-    if (0 == dst) {
-        return src;
-    }
-
     int sa = SkGetPackedA32(src);
     int da = SkGetPackedA32(dst);
     int a = srcover_byte(sa, da);
     int r = colordodge_byte(SkGetPackedR32(src), SkGetPackedR32(dst), sa, da);
     int g = colordodge_byte(SkGetPackedG32(src), SkGetPackedG32(dst), sa, da);
     int b = colordodge_byte(SkGetPackedB32(src), SkGetPackedB32(dst), sa, da);
-    r = clamp_max(r, a);
-    g = clamp_max(g, a);
-    b = clamp_max(b, a);
     return SkPackARGB32(a, r, g, b);
 }
 
 // kColorBurn_Mode
 static inline int colorburn_byte(int sc, int dc, int sa, int da) {
     int rc;
-    if (dc == da && 0 == sc) {
-        rc = sa * da + dc * (255 - sa);
+    if (dc == da) {
+        rc = sa * da + sc * (255 - da) + dc * (255 - sa);
     } else if (0 == sc) {
         return SkAlphaMulAlpha(dc, 255 - sa);
     } else {
-        int tmp = (sa * (da - dc) * 256) / (sc * da);
-        if (tmp > 256) {
-            tmp = 256;
-        }
-        int tmp2 = sa * da;
-        rc = tmp2 - (tmp2 * tmp >> 8) + sc * (255 - da) + dc * (255 - sa);
+        int tmp = (da - dc) * sa / sc;
+        rc = sa * (da - ((da < tmp) ? da : tmp))
+            + sc * (255 - da) + dc * (255 - sa);
     }
-    return SkDiv255Round(rc);
+    return clamp_div255round(rc);
 }
 static SkPMColor colorburn_modeproc(SkPMColor src, SkPMColor dst) {
-    // added to avoid div-by-zero in colorburn_byte
-    if (0 == dst) {
-        return src;
-    }
-
     int sa = SkGetPackedA32(src);
     int da = SkGetPackedA32(dst);
     int a = srcover_byte(sa, da);
@@ -398,9 +397,12 @@ static SkPMColor difference_modeproc(SkPMColor src, SkPMColor dst) {
 }
 
 // kExclusion_Mode
-static inline int exclusion_byte(int sc, int dc, int sa, int da) {
+static inline int exclusion_byte(int sc, int dc, int, int) {
     // this equations is wacky, wait for SVG to confirm it
-    int r = sc * da + dc * sa - 2 * sc * dc + sc * (255 - da) + dc * (255 - sa);
+    //int r = sc * da + dc * sa - 2 * sc * dc + sc * (255 - da) + dc * (255 - sa);
+
+    // The above equation can be simplified as follows
+    int r = 255*(sc + dc) - 2 * sc * dc;
     return clamp_div255round(r);
 }
 static SkPMColor exclusion_modeproc(SkPMColor src, SkPMColor dst) {
@@ -413,15 +415,222 @@ static SkPMColor exclusion_modeproc(SkPMColor src, SkPMColor dst) {
     return SkPackARGB32(a, r, g, b);
 }
 
-struct ProcCoeff {
-    SkXfermodeProc      fProc;
-    SkXfermode::Coeff   fSC;
-    SkXfermode::Coeff   fDC;
-};
+// The CSS compositing spec introduces the following formulas:
+// (See https://dvcs.w3.org/hg/FXTF/rawfile/tip/compositing/index.html#blendingnonseparable)
+// SkComputeLuminance is similar to this formula but it uses the new definition from Rec. 709
+// while PDF and CG uses the one from Rec. Rec. 601
+// See http://www.glennchan.info/articles/technical/hd-versus-sd-color-space/hd-versus-sd-color-space.htm
+static inline int Lum(int r, int g, int b)
+{
+    return SkDiv255Round(r * 77 + g * 150 + b * 28);
+}
 
-#define CANNOT_USE_COEFF    SkXfermode::Coeff(-1)
+static inline int min2(int a, int b) { return a < b ? a : b; }
+static inline int max2(int a, int b) { return a > b ? a : b; }
+#define minimum(a, b, c) min2(min2(a, b), c)
+#define maximum(a, b, c) max2(max2(a, b), c)
 
-static const ProcCoeff gProcCoeffs[] = {
+static inline int Sat(int r, int g, int b) {
+    return maximum(r, g, b) - minimum(r, g, b);
+}
+
+static inline void setSaturationComponents(int* Cmin, int* Cmid, int* Cmax, int s) {
+    if(*Cmax > *Cmin) {
+        *Cmid =  SkMulDiv(*Cmid - *Cmin, s, *Cmax - *Cmin);
+        *Cmax = s;
+    } else {
+        *Cmax = 0;
+        *Cmid = 0;
+    }
+
+    *Cmin = 0;
+}
+
+static inline void SetSat(int* r, int* g, int* b, int s) {
+    if(*r <= *g) {
+        if(*g <= *b) {
+            setSaturationComponents(r, g, b, s);
+        } else if(*r <= *b) {
+            setSaturationComponents(r, b, g, s);
+        } else {
+            setSaturationComponents(b, r, g, s);
+        }
+    } else if(*r <= *b) {
+        setSaturationComponents(g, r, b, s);
+    } else if(*g <= *b) {
+        setSaturationComponents(g, b, r, s);
+    } else {
+        setSaturationComponents(b, g, r, s);
+    }
+}
+
+static inline void clipColor(int* r, int* g, int* b, int a) {
+    int L = Lum(*r, *g, *b);
+    int n = minimum(*r, *g, *b);
+    int x = maximum(*r, *g, *b);
+    int denom;
+    if ((n < 0) && (denom = L - n)) { // Compute denom and make sure it's non zero
+       *r = L + SkMulDiv(*r - L, L, denom);
+       *g = L + SkMulDiv(*g - L, L, denom);
+       *b = L + SkMulDiv(*b - L, L, denom);
+    }
+
+    if ((x > a) && (denom = x - L)) { // Compute denom and make sure it's non zero
+       int numer = a - L;
+       *r = L + SkMulDiv(*r - L, numer, denom);
+       *g = L + SkMulDiv(*g - L, numer, denom);
+       *b = L + SkMulDiv(*b - L, numer, denom);
+    }
+}
+
+static inline void SetLum(int* r, int* g, int* b, int a, int l) {
+  int d = l - Lum(*r, *g, *b);
+  *r +=  d;
+  *g +=  d;
+  *b +=  d;
+
+  clipColor(r, g, b, a);
+}
+
+// non-separable blend modes are done in non-premultiplied alpha
+#define  blendfunc_nonsep_byte(sc, dc, sa, da, blendval) \
+  clamp_div255round(sc * (255 - da) +  dc * (255 - sa) + blendval)
+
+// kHue_Mode
+// B(Cb, Cs) = SetLum(SetSat(Cs, Sat(Cb)), Lum(Cb))
+// Create a color with the hue of the source color and the saturation and luminosity of the backdrop color.
+static SkPMColor hue_modeproc(SkPMColor src, SkPMColor dst) {
+    int sr = SkGetPackedR32(src);
+    int sg = SkGetPackedG32(src);
+    int sb = SkGetPackedB32(src);
+    int sa = SkGetPackedA32(src);
+
+    int dr = SkGetPackedR32(dst);
+    int dg = SkGetPackedG32(dst);
+    int db = SkGetPackedB32(dst);
+    int da = SkGetPackedA32(dst);
+    int Sr, Sg, Sb;
+
+    if(sa && da) {
+        Sr = sr * sa;
+        Sg = sg * sa;
+        Sb = sb * sa;
+        SetSat(&Sr, &Sg, &Sb, Sat(dr, dg, db) * sa);
+        SetLum(&Sr, &Sg, &Sb, sa * da, Lum(dr, dg, db) * sa);
+    } else {
+        Sr = 0;
+        Sg = 0;
+        Sb = 0;
+    }
+
+    int a = srcover_byte(sa, da);
+    int r = blendfunc_nonsep_byte(sr, dr, sa, da, Sr);
+    int g = blendfunc_nonsep_byte(sg, dg, sa, da, Sg);
+    int b = blendfunc_nonsep_byte(sb, db, sa, da, Sb);
+    return SkPackARGB32(a, r, g, b);
+}
+
+// kSaturation_Mode
+// B(Cb, Cs) = SetLum(SetSat(Cb, Sat(Cs)), Lum(Cb))
+// Create a color with the saturation of the source color and the hue and luminosity of the backdrop color.
+static SkPMColor saturation_modeproc(SkPMColor src, SkPMColor dst) {
+    int sr = SkGetPackedR32(src);
+    int sg = SkGetPackedG32(src);
+    int sb = SkGetPackedB32(src);
+    int sa = SkGetPackedA32(src);
+
+    int dr = SkGetPackedR32(dst);
+    int dg = SkGetPackedG32(dst);
+    int db = SkGetPackedB32(dst);
+    int da = SkGetPackedA32(dst);
+    int Dr, Dg, Db;
+
+    if(sa && da) {
+        Dr = dr * sa;
+        Dg = dg * sa;
+        Db = db * sa;
+        SetSat(&Dr, &Dg, &Db, Sat(sr, sg, sb) * da);
+        SetLum(&Dr, &Dg, &Db, sa * da, Lum(dr, dg, db) * sa);
+    } else {
+        Dr = 0;
+        Dg = 0;
+        Db = 0;
+    }
+
+    int a = srcover_byte(sa, da);
+    int r = blendfunc_nonsep_byte(sr, dr, sa, da, Dr);
+    int g = blendfunc_nonsep_byte(sg, dg, sa, da, Dg);
+    int b = blendfunc_nonsep_byte(sb, db, sa, da, Db);
+    return SkPackARGB32(a, r, g, b);
+}
+
+// kColor_Mode
+// B(Cb, Cs) = SetLum(Cs, Lum(Cb))
+// Create a color with the hue and saturation of the source color and the luminosity of the backdrop color.
+static SkPMColor color_modeproc(SkPMColor src, SkPMColor dst) {
+    int sr = SkGetPackedR32(src);
+    int sg = SkGetPackedG32(src);
+    int sb = SkGetPackedB32(src);
+    int sa = SkGetPackedA32(src);
+
+    int dr = SkGetPackedR32(dst);
+    int dg = SkGetPackedG32(dst);
+    int db = SkGetPackedB32(dst);
+    int da = SkGetPackedA32(dst);
+    int Sr, Sg, Sb;
+
+    if(sa && da) {
+        Sr = sr * da;
+        Sg = sg * da;
+        Sb = sb * da;
+        SetLum(&Sr, &Sg, &Sb, sa * da, Lum(dr, dg, db) * sa);
+    } else {
+        Sr = 0;
+        Sg = 0;
+        Sb = 0;
+    }
+
+    int a = srcover_byte(sa, da);
+    int r = blendfunc_nonsep_byte(sr, dr, sa, da, Sr);
+    int g = blendfunc_nonsep_byte(sg, dg, sa, da, Sg);
+    int b = blendfunc_nonsep_byte(sb, db, sa, da, Sb);
+    return SkPackARGB32(a, r, g, b);
+}
+
+// kLuminosity_Mode
+// B(Cb, Cs) = SetLum(Cb, Lum(Cs))
+// Create a color with the luminosity of the source color and the hue and saturation of the backdrop color.
+static SkPMColor luminosity_modeproc(SkPMColor src, SkPMColor dst) {
+    int sr = SkGetPackedR32(src);
+    int sg = SkGetPackedG32(src);
+    int sb = SkGetPackedB32(src);
+    int sa = SkGetPackedA32(src);
+
+    int dr = SkGetPackedR32(dst);
+    int dg = SkGetPackedG32(dst);
+    int db = SkGetPackedB32(dst);
+    int da = SkGetPackedA32(dst);
+    int Dr, Dg, Db;
+
+    if(sa && da) {
+        Dr = dr * sa;
+        Dg = dg * sa;
+        Db = db * sa;
+        SetLum(&Dr, &Dg, &Db, sa * da, Lum(sr, sg, sb) * da);
+    } else {
+        Dr = 0;
+        Dg = 0;
+        Db = 0;
+    }
+
+    int a = srcover_byte(sa, da);
+    int r = blendfunc_nonsep_byte(sr, dr, sa, da, Dr);
+    int g = blendfunc_nonsep_byte(sg, dg, sa, da, Dg);
+    int b = blendfunc_nonsep_byte(sb, db, sa, da, Db);
+    return SkPackARGB32(a, r, g, b);
+}
+
+const ProcCoeff gProcCoeffs[] = {
     { clear_modeproc,   SkXfermode::kZero_Coeff,    SkXfermode::kZero_Coeff },
     { src_modeproc,     SkXfermode::kOne_Coeff,     SkXfermode::kZero_Coeff },
     { dst_modeproc,     SkXfermode::kZero_Coeff,    SkXfermode::kOne_Coeff },
@@ -436,8 +645,8 @@ static const ProcCoeff gProcCoeffs[] = {
     { xor_modeproc,     SkXfermode::kIDA_Coeff,     SkXfermode::kISA_Coeff },
 
     { plus_modeproc,    SkXfermode::kOne_Coeff,     SkXfermode::kOne_Coeff },
-    { multiply_modeproc,SkXfermode::kZero_Coeff,    SkXfermode::kSC_Coeff },
-    { screen_modeproc,      CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
+    { modulate_modeproc,SkXfermode::kZero_Coeff,    SkXfermode::kSC_Coeff },
+    { screen_modeproc,  SkXfermode::kOne_Coeff,     SkXfermode::kISC_Coeff },
     { overlay_modeproc,     CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
     { darken_modeproc,      CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
     { lighten_modeproc,     CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
@@ -447,6 +656,11 @@ static const ProcCoeff gProcCoeffs[] = {
     { softlight_modeproc,   CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
     { difference_modeproc,  CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
     { exclusion_modeproc,   CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
+    { multiply_modeproc,    CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
+    { hue_modeproc,         CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
+    { saturation_modeproc,  CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
+    { color_modeproc,       CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
+    { luminosity_modeproc,  CANNOT_USE_COEFF,       CANNOT_USE_COEFF },
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -457,6 +671,24 @@ bool SkXfermode::asCoeff(Coeff* src, Coeff* dst) const {
 
 bool SkXfermode::asMode(Mode* mode) const {
     return false;
+}
+
+bool SkXfermode::asNewEffect(GrEffectRef** effect, GrTexture* background) const {
+    return false;
+}
+
+bool SkXfermode::AsNewEffectOrCoeff(SkXfermode* xfermode,
+                                    GrEffectRef** effect,
+                                    Coeff* src,
+                                    Coeff* dst,
+                                    GrTexture* background) {
+    if (NULL == xfermode) {
+        return ModeAsCoeff(kSrcOver_Mode, src, dst);
+    } else if (xfermode->asCoeff(src, dst)) {
+        return true;
+    } else {
+        return xfermode->asNewEffect(effect, background);
+    }
 }
 
 SkPMColor SkXfermode::xferColor(SkPMColor src, SkPMColor dst) const{
@@ -508,31 +740,6 @@ void SkXfermode::xfer16(uint16_t* dst,
                     C = SkFourByteInterp(C, dstC, a);
                 }
                 dst[i] = SkPixel32ToPixel16_ToU16(C);
-            }
-        }
-    }
-}
-
-void SkXfermode::xfer4444(SkPMColor16* SK_RESTRICT dst,
-                          const SkPMColor* SK_RESTRICT src, int count,
-                          const SkAlpha* SK_RESTRICT aa) const {
-    SkASSERT(dst && src && count >= 0);
-
-    if (NULL == aa) {
-        for (int i = count - 1; i >= 0; --i) {
-            SkPMColor dstC = SkPixel4444ToPixel32(dst[i]);
-            dst[i] = SkPixel32ToPixel4444(this->xferColor(src[i], dstC));
-        }
-    } else {
-        for (int i = count - 1; i >= 0; --i) {
-            unsigned a = aa[i];
-            if (0 != a) {
-                SkPMColor dstC = SkPixel4444ToPixel32(dst[i]);
-                SkPMColor C = this->xferColor(src[i], dstC);
-                if (0xFF != a) {
-                    C = SkFourByteInterp(C, dstC, a);
-                }
-                dst[i] = SkPixel32ToPixel4444(C);
             }
         }
     }
@@ -623,35 +830,6 @@ void SkProcXfermode::xfer16(uint16_t* SK_RESTRICT dst,
     }
 }
 
-void SkProcXfermode::xfer4444(SkPMColor16* SK_RESTRICT dst,
-                              const SkPMColor* SK_RESTRICT src, int count,
-                              const SkAlpha* SK_RESTRICT aa) const {
-    SkASSERT(dst && src && count >= 0);
-
-    SkXfermodeProc proc = fProc;
-
-    if (NULL != proc) {
-        if (NULL == aa) {
-            for (int i = count - 1; i >= 0; --i) {
-                SkPMColor dstC = SkPixel4444ToPixel32(dst[i]);
-                dst[i] = SkPixel32ToPixel4444(proc(src[i], dstC));
-            }
-        } else {
-            for (int i = count - 1; i >= 0; --i) {
-                unsigned a = aa[i];
-                if (0 != a) {
-                    SkPMColor dstC = SkPixel4444ToPixel32(dst[i]);
-                    SkPMColor C = proc(src[i], dstC);
-                    if (0xFF != a) {
-                        C = SkFourByteInterp(C, dstC, a);
-                    }
-                    dst[i] = SkPixel32ToPixel4444(C);
-                }
-            }
-        }
-    }
-}
-
 void SkProcXfermode::xferA8(SkAlpha* SK_RESTRICT dst,
                             const SkPMColor* SK_RESTRICT src, int count,
                             const SkAlpha* SK_RESTRICT aa) const {
@@ -703,83 +881,546 @@ void SkProcXfermode::toString(SkString* str) const {
 }
 #endif
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 
-class SkProcCoeffXfermode : public SkProcXfermode {
+#if SK_SUPPORT_GPU
+
+#include "GrEffect.h"
+#include "GrCoordTransform.h"
+#include "GrEffectUnitTest.h"
+#include "GrTBackendEffectFactory.h"
+#include "gl/GrGLEffect.h"
+
+/**
+ * GrEffect that implements the all the separable xfer modes that cannot be expressed as Coeffs.
+ */
+class XferEffect : public GrEffect {
 public:
-    SkProcCoeffXfermode(const ProcCoeff& rec, Mode mode)
-            : INHERITED(rec.fProc) {
-        fMode = mode;
-        // these may be valid, or may be CANNOT_USE_COEFF
-        fSrcCoeff = rec.fSC;
-        fDstCoeff = rec.fDC;
+    static bool IsSupportedMode(SkXfermode::Mode mode) {
+        return mode > SkXfermode::kLastCoeffMode && mode <= SkXfermode::kLastMode;
     }
 
-    virtual bool asMode(Mode* mode) const SK_OVERRIDE {
-        if (mode) {
-            *mode = fMode;
+    static GrEffectRef* Create(SkXfermode::Mode mode, GrTexture* background) {
+        if (!IsSupportedMode(mode)) {
+            return NULL;
+        } else {
+            AutoEffectUnref effect(SkNEW_ARGS(XferEffect, (mode, background)));
+            return CreateEffectRef(effect);
         }
-        return true;
     }
 
-    virtual bool asCoeff(Coeff* sc, Coeff* dc) const SK_OVERRIDE {
-        if (CANNOT_USE_COEFF == fSrcCoeff) {
-            return false;
+    virtual void getConstantColorComponents(GrColor* color,
+                                            uint32_t* validFlags) const SK_OVERRIDE {
+        *validFlags = 0;
+    }
+
+    virtual const GrBackendEffectFactory& getFactory() const SK_OVERRIDE {
+        return GrTBackendEffectFactory<XferEffect>::getInstance();
+    }
+
+    static const char* Name() { return "XferEffect"; }
+
+    SkXfermode::Mode mode() const { return fMode; }
+    const GrTextureAccess&  backgroundAccess() const { return fBackgroundAccess; }
+
+    class GLEffect : public GrGLEffect {
+    public:
+        GLEffect(const GrBackendEffectFactory& factory, const GrDrawEffect&)
+            : GrGLEffect(factory) {
+        }
+        virtual void emitCode(GrGLShaderBuilder* builder,
+                              const GrDrawEffect& drawEffect,
+                              EffectKey key,
+                              const char* outputColor,
+                              const char* inputColor,
+                              const TransformedCoordsArray& coords,
+                              const TextureSamplerArray& samplers) SK_OVERRIDE {
+            SkXfermode::Mode mode = drawEffect.castEffect<XferEffect>().mode();
+            const GrTexture* backgroundTex = drawEffect.castEffect<XferEffect>().backgroundAccess().getTexture();
+            const char* dstColor;
+            if (backgroundTex) {
+                dstColor = "bgColor";
+                builder->fsCodeAppendf("\t\tvec4 %s = ", dstColor);
+                builder->fsAppendTextureLookup(samplers[0], coords[0].c_str(), coords[0].type());
+                builder->fsCodeAppendf(";\n");
+            } else {
+                dstColor = builder->dstColor();
+            }
+            SkASSERT(NULL != dstColor);
+
+            // We don't try to optimize for this case at all
+            if (NULL == inputColor) {
+                builder->fsCodeAppendf("\t\tconst vec4 ones = vec4(1);\n");
+                inputColor = "ones";
+            }
+            builder->fsCodeAppendf("\t\t// SkXfermode::Mode: %s\n", SkXfermode::ModeName(mode));
+
+            // These all perform src-over on the alpha channel.
+            builder->fsCodeAppendf("\t\t%s.a = %s.a + (1.0 - %s.a) * %s.a;\n",
+                                    outputColor, inputColor, inputColor, dstColor);
+
+            switch (mode) {
+                case SkXfermode::kOverlay_Mode:
+                    // Overlay is Hard-Light with the src and dst reversed
+                    HardLight(builder, outputColor, dstColor, inputColor);
+                    break;
+                case SkXfermode::kDarken_Mode:
+                    builder->fsCodeAppendf("\t\t%s.rgb = min((1.0 - %s.a) * %s.rgb + %s.rgb, "
+                                                            "(1.0 - %s.a) * %s.rgb + %s.rgb);\n",
+                                            outputColor,
+                                            inputColor, dstColor, inputColor,
+                                            dstColor, inputColor, dstColor);
+                    break;
+                case SkXfermode::kLighten_Mode:
+                    builder->fsCodeAppendf("\t\t%s.rgb = max((1.0 - %s.a) * %s.rgb + %s.rgb, "
+                                                            "(1.0 - %s.a) * %s.rgb + %s.rgb);\n",
+                                            outputColor,
+                                            inputColor, dstColor, inputColor,
+                                            dstColor, inputColor, dstColor);
+                    break;
+                case SkXfermode::kColorDodge_Mode:
+                    ColorDodgeComponent(builder, outputColor, inputColor, dstColor, 'r');
+                    ColorDodgeComponent(builder, outputColor, inputColor, dstColor, 'g');
+                    ColorDodgeComponent(builder, outputColor, inputColor, dstColor, 'b');
+                    break;
+                case SkXfermode::kColorBurn_Mode:
+                    ColorBurnComponent(builder, outputColor, inputColor, dstColor, 'r');
+                    ColorBurnComponent(builder, outputColor, inputColor, dstColor, 'g');
+                    ColorBurnComponent(builder, outputColor, inputColor, dstColor, 'b');
+                    break;
+                case SkXfermode::kHardLight_Mode:
+                    HardLight(builder, outputColor, inputColor, dstColor);
+                    break;
+                case SkXfermode::kSoftLight_Mode:
+                    builder->fsCodeAppendf("\t\tif (0.0 == %s.a) {\n", dstColor);
+                    builder->fsCodeAppendf("\t\t\t%s.rgba = %s;\n", outputColor, inputColor);
+                    builder->fsCodeAppendf("\t\t} else {\n");
+                    SoftLightComponentPosDstAlpha(builder, outputColor, inputColor, dstColor, 'r');
+                    SoftLightComponentPosDstAlpha(builder, outputColor, inputColor, dstColor, 'g');
+                    SoftLightComponentPosDstAlpha(builder, outputColor, inputColor, dstColor, 'b');
+                    builder->fsCodeAppendf("\t\t}\n");
+                    break;
+                case SkXfermode::kDifference_Mode:
+                    builder->fsCodeAppendf("\t\t%s.rgb = %s.rgb + %s.rgb -"
+                                                       "2.0 * min(%s.rgb * %s.a, %s.rgb * %s.a);\n",
+                                           outputColor, inputColor, dstColor, inputColor, dstColor,
+                                           dstColor, inputColor);
+                    break;
+                case SkXfermode::kExclusion_Mode:
+                    builder->fsCodeAppendf("\t\t%s.rgb = %s.rgb + %s.rgb - "
+                                                        "2.0 * %s.rgb * %s.rgb;\n",
+                                           outputColor, dstColor, inputColor, dstColor, inputColor);
+                    break;
+                case SkXfermode::kMultiply_Mode:
+                    builder->fsCodeAppendf("\t\t%s.rgb = (1.0 - %s.a) * %s.rgb + "
+                                                        "(1.0 - %s.a) * %s.rgb + "
+                                                         "%s.rgb * %s.rgb;\n",
+                                           outputColor, inputColor, dstColor, dstColor, inputColor,
+                                           inputColor, dstColor);
+                    break;
+                case SkXfermode::kHue_Mode: {
+                    //  SetLum(SetSat(S * Da, Sat(D * Sa)), Sa*Da, D*Sa) + (1 - Sa) * D + (1 - Da) * S
+                    SkString setSat, setLum;
+                    AddSatFunction(builder, &setSat);
+                    AddLumFunction(builder, &setLum);
+                    builder->fsCodeAppendf("\t\tvec4 dstSrcAlpha = %s * %s.a;\n",
+                                           dstColor, inputColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb = %s(%s(%s.rgb * %s.a, dstSrcAlpha.rgb), dstSrcAlpha.a, dstSrcAlpha.rgb);\n",
+                                           outputColor, setLum.c_str(), setSat.c_str(), inputColor,
+                                           dstColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb += (1.0 - %s.a) * %s.rgb + (1.0 - %s.a) * %s.rgb;\n",
+                                           outputColor, inputColor, dstColor, dstColor, inputColor);
+                    break;
+                }
+                case SkXfermode::kSaturation_Mode: {
+                    // SetLum(SetSat(D * Sa, Sat(S * Da)), Sa*Da, D*Sa)) + (1 - Sa) * D + (1 - Da) * S
+                    SkString setSat, setLum;
+                    AddSatFunction(builder, &setSat);
+                    AddLumFunction(builder, &setLum);
+                    builder->fsCodeAppendf("\t\tvec4 dstSrcAlpha = %s * %s.a;\n",
+                                           dstColor, inputColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb = %s(%s(dstSrcAlpha.rgb, %s.rgb * %s.a), dstSrcAlpha.a, dstSrcAlpha.rgb);\n",
+                                           outputColor, setLum.c_str(), setSat.c_str(), inputColor,
+                                           dstColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb += (1.0 - %s.a) * %s.rgb + (1.0 - %s.a) * %s.rgb;\n",
+                                           outputColor, inputColor, dstColor, dstColor, inputColor);
+                    break;
+                }
+                case SkXfermode::kColor_Mode: {
+                    //  SetLum(S * Da, Sa* Da, D * Sa) + (1 - Sa) * D + (1 - Da) * S
+                    SkString setLum;
+                    AddLumFunction(builder, &setLum);
+                    builder->fsCodeAppendf("\t\tvec4 srcDstAlpha = %s * %s.a;\n",
+                                           inputColor, dstColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb = %s(srcDstAlpha.rgb, srcDstAlpha.a, %s.rgb * %s.a);\n",
+                                           outputColor, setLum.c_str(), dstColor, inputColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb += (1.0 - %s.a) * %s.rgb + (1.0 - %s.a) * %s.rgb;\n",
+                                           outputColor, inputColor, dstColor, dstColor, inputColor);
+                    break;
+                }
+                case SkXfermode::kLuminosity_Mode: {
+                    //  SetLum(D * Sa, Sa* Da, S * Da) + (1 - Sa) * D + (1 - Da) * S
+                    SkString setLum;
+                    AddLumFunction(builder, &setLum);
+                    builder->fsCodeAppendf("\t\tvec4 srcDstAlpha = %s * %s.a;\n",
+                                           inputColor, dstColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb = %s(%s.rgb * %s.a, srcDstAlpha.a, srcDstAlpha.rgb);\n",
+                                           outputColor, setLum.c_str(), dstColor, inputColor);
+                    builder->fsCodeAppendf("\t\t%s.rgb += (1.0 - %s.a) * %s.rgb + (1.0 - %s.a) * %s.rgb;\n",
+                                           outputColor, inputColor, dstColor, dstColor, inputColor);
+                    break;
+                }
+                default:
+                    GrCrash("Unknown XferEffect mode.");
+                    break;
+            }
         }
 
-        if (sc) {
-            *sc = fSrcCoeff;
+        static inline EffectKey GenKey(const GrDrawEffect& drawEffect, const GrGLCaps&) {
+            return drawEffect.castEffect<XferEffect>().mode();
         }
-        if (dc) {
-            *dc = fDstCoeff;
+
+    private:
+        static void HardLight(GrGLShaderBuilder* builder,
+                              const char* final,
+                              const char* src,
+                              const char* dst) {
+            static const char kComponents[] = {'r', 'g', 'b'};
+            for (size_t i = 0; i < SK_ARRAY_COUNT(kComponents); ++i) {
+                char component = kComponents[i];
+                builder->fsCodeAppendf("\t\tif (2.0 * %s.%c <= %s.a) {\n", src, component, src);
+                builder->fsCodeAppendf("\t\t\t%s.%c = 2.0 * %s.%c * %s.%c;\n", final, component, src, component, dst, component);
+                builder->fsCodeAppend("\t\t} else {\n");
+                builder->fsCodeAppendf("\t\t\t%s.%c = %s.a * %s.a - 2.0 * (%s.a - %s.%c) * (%s.a - %s.%c);\n",
+                                       final, component, src, dst, dst, dst, component, src, src, component);
+                builder->fsCodeAppend("\t\t}\n");
+            }
+            builder->fsCodeAppendf("\t\t%s.rgb += %s.rgb * (1.0 - %s.a) + %s.rgb * (1.0 - %s.a);\n",
+                                   final, src, dst, dst, src);
         }
-        return true;
-    }
 
-    SK_DEVELOPER_TO_STRING()
-    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkProcCoeffXfermode)
+        // Does one component of color-dodge
+        static void ColorDodgeComponent(GrGLShaderBuilder* builder,
+                                        const char* final,
+                                        const char* src,
+                                        const char* dst,
+                                        const char component) {
+            builder->fsCodeAppendf("\t\tif (0.0 == %s.%c) {\n", dst, component);
+            builder->fsCodeAppendf("\t\t\t%s.%c = %s.%c * (1.0 - %s.a);\n",
+                                   final, component, src, component, dst);
+            builder->fsCodeAppend("\t\t} else {\n");
+            builder->fsCodeAppendf("\t\t\tfloat d = %s.a - %s.%c;\n", src, src, component);
+            builder->fsCodeAppend("\t\t\tif (0.0 == d) {\n");
+            builder->fsCodeAppendf("\t\t\t\t%s.%c = %s.a * %s.a + %s.%c * (1.0 - %s.a) + %s.%c * (1.0 - %s.a);\n",
+                                   final, component, src, dst, src, component, dst, dst, component,
+                                   src);
+            builder->fsCodeAppend("\t\t\t} else {\n");
+            builder->fsCodeAppendf("\t\t\t\td = min(%s.a, %s.%c * %s.a / d);\n",
+                                   dst, dst, component, src);
+            builder->fsCodeAppendf("\t\t\t\t%s.%c = d * %s.a + %s.%c * (1.0 - %s.a) + %s.%c * (1.0 - %s.a);\n",
+                                   final, component, src, src, component, dst, dst, component, src);
+            builder->fsCodeAppend("\t\t\t}\n");
+            builder->fsCodeAppend("\t\t}\n");
+        }
 
-protected:
-    SkProcCoeffXfermode(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
-        fMode = (SkXfermode::Mode)buffer.read32();
+        // Does one component of color-burn
+        static void ColorBurnComponent(GrGLShaderBuilder* builder,
+                                       const char* final,
+                                       const char* src,
+                                       const char* dst,
+                                       const char component) {
+            builder->fsCodeAppendf("\t\tif (%s.a == %s.%c) {\n", dst, dst, component);
+            builder->fsCodeAppendf("\t\t\t%s.%c = %s.a * %s.a + %s.%c * (1.0 - %s.a) + %s.%c * (1.0 - %s.a);\n",
+                                   final, component, src, dst, src, component, dst, dst, component,
+                                   src);
+            builder->fsCodeAppendf("\t\t} else if (0.0 == %s.%c) {\n", src, component);
+            builder->fsCodeAppendf("\t\t\t%s.%c = %s.%c * (1.0 - %s.a);\n",
+                                   final, component, dst, component, src);
+            builder->fsCodeAppend("\t\t} else {\n");
+            builder->fsCodeAppendf("\t\t\tfloat d = max(0.0, %s.a - (%s.a - %s.%c) * %s.a / %s.%c);\n",
+                                   dst, dst, dst, component, src, src, component);
+            builder->fsCodeAppendf("\t\t\t%s.%c = %s.a * d + %s.%c * (1.0 - %s.a) + %s.%c * (1.0 - %s.a);\n",
+                                   final, component, src, src, component, dst, dst, component, src);
+            builder->fsCodeAppend("\t\t}\n");
+        }
 
-        const ProcCoeff& rec = gProcCoeffs[fMode];
-        // these may be valid, or may be CANNOT_USE_COEFF
-        fSrcCoeff = rec.fSC;
-        fDstCoeff = rec.fDC;
-        // now update our function-ptr in the super class
-        this->INHERITED::setProc(rec.fProc);
-    }
+        // Does one component of soft-light. Caller should have already checked that dst alpha > 0.
+        static void SoftLightComponentPosDstAlpha(GrGLShaderBuilder* builder,
+                                                  const char* final,
+                                                  const char* src,
+                                                  const char* dst,
+                                                  const char component) {
+            // if (2S < Sa)
+            builder->fsCodeAppendf("\t\t\tif (2.0 * %s.%c <= %s.a) {\n", src, component, src);
+            // (D^2 (Sa-2 S))/Da+(1-Da) S+D (-Sa+2 S+1)
+            builder->fsCodeAppendf("\t\t\t\t%s.%c = (%s.%c*%s.%c*(%s.a - 2.0*%s.%c)) / %s.a + (1.0 - %s.a) * %s.%c + %s.%c*(-%s.a + 2.0*%s.%c + 1.0);\n",
+                                   final, component, dst, component, dst, component, src, src,
+                                   component, dst, dst, src, component, dst, component, src, src,
+                                   component);
+            // else if (4D < Da)
+            builder->fsCodeAppendf("\t\t\t} else if (4.0 * %s.%c <= %s.a) {\n",
+                                   dst, component, dst);
+            builder->fsCodeAppendf("\t\t\t\tfloat DSqd = %s.%c * %s.%c;\n",
+                                   dst, component, dst, component);
+            builder->fsCodeAppendf("\t\t\t\tfloat DCub = DSqd * %s.%c;\n", dst, component);
+            builder->fsCodeAppendf("\t\t\t\tfloat DaSqd = %s.a * %s.a;\n", dst, dst);
+            builder->fsCodeAppendf("\t\t\t\tfloat DaCub = DaSqd * %s.a;\n", dst);
+            // (Da^3 (-S)+Da^2 (S-D (3 Sa-6 S-1))+12 Da D^2 (Sa-2 S)-16 D^3 (Sa-2 S))/Da^2
+            builder->fsCodeAppendf("\t\t\t\t%s.%c = (-DaCub*%s.%c + DaSqd*(%s.%c - %s.%c * (3.0*%s.a - 6.0*%s.%c - 1.0)) + 12.0*%s.a*DSqd*(%s.a - 2.0*%s.%c) - 16.0*DCub * (%s.a - 2.0*%s.%c)) / DaSqd;\n",
+                                   final, component, src, component, src, component, dst, component,
+                                   src, src, component, dst, src, src, component, src, src,
+                                   component);
+            builder->fsCodeAppendf("\t\t\t} else {\n");
+            // -sqrt(Da * D) (Sa-2 S)-Da S+D (Sa-2 S+1)+S
+            builder->fsCodeAppendf("\t\t\t\t%s.%c = -sqrt(%s.a*%s.%c)*(%s.a - 2.0*%s.%c) - %s.a*%s.%c + %s.%c*(%s.a - 2.0*%s.%c + 1.0) + %s.%c;\n",
+                                    final, component, dst, dst, component, src, src, component, dst,
+                                    src, component, dst, component, src, src, component, src,
+                                    component);
+            builder->fsCodeAppendf("\t\t\t}\n");
+        }
 
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) const SK_OVERRIDE {
-        this->INHERITED::flatten(buffer);
-        buffer.write32(fMode);
-    }
+        // Adds a function that takes two colors and an alpha as input. It produces a color with the
+        // hue and saturation of the first color, the luminosity of the second color, and the input
+        // alpha. It has this signature:
+        //      vec3 set_luminance(vec3 hueSatColor, float alpha, vec3 lumColor).
+        static void AddLumFunction(GrGLShaderBuilder* builder, SkString* setLumFunction) {
+            // Emit a helper that gets the luminance of a color.
+            SkString getFunction;
+            GrGLShaderVar getLumArgs[] = {
+                GrGLShaderVar("color", kVec3f_GrSLType),
+            };
+            SkString getLumBody("\treturn dot(vec3(0.3, 0.59, 0.11), color);\n");
+            builder->fsEmitFunction(kFloat_GrSLType,
+                                    "luminance",
+                                    SK_ARRAY_COUNT(getLumArgs), getLumArgs,
+                                    getLumBody.c_str(),
+                                    &getFunction);
+
+            // Emit the set luminance function.
+            GrGLShaderVar setLumArgs[] = {
+                GrGLShaderVar("hueSat", kVec3f_GrSLType),
+                GrGLShaderVar("alpha", kFloat_GrSLType),
+                GrGLShaderVar("lumColor", kVec3f_GrSLType),
+            };
+            SkString setLumBody;
+            setLumBody.printf("\tfloat diff = %s(lumColor - hueSat);\n", getFunction.c_str());
+            setLumBody.append("\tvec3 outColor = hueSat + diff;\n");
+            setLumBody.appendf("\tfloat outLum = %s(outColor);\n", getFunction.c_str());
+            setLumBody.append("\tfloat minComp = min(min(outColor.r, outColor.g), outColor.b);\n"
+                              "\tfloat maxComp = max(max(outColor.r, outColor.g), outColor.b);\n"
+                              "\tif (minComp < 0.0) {\n"
+                              "\t\toutColor = outLum + ((outColor - vec3(outLum, outLum, outLum)) * outLum) / (outLum - minComp);\n"
+                              "\t}\n"
+                              "\tif (maxComp > alpha) {\n"
+                              "\t\toutColor = outLum + ((outColor - vec3(outLum, outLum, outLum)) * (alpha - outLum)) / (maxComp - outLum);\n"
+                              "\t}\n"
+                              "\treturn outColor;\n");
+            builder->fsEmitFunction(kVec3f_GrSLType,
+                                    "set_luminance",
+                                    SK_ARRAY_COUNT(setLumArgs), setLumArgs,
+                                    setLumBody.c_str(),
+                                    setLumFunction);
+        }
+
+        // Adds a function that creates a color with the hue and luminosity of one input color and
+        // the saturation of another color. It will have this signature:
+        //      float set_saturation(vec3 hueLumColor, vec3 satColor)
+        static void AddSatFunction(GrGLShaderBuilder* builder, SkString* setSatFunction) {
+            // Emit a helper that gets the saturation of a color
+            SkString getFunction;
+            GrGLShaderVar getSatArgs[] = { GrGLShaderVar("color", kVec3f_GrSLType) };
+            SkString getSatBody;
+            getSatBody.printf("\treturn max(max(color.r, color.g), color.b) - "
+                              "min(min(color.r, color.g), color.b);\n");
+            builder->fsEmitFunction(kFloat_GrSLType,
+                                    "saturation",
+                                    SK_ARRAY_COUNT(getSatArgs), getSatArgs,
+                                    getSatBody.c_str(),
+                                    &getFunction);
+
+            // Emit a helper that sets the saturation given sorted input channels. This used
+            // to use inout params for min, mid, and max components but that seems to cause
+            // problems on PowerVR drivers. So instead it returns a vec3 where r, g ,b are the
+            // adjusted min, mid, and max inputs, respectively.
+            SkString helperFunction;
+            GrGLShaderVar helperArgs[] = {
+                GrGLShaderVar("minComp", kFloat_GrSLType),
+                GrGLShaderVar("midComp", kFloat_GrSLType),
+                GrGLShaderVar("maxComp", kFloat_GrSLType),
+                GrGLShaderVar("sat", kFloat_GrSLType),
+            };
+            static const char kHelperBody[] = "\tif (minComp < maxComp) {\n"
+                                              "\t\tvec3 result;\n"
+                                              "\t\tresult.r = 0.0;\n"
+                                              "\t\tresult.g = sat * (midComp - minComp) / (maxComp - minComp);\n"
+                                              "\t\tresult.b = sat;\n"
+                                              "\t\treturn result;\n"
+                                              "\t} else {\n"
+                                              "\t\treturn vec3(0, 0, 0);\n"
+                                              "\t}\n";
+            builder->fsEmitFunction(kVec3f_GrSLType,
+                                    "set_saturation_helper",
+                                    SK_ARRAY_COUNT(helperArgs), helperArgs,
+                                    kHelperBody,
+                                    &helperFunction);
+
+            GrGLShaderVar setSatArgs[] = {
+                GrGLShaderVar("hueLumColor", kVec3f_GrSLType),
+                GrGLShaderVar("satColor", kVec3f_GrSLType),
+            };
+            const char* helpFunc = helperFunction.c_str();
+            SkString setSatBody;
+            setSatBody.appendf("\tfloat sat = %s(satColor);\n"
+                               "\tif (hueLumColor.r <= hueLumColor.g) {\n"
+                               "\t\tif (hueLumColor.g <= hueLumColor.b) {\n"
+                               "\t\t\thueLumColor.rgb = %s(hueLumColor.r, hueLumColor.g, hueLumColor.b, sat);\n"
+                               "\t\t} else if (hueLumColor.r <= hueLumColor.b) {\n"
+                               "\t\t\thueLumColor.rbg = %s(hueLumColor.r, hueLumColor.b, hueLumColor.g, sat);\n"
+                               "\t\t} else {\n"
+                               "\t\t\thueLumColor.brg = %s(hueLumColor.b, hueLumColor.r, hueLumColor.g, sat);\n"
+                               "\t\t}\n"
+                               "\t} else if (hueLumColor.r <= hueLumColor.b) {\n"
+                               "\t\thueLumColor.grb = %s(hueLumColor.g, hueLumColor.r, hueLumColor.b, sat);\n"
+                               "\t} else if (hueLumColor.g <= hueLumColor.b) {\n"
+                               "\t\thueLumColor.gbr = %s(hueLumColor.g, hueLumColor.b, hueLumColor.r, sat);\n"
+                               "\t} else {\n"
+                               "\t\thueLumColor.bgr = %s(hueLumColor.b, hueLumColor.g, hueLumColor.r, sat);\n"
+                               "\t}\n"
+                               "\treturn hueLumColor;\n",
+                               getFunction.c_str(), helpFunc, helpFunc, helpFunc, helpFunc,
+                               helpFunc, helpFunc);
+            builder->fsEmitFunction(kVec3f_GrSLType,
+                                    "set_saturation",
+                                    SK_ARRAY_COUNT(setSatArgs), setSatArgs,
+                                    setSatBody.c_str(),
+                                    setSatFunction);
+
+        }
+
+        typedef GrGLEffect INHERITED;
+    };
+
+    GR_DECLARE_EFFECT_TEST;
 
 private:
-    Mode    fMode;
-    Coeff   fSrcCoeff, fDstCoeff;
+    XferEffect(SkXfermode::Mode mode, GrTexture* background)
+        : fMode(mode) {
+        if (background) {
+            fBackgroundTransform.reset(kLocal_GrCoordSet, background);
+            this->addCoordTransform(&fBackgroundTransform);
+            fBackgroundAccess.reset(background);
+            this->addTextureAccess(&fBackgroundAccess);
+        } else {
+            this->setWillReadDstColor();
+        }
+    }
+    virtual bool onIsEqual(const GrEffect& other) const SK_OVERRIDE {
+        const XferEffect& s = CastEffect<XferEffect>(other);
+        return fMode == s.fMode &&
+               fBackgroundAccess.getTexture() == s.fBackgroundAccess.getTexture();
+    }
 
-    typedef SkProcXfermode INHERITED;
+    SkXfermode::Mode fMode;
+    GrCoordTransform fBackgroundTransform;
+    GrTextureAccess  fBackgroundAccess;
+
+    typedef GrEffect INHERITED;
 };
+
+GR_DEFINE_EFFECT_TEST(XferEffect);
+GrEffectRef* XferEffect::TestCreate(SkRandom* rand,
+                                    GrContext*,
+                                    const GrDrawTargetCaps&,
+                                    GrTexture*[]) {
+    int mode = rand->nextRangeU(SkXfermode::kLastCoeffMode + 1, SkXfermode::kLastSeparableMode);
+
+    AutoEffectUnref gEffect(SkNEW_ARGS(XferEffect, (static_cast<SkXfermode::Mode>(mode), NULL)));
+    return CreateEffectRef(gEffect);
+}
+
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+SkProcCoeffXfermode::SkProcCoeffXfermode(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {
+    uint32_t mode32 = buffer.read32() % SK_ARRAY_COUNT(gProcCoeffs);
+    if (mode32 >= SK_ARRAY_COUNT(gProcCoeffs)) {
+        // out of range, just set to something harmless
+        mode32 = SkXfermode::kSrcOut_Mode;
+    }
+    fMode = (SkXfermode::Mode)mode32;
+
+    const ProcCoeff& rec = gProcCoeffs[fMode];
+    // these may be valid, or may be CANNOT_USE_COEFF
+    fSrcCoeff = rec.fSC;
+    fDstCoeff = rec.fDC;
+    // now update our function-ptr in the super class
+    this->INHERITED::setProc(rec.fProc);
+}
+
+bool SkProcCoeffXfermode::asMode(Mode* mode) const {
+    if (mode) {
+        *mode = fMode;
+    }
+    return true;
+}
+
+bool SkProcCoeffXfermode::asCoeff(Coeff* sc, Coeff* dc) const {
+    if (CANNOT_USE_COEFF == fSrcCoeff) {
+        return false;
+    }
+
+    if (sc) {
+        *sc = fSrcCoeff;
+    }
+    if (dc) {
+        *dc = fDstCoeff;
+    }
+    return true;
+}
+
+#if SK_SUPPORT_GPU
+bool SkProcCoeffXfermode::asNewEffect(GrEffectRef** effect,
+                                      GrTexture* background) const {
+    if (XferEffect::IsSupportedMode(fMode)) {
+        if (NULL != effect) {
+            *effect = XferEffect::Create(fMode, background);
+            SkASSERT(NULL != *effect);
+        }
+        return true;
+    }
+    return false;
+}
+#endif
+
+void SkProcCoeffXfermode::flatten(SkFlattenableWriteBuffer& buffer) const {
+    this->INHERITED::flatten(buffer);
+    buffer.write32(fMode);
+}
+
+const char* SkXfermode::ModeName(Mode mode) {
+    SkASSERT((unsigned) mode <= (unsigned)kLastMode);
+    const char* gModeStrings[] = {
+        "Clear", "Src", "Dst", "SrcOver", "DstOver", "SrcIn", "DstIn",
+        "SrcOut", "DstOut", "SrcATop", "DstATop", "Xor", "Plus",
+        "Modulate", "Screen", "Overlay", "Darken", "Lighten", "ColorDodge",
+        "ColorBurn", "HardLight", "SoftLight", "Difference", "Exclusion",
+        "Multiply", "Hue", "Saturation", "Color",  "Luminosity"
+    };
+    return gModeStrings[mode];
+    SK_COMPILE_ASSERT(SK_ARRAY_COUNT(gModeStrings) == kLastMode + 1, mode_count);
+}
 
 #ifdef SK_DEVELOPER
 void SkProcCoeffXfermode::toString(SkString* str) const {
     str->append("SkProcCoeffXfermode: ");
 
-    const char *gModeStrings[kLastMode+1] = {
-        "Clear", "Src", "Dst", "SrcOver", "DstOver", "SrcIn", "DstIn",
-        "SrcOut", "DstOut", "SrcATop", "DstATop", "Xor", "Plus",
-        "Multiply", "Screen", "Overlay", "Darken", "Lighten", "ColorDodge",
-        "ColorBurn", "HardLight", "SoftLight", "Difference", "Exclusion"
-    };
-
     str->append("mode: ");
-    str->append(gModeStrings[fMode]);
+    str->append(ModeName(fMode));
 
     static const char* gCoeffStrings[kCoeffCount] = {
-        "Zero", "One", "SC", "ISC", "DC", "IDC", "SA", "ISA", "DA", "IDA" 
+        "Zero", "One", "SC", "ISC", "DC", "IDC", "SA", "ISA", "DA", "IDA"
     };
 
     str->append(" src: ");
@@ -1016,26 +1657,83 @@ void SkDstOutXfermode::toString(SkString* str) const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+SK_DECLARE_STATIC_MUTEX(gCachedXfermodesMutex);
+static SkXfermode* gCachedXfermodes[SkXfermode::kLastMode + 1];
+
+void SkXfermode::Term() {
+    SkAutoMutexAcquire ac(gCachedXfermodesMutex);
+
+    for (size_t i = 0; i < SK_ARRAY_COUNT(gCachedXfermodes); ++i) {
+        SkSafeUnref(gCachedXfermodes[i]);
+        gCachedXfermodes[i] = NULL;
+    }
+}
+
+extern SkProcCoeffXfermode* SkPlatformXfermodeFactory(const ProcCoeff& rec,
+                                                      SkXfermode::Mode mode);
+extern SkXfermodeProc SkPlatformXfermodeProcFactory(SkXfermode::Mode mode);
+
 SkXfermode* SkXfermode::Create(Mode mode) {
     SkASSERT(SK_ARRAY_COUNT(gProcCoeffs) == kModeCount);
-    SkASSERT((unsigned)mode < kModeCount);
+    SkASSERT(SK_ARRAY_COUNT(gCachedXfermodes) == kModeCount);
 
-    const ProcCoeff& rec = gProcCoeffs[mode];
-
-    switch (mode) {
-        case kClear_Mode:
-            return SkNEW_ARGS(SkClearXfermode, (rec));
-        case kSrc_Mode:
-            return SkNEW_ARGS(SkSrcXfermode, (rec));
-        case kSrcOver_Mode:
-            return NULL;
-        case kDstIn_Mode:
-            return SkNEW_ARGS(SkDstInXfermode, (rec));
-        case kDstOut_Mode:
-            return SkNEW_ARGS(SkDstOutXfermode, (rec));
-        default:
-            return SkNEW_ARGS(SkProcCoeffXfermode, (rec, mode));
+    if ((unsigned)mode >= kModeCount) {
+        // report error
+        return NULL;
     }
+
+    // Skia's "defaut" mode is srcover. NULL in SkPaint is interpreted as srcover
+    // so we can just return NULL from the factory.
+    if (kSrcOver_Mode == mode) {
+        return NULL;
+    }
+
+    // guard our access to gCachedXfermodes, since we may write into it
+    SkAutoMutexAcquire ac(gCachedXfermodesMutex);
+
+    SkXfermode* xfer = gCachedXfermodes[mode];
+    if (NULL == xfer) {
+        ProcCoeff rec = gProcCoeffs[mode];
+
+        SkXfermodeProc pp = SkPlatformXfermodeProcFactory(mode);
+
+        if (pp != NULL) {
+            rec.fProc = pp;
+        }
+
+        // check if we have a platform optim for that
+        SkProcCoeffXfermode* xfm = SkPlatformXfermodeFactory(rec, mode);
+        if (xfm != NULL) {
+            xfer = xfm;
+        } else {
+            // All modes can in theory be represented by the ProcCoeff rec, since
+            // it contains function ptrs. However, a few modes are both simple and
+            // commonly used, so we call those out for their own subclasses here.
+            switch (mode) {
+                case kClear_Mode:
+                    xfer = SkNEW_ARGS(SkClearXfermode, (rec));
+                    break;
+                case kSrc_Mode:
+                    xfer = SkNEW_ARGS(SkSrcXfermode, (rec));
+                    break;
+                case kSrcOver_Mode:
+                    SkASSERT(false);    // should not land here
+                    break;
+                case kDstIn_Mode:
+                    xfer = SkNEW_ARGS(SkDstInXfermode, (rec));
+                    break;
+                case kDstOut_Mode:
+                    xfer = SkNEW_ARGS(SkDstOutXfermode, (rec));
+                    break;
+                default:
+                    // no special-case, just rely in the rec and its function-ptrs
+                    xfer = SkNEW_ARGS(SkProcCoeffXfermode, (rec, mode));
+                    break;
+            }
+        }
+        gCachedXfermodes[mode] = xfer;
+    }
+    return SkSafeRef(xfer);
 }
 
 SkXfermodeProc SkXfermode::GetProc(Mode mode) {
@@ -1234,7 +1932,7 @@ static const Proc16Rec gModeProcs16[] = {
     { NULL,                 NULL,                   NULL            }, // XOR
 
     { NULL,                 NULL,                   NULL            }, // plus
-    { NULL,                 NULL,                   NULL            }, // multiply
+    { NULL,                 NULL,                   NULL            }, // modulate
     { NULL,                 NULL,                   NULL            }, // screen
     { NULL,                 NULL,                   NULL            }, // overlay
     { darken_modeproc16_0,  darken_modeproc16_255,  NULL            }, // darken
@@ -1245,6 +1943,11 @@ static const Proc16Rec gModeProcs16[] = {
     { NULL,                 NULL,                   NULL            }, // softlight
     { NULL,                 NULL,                   NULL            }, // difference
     { NULL,                 NULL,                   NULL            }, // exclusion
+    { NULL,                 NULL,                   NULL            }, // multiply
+    { NULL,                 NULL,                   NULL            }, // hue
+    { NULL,                 NULL,                   NULL            }, // saturation
+    { NULL,                 NULL,                   NULL            }, // color
+    { NULL,                 NULL,                   NULL            }, // luminosity
 };
 
 SkXfermodeProc16 SkXfermode::GetProc16(Mode mode, SkColor srcColor) {
@@ -1270,4 +1973,7 @@ SK_DEFINE_FLATTENABLE_REGISTRAR_GROUP_START(SkXfermode)
     SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkSrcXfermode)
     SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkDstInXfermode)
     SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkDstOutXfermode)
+#if !SK_ARM_NEON_IS_NONE
+    SK_DEFINE_FLATTENABLE_REGISTRAR_ENTRY(SkNEONProcCoeffXfermode)
+#endif
 SK_DEFINE_FLATTENABLE_REGISTRAR_GROUP_END

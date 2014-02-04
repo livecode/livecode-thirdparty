@@ -13,7 +13,7 @@
 #include "SkAdvancedTypefaceMetrics.h"
 #include "SkRefCnt.h"
 #include "SkTDArray.h"
-#include "SkTScopedPtr.h"
+#include "SkTemplates.h"
 
 class SkPDFCatalog;
 class SkPDFDevice;
@@ -21,6 +21,7 @@ class SkPDFDict;
 class SkPDFPage;
 class SkPDFObject;
 class SkWStream;
+template <typename T> class SkTSet;
 
 /** \class SkPDFDocument
 
@@ -29,7 +30,10 @@ class SkWStream;
 class SkPDFDocument {
 public:
     enum Flags {
-        kNoCompression_Flags = 0x01,  //!< mask disable stream compression.
+        kNoCompression_Flags = 0x01,  //!< DEPRECATED.
+        kFavorSpeedOverSize_Flags = 0x01,  //!< Don't compress the stream, but
+                                           // if it is already compressed return
+                                           // the compressed stream.
         kNoLinks_Flags       = 0x02,  //!< do not honor link annotations.
 
         kDraftMode_Flags     = 0x01,
@@ -70,15 +74,15 @@ public:
         int counts[SkAdvancedTypefaceMetrics::kNotEmbeddable_Font + 1]) const;
 
 private:
-    SkTScopedPtr<SkPDFCatalog> fCatalog;
+    SkAutoTDelete<SkPDFCatalog> fCatalog;
     int64_t fXRefFileOffset;
 
     SkTDArray<SkPDFPage*> fPages;
     SkTDArray<SkPDFDict*> fPageTree;
     SkPDFDict* fDocCatalog;
-    SkTDArray<SkPDFObject*> fPageResources;
+    SkTSet<SkPDFObject*>* fFirstPageResources;
+    SkTSet<SkPDFObject*>* fOtherPageResources;
     SkTDArray<SkPDFObject*> fSubstitutes;
-    int fSecondPageFirstResourceIndex;
 
     SkPDFDict* fTrailerDict;
 

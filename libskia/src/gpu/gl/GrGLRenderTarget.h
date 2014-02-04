@@ -25,12 +25,14 @@ public:
     enum { kUnresolvableFBOID = 0 };
 
     struct Desc {
-        GrGLuint      fRTFBOID;
-        GrGLuint      fTexFBOID;
-        GrGLuint      fMSColorRenderbufferID;
-        bool          fOwnIDs;
-        GrPixelConfig fConfig;
-        int           fSampleCnt;
+        GrGLuint         fRTFBOID;
+        GrGLuint         fTexFBOID;
+        GrGLuint         fMSColorRenderbufferID;
+        bool             fIsWrapped;
+        GrPixelConfig    fConfig;
+        int              fSampleCnt;
+        GrSurfaceOrigin  fOrigin;
+        bool             fCheckAllocation;
     };
 
     // creates a GrGLRenderTarget associated with a texture
@@ -89,17 +91,13 @@ private:
 
     GrGLuint      fMSColorRenderbufferID;
 
-    // Should this object delete IDs when it is destroyed or does someone
-    // else own them.
-    bool        fOwnIDs;
-
     // when we switch to this render target we want to set the viewport to
     // only render to to content area (as opposed to the whole allocation) and
     // we want the rendering to be at top left (GL has origin in bottom left)
     GrGLIRect fViewport;
 
     // non-NULL if this RT was created by Gr with an associated GrGLTexture.
-    GrGLTexID* fTexIDObj;
+    SkAutoTUnref<GrGLTexID> fTexIDObj;
 
     void init(const Desc& desc, const GrGLIRect& viewport, GrGLTexID* texID);
 

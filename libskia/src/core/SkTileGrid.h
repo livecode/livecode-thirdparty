@@ -11,6 +11,7 @@
 
 #include "SkBBoxHierarchy.h"
 #include "SkPictureStateTree.h"
+#include "SkTileGridPicture.h" // for TileGridInfo
 
 /**
  * Subclass of SkBBoxHierarchy that stores elements in buckets that correspond
@@ -24,9 +25,17 @@
  */
 class SkTileGrid : public SkBBoxHierarchy {
 public:
-    typedef void* (*SkTileGridNextDatumFunctionPtr)(SkTDArray<void*>** tileData, SkTDArray<int>& tileIndices);
+    enum {
+        // Number of tiles for which data is allocated on the stack in
+        // SkTileGrid::search. If malloc becomes a bottleneck, we may consider
+        // increasing this number. Typical large web page, say 2k x 16k, would
+        // require 512 tiles of size 256 x 256 pixels.
+        kStackAllocationTileCount = 1024
+    };
 
-    SkTileGrid(int tileWidth, int tileHeight, int xTileCount, int yTileCount,
+    typedef void* (*SkTileGridNextDatumFunctionPtr)(SkTDArray<void*>** tileData, SkAutoSTArray<kStackAllocationTileCount, int>& tileIndices);
+
+    SkTileGrid(int xTileCount, int yTileCount, const SkTileGridPicture::TileGridInfo& info,
         SkTileGridNextDatumFunctionPtr nextDatumFunction);
 
     virtual ~SkTileGrid();
@@ -54,20 +63,25 @@ public:
      */
     virtual int getCount() const SK_OVERRIDE;
 
+    virtual void rewindInserts() SK_OVERRIDE;
+
     // Used by search() and in SkTileGridHelper implementations
     enum {
         kTileFinished = -1,
     };
+
+    int tileCount(int x, int y);  // For testing only.
+
 private:
     SkTDArray<void*>& tile(int x, int y);
 
-    int fTileWidth, fTileHeight, fXTileCount, fYTileCount, fTileCount;
+    int fXTileCount, fYTileCount, fTileCount;
+    SkTileGridPicture::TileGridInfo fInfo;
     SkTDArray<void*>* fTileData;
     int fInsertionCount;
     SkIRect fGridBounds;
     SkTileGridNextDatumFunctionPtr fNextDatumFunction;
 
-    friend class TileGridTest;
     typedef SkBBoxHierarchy INHERITED;
 };
 
@@ -87,24 +101,30 @@ private:
  *     such that 'a < b' is true if 'a' was inserted into the tile grid before 'b'.
  */
 template <typename T>
-void* SkTileGridNextDatum(SkTDArray<void*>** tileData, SkTDArray<int>& tileIndices) {
-    bool haveVal = false;
-    T* minVal;
+void* SkTileGridNextDatum(SkTDArray<void*>** tileData, SkAutoSTArray<SkTileGrid::kStackAllocationTileCount, int>& tileIndices) {
+    T* minVal = NULL;
     int tileCount = tileIndices.count();
-    // Find the next Datum
+    int minIndex = tileCount;
+    int maxIndex = 0;
+    // Find the next Datum; track where it's found so we reduce the size of the second loop.
     for (int tile = 0; tile < tileCount; ++tile) {
         int pos = tileIndices[tile];
         if (pos != SkTileGrid::kTileFinished) {
             T* candidate = (T*)(*tileData[tile])[pos];
-            if (!haveVal || (*candidate) < (*minVal)) {
+            if (NULL == minVal || (*candidate) < (*minVal)) {
                 minVal = candidate;
-                haveVal = true;
+                minIndex = tile;
+                maxIndex = tile;
+            } else if (!((*minVal) < (*candidate))) {
+                // We don't require operator==; if !(candidate<minVal) && !(minVal<candidate),
+                // candidate==minVal and we have to add this tile to the range searched.
+                maxIndex = tile;
             }
         }
     }
     // Increment indices past the next datum
-    if (haveVal) {
-        for (int tile = 0; tile < tileCount; ++tile) {
+    if (minVal != NULL) {
+        for (int tile = minIndex; tile <= maxIndex; ++tile) {
             int pos = tileIndices[tile];
             if (pos != SkTileGrid::kTileFinished && (*tileData[tile])[pos] == minVal) {
                 if (++(tileIndices[tile]) >= tileData[tile]->count()) {

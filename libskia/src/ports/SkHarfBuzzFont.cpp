@@ -14,12 +14,7 @@
 
 // HB_Fixed is a 26.6 fixed point format.
 static inline HB_Fixed SkScalarToHarfbuzzFixed(SkScalar value) {
-#ifdef SK_SCALAR_IS_FLOAT
     return static_cast<HB_Fixed>(value * 64);
-#else
-    // convert .16 to .6
-    return value >> (16 - 6);
-#endif
 }
 
 static HB_Bool stringToGlyphs(HB_Font hbFont, const HB_UChar16* characters,
@@ -166,9 +161,9 @@ const HB_FontClass& SkHarfBuzzFont::GetFontClass() {
 HB_Error SkHarfBuzzFont::GetFontTableFunc(void* voidface, const HB_Tag tag,
                                           HB_Byte* buffer, HB_UInt* len) {
     SkHarfBuzzFont* font = reinterpret_cast<SkHarfBuzzFont*>(voidface);
-    uint32_t uniqueID = SkTypeface::UniqueID(font->getTypeface());
+    SkTypeface* typeface = font->getTypeface();
 
-    const size_t tableSize = SkFontHost::GetTableSize(uniqueID, tag);
+    const size_t tableSize = typeface->getTableSize(tag);
     if (!tableSize) {
         return HB_Err_Invalid_Argument;
     }
@@ -182,7 +177,6 @@ HB_Error SkHarfBuzzFont::GetFontTableFunc(void* voidface, const HB_Tag tag,
         // is this right, or should we just copy less than the full table?
         return HB_Err_Invalid_Argument;
     }
-    SkFontHost::GetTableData(uniqueID, tag, 0, tableSize, buffer);
+    typeface->getTableData(tag, 0, tableSize, buffer);
     return HB_Err_Ok;
 }
-

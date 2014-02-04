@@ -20,15 +20,14 @@ public:
     virtual ~SkSurface_Picture();
 
     virtual SkCanvas* onNewCanvas() SK_OVERRIDE;
-    virtual SkSurface* onNewSurface(const SkImage::Info&) SK_OVERRIDE;
-    virtual SkImage* onNewImageShapshot() SK_OVERRIDE;
+    virtual SkSurface* onNewSurface(const SkImageInfo&) SK_OVERRIDE;
+    virtual SkImage* onNewImageSnapshot() SK_OVERRIDE;
     virtual void onDraw(SkCanvas*, SkScalar x, SkScalar y,
                         const SkPaint*) SK_OVERRIDE;
-    virtual void onCopyOnWrite(SkImage*, SkCanvas*) SK_OVERRIDE;
+    virtual void onCopyOnWrite(ContentChangeMode) SK_OVERRIDE;
 
 private:
     SkPicture*  fPicture;
-    SkPicture*  fRecordingPicture;
 
     typedef SkSurface_Base INHERITED;
 };
@@ -52,18 +51,18 @@ SkCanvas* SkSurface_Picture::onNewCanvas() {
     return canvas;
 }
 
-SkSurface* SkSurface_Picture::onNewSurface(const SkImage::Info& info) {
+SkSurface* SkSurface_Picture::onNewSurface(const SkImageInfo& info) {
     return SkSurface::NewPicture(info.fWidth, info.fHeight);
 }
 
-SkImage* SkSurface_Picture::onNewImageShapshot() {
+SkImage* SkSurface_Picture::onNewImageSnapshot() {
     if (fPicture) {
         return SkNewImageFromPicture(fPicture);
     } else {
-        SkImage::Info info;
+        SkImageInfo info;
         info.fWidth = info.fHeight = 0;
-        info.fColorType = SkImage::kPMColor_ColorType;
-        info.fAlphaType = SkImage::kOpaque_AlphaType;
+        info.fColorType = kPMColor_SkColorType;
+        info.fAlphaType = kOpaque_SkAlphaType;
         return SkImage::NewRasterCopy(info, NULL, 0);
     }
 }
@@ -76,7 +75,7 @@ void SkSurface_Picture::onDraw(SkCanvas* canvas, SkScalar x, SkScalar y,
     SkImagePrivDrawPicture(canvas, fPicture, x, y, paint);
 }
 
-void SkSurface_Picture::onCopyOnWrite(SkImage* cachedImage, SkCanvas*) {
+void SkSurface_Picture::onCopyOnWrite(ContentChangeMode /*mode*/) {
     // We always spawn a copy of the recording picture when we
     // are asked for a snapshot, so we never need to do anything here.
 }
@@ -91,4 +90,3 @@ SkSurface* SkSurface::NewPicture(int width, int height) {
 
     return SkNEW_ARGS(SkSurface_Picture, (width, height));
 }
-

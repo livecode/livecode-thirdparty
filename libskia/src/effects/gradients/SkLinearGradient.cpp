@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2012 Google Inc.
  *
@@ -23,26 +22,17 @@ static inline int repeat_8bits(int x) {
 #endif
 
 static inline int mirror_bits(int x, const int bits) {
-#ifdef SK_CPU_HAS_CONDITIONAL_INSTR
-    if (x & (1 << bits))
+    if (x & (1 << bits)) {
         x = ~x;
+    }
     return x & ((1 << bits) - 1);
-#else
-    int s = x << (31 - bits) >> 31;
-    return (x ^ s) & ((1 << bits) - 1);
-#endif
 }
 
 static inline int mirror_8bits(int x) {
-#ifdef SK_CPU_HAS_CONDITIONAL_INSTR
     if (x & 256) {
         x = ~x;
     }
     return x & 255;
-#else
-    int s = x << 23 >> 31;
-    return (x ^ s) & 0xFF;
-#endif
 }
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1600)
@@ -62,13 +52,8 @@ static void pts_to_unit_matrix(const SkPoint pts[2], SkMatrix* matrix) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-SkLinearGradient::SkLinearGradient(const SkPoint pts[2],
-                                   const SkColor colors[],
-                                   const SkScalar pos[],
-                                   int colorCount,
-                                   SkShader::TileMode mode,
-                                   SkUnitMapper* mapper)
-    : SkGradientShaderBase(colors, pos, colorCount, mode, mapper)
+SkLinearGradient::SkLinearGradient(const SkPoint pts[2], const Descriptor& desc)
+    : SkGradientShaderBase(desc)
     , fStart(pts[0])
     , fEnd(pts[1]) {
     pts_to_unit_matrix(pts, &fPtsToUnit);
@@ -94,7 +79,7 @@ bool SkLinearGradient::setContext(const SkBitmap& device, const SkPaint& paint,
 
     unsigned mask = SkMatrix::kTranslate_Mask | SkMatrix::kScale_Mask;
     if ((fDstToIndex.getType() & ~mask) == 0) {
-        fFlags |= SkShader::kConstInY32_Flag;
+        // when we dither, we are (usually) not const-in-Y
         if ((fFlags & SkShader::kHasSpan16_Flag) && !paint.isDither()) {
             // only claim this if we do have a 16bit mode (i.e. none of our
             // colors have alpha), and if we are not dithering (which obviously
@@ -111,7 +96,7 @@ bool SkLinearGradient::setContext(const SkBitmap& device, const SkPaint& paint,
     SkASSERT(fi <= 0xFF);           \
     fx += dx;                       \
     *dstC++ = cache[toggle + fi];   \
-    toggle ^= SkGradientShaderBase::kDitherStride32; \
+    toggle = next_dither_toggle(toggle); \
     } while (0)
 
 namespace {
@@ -131,16 +116,18 @@ void shadeSpan_linear_vertical_lerp(TileProc proc, SkFixed dx, SkFixed fx,
     // If colors change sharply across the gradient, dithering is
     // insufficient (it subsamples the color space) and we need to lerp.
     unsigned fullIndex = proc(fx);
-    unsigned fi = fullIndex >> (16 - SkGradientShaderBase::kCache32Bits);
-    unsigned remainder = fullIndex & SkGradientShaderBase::kLerpRemainderMask32;
-    SkPMColor lerp =
-        SkFastFourByteInterp(
-            cache[toggle + fi + 1],
-            cache[toggle + fi], remainder);
-    SkPMColor dlerp =
-        SkFastFourByteInterp(
-            cache[(toggle ^ SkGradientShaderBase::kDitherStride32) + fi + 1],
-            cache[(toggle ^ SkGradientShaderBase::kDitherStride32) + fi], remainder);
+    unsigned fi = fullIndex >> SkGradientShaderBase::kCache32Shift;
+    unsigned remainder = fullIndex & ((1 << SkGradientShaderBase::kCache32Shift) - 1);
+
+    int index0 = fi + toggle;
+    int index1 = index0;
+    if (fi < SkGradientShaderBase::kCache32Count - 1) {
+        index1 += 1;
+    }
+    SkPMColor lerp = SkFastFourByteInterp(cache[index1], cache[index0], remainder);
+    index0 ^= SkGradientShaderBase::kDitherStride32;
+    index1 ^= SkGradientShaderBase::kDitherStride32;
+    SkPMColor dlerp = SkFastFourByteInterp(cache[index1], cache[index0], remainder);
     sk_memset32_dither(dstC, lerp, dlerp, count);
 }
 
@@ -149,12 +136,12 @@ void shadeSpan_linear_clamp(TileProc proc, SkFixed dx, SkFixed fx,
                             const SkPMColor* SK_RESTRICT cache,
                             int toggle, int count) {
     SkClampRange range;
-    range.init(fx, dx, count, 0, SkGradientShaderBase::kGradient32Length);
+    range.init(fx, dx, count, 0, SkGradientShaderBase::kCache32Count - 1);
 
     if ((count = range.fCount0) > 0) {
         sk_memset32_dither(dstC,
             cache[toggle + range.fV0],
-            cache[(toggle ^ SkGradientShaderBase::kDitherStride32) + range.fV0],
+            cache[next_dither_toggle(toggle) + range.fV0],
             count);
         dstC += count;
     }
@@ -176,7 +163,7 @@ void shadeSpan_linear_clamp(TileProc proc, SkFixed dx, SkFixed fx,
     if ((count = range.fCount2) > 0) {
         sk_memset32_dither(dstC,
             cache[toggle + range.fV1],
-            cache[(toggle ^ SkGradientShaderBase::kDitherStride32) + range.fV1],
+            cache[next_dither_toggle(toggle) + range.fV1],
             count);
     }
 }
@@ -190,7 +177,7 @@ void shadeSpan_linear_mirror(TileProc proc, SkFixed dx, SkFixed fx,
         SkASSERT(fi <= 0xFF);
         fx += dx;
         *dstC++ = cache[toggle + fi];
-        toggle ^= SkGradientShaderBase::kDitherStride32;
+        toggle = next_dither_toggle(toggle);
     } while (--count != 0);
 }
 
@@ -203,7 +190,7 @@ void shadeSpan_linear_repeat(TileProc proc, SkFixed dx, SkFixed fx,
         SkASSERT(fi <= 0xFF);
         fx += dx;
         *dstC++ = cache[toggle + fi];
-        toggle ^= SkGradientShaderBase::kDitherStride32;
+        toggle = next_dither_toggle(toggle);
     } while (--count != 0);
 }
 
@@ -217,11 +204,7 @@ void SkLinearGradient::shadeSpan(int x, int y, SkPMColor* SK_RESTRICT dstC,
     SkMatrix::MapXYProc dstProc = fDstToIndexProc;
     TileProc            proc = fTileProc;
     const SkPMColor* SK_RESTRICT cache = this->getCache32();
-#ifdef USE_DITHER_32BIT_GRADIENT
-    int                 toggle = ((x ^ y) & 1) * kDitherStride32;
-#else
-    int toggle = 0;
-#endif
+    int                 toggle = init_dither_toggle(x, y);
 
     if (fDstToIndexClass != kPerspective_MatrixClass) {
         dstProc(fDstToIndex, SkIntToScalar(x) + SK_ScalarHalf,
@@ -238,7 +221,7 @@ void SkLinearGradient::shadeSpan(int x, int y, SkPMColor* SK_RESTRICT dstC,
         }
 
         LinearShadeProc shadeProc = shadeSpan_linear_repeat;
-        if (SkFixedNearlyZero(dx)) {
+        if (0 == dx) {
             shadeProc = shadeSpan_linear_vertical_lerp;
         } else if (SkShader::kClamp_TileMode == fTileMode) {
             shadeProc = shadeSpan_linear_clamp;
@@ -256,7 +239,7 @@ void SkLinearGradient::shadeSpan(int x, int y, SkPMColor* SK_RESTRICT dstC,
             unsigned fi = proc(SkScalarToFixed(srcPt.fX));
             SkASSERT(fi <= 0xFFFF);
             *dstC++ = cache[toggle + (fi >> kCache32Shift)];
-            toggle ^= SkGradientShaderBase::kDitherStride32;
+            toggle = next_dither_toggle(toggle);
             dstX += SK_Scalar1;
         } while (--count != 0);
     }
@@ -308,7 +291,7 @@ static void dither_memset16(uint16_t dst[], uint16_t value, uint16_t other,
     SkASSERT(fi < SkGradientShaderBase::kCache16Count);       \
     fx += dx;                           \
     *dstC++ = cache[toggle + fi];       \
-    toggle ^= SkGradientShaderBase::kDitherStride16;            \
+    toggle = next_dither_toggle16(toggle);            \
     } while (0)
 
 namespace {
@@ -325,8 +308,7 @@ void shadeSpan16_linear_vertical(TileProc proc, SkFixed dx, SkFixed fx,
     unsigned fi = proc(fx) >> SkGradientShaderBase::kCache16Shift;
     SkASSERT(fi < SkGradientShaderBase::kCache16Count);
     dither_memset16(dstC, cache[toggle + fi],
-        cache[(toggle ^ SkGradientShaderBase::kDitherStride16) + fi], count);
-
+        cache[next_dither_toggle16(toggle) + fi], count);
 }
 
 void shadeSpan16_linear_clamp(TileProc proc, SkFixed dx, SkFixed fx,
@@ -334,12 +316,12 @@ void shadeSpan16_linear_clamp(TileProc proc, SkFixed dx, SkFixed fx,
                               const uint16_t* SK_RESTRICT cache,
                               int toggle, int count) {
     SkClampRange range;
-    range.init(fx, dx, count, 0, SkGradientShaderBase::kGradient16Length);
+    range.init(fx, dx, count, 0, SkGradientShaderBase::kCache32Count - 1);
 
     if ((count = range.fCount0) > 0) {
         dither_memset16(dstC,
             cache[toggle + range.fV0],
-            cache[(toggle ^ SkGradientShaderBase::kDitherStride16) + range.fV0],
+            cache[next_dither_toggle16(toggle) + range.fV0],
             count);
         dstC += count;
     }
@@ -361,7 +343,7 @@ void shadeSpan16_linear_clamp(TileProc proc, SkFixed dx, SkFixed fx,
     if ((count = range.fCount2) > 0) {
         dither_memset16(dstC,
             cache[toggle + range.fV1],
-            cache[(toggle ^ SkGradientShaderBase::kDitherStride16) + range.fV1],
+            cache[next_dither_toggle16(toggle) + range.fV1],
             count);
     }
 }
@@ -376,7 +358,7 @@ void shadeSpan16_linear_mirror(TileProc proc, SkFixed dx, SkFixed fx,
         SkASSERT(fi < SkGradientShaderBase::kCache16Count);
         fx += dx;
         *dstC++ = cache[toggle + fi];
-        toggle ^= SkGradientShaderBase::kDitherStride16;
+        toggle = next_dither_toggle16(toggle);
     } while (--count != 0);
 }
 
@@ -390,9 +372,13 @@ void shadeSpan16_linear_repeat(TileProc proc, SkFixed dx, SkFixed fx,
         SkASSERT(fi < SkGradientShaderBase::kCache16Count);
         fx += dx;
         *dstC++ = cache[toggle + fi];
-        toggle ^= SkGradientShaderBase::kDitherStride16;
+        toggle = next_dither_toggle16(toggle);
     } while (--count != 0);
 }
+}
+
+static bool fixed_nearly_zero(SkFixed x) {
+    return SkAbs32(x) < (SK_Fixed1 >> 12);
 }
 
 void SkLinearGradient::shadeSpan16(int x, int y,
@@ -403,7 +389,7 @@ void SkLinearGradient::shadeSpan16(int x, int y,
     SkMatrix::MapXYProc dstProc = fDstToIndexProc;
     TileProc            proc = fTileProc;
     const uint16_t* SK_RESTRICT cache = this->getCache16();
-    int                 toggle = ((x ^ y) & 1) * kDitherStride16;
+    int                 toggle = init_dither_toggle16(x, y);
 
     if (fDstToIndexClass != kPerspective_MatrixClass) {
         dstProc(fDstToIndex, SkIntToScalar(x) + SK_ScalarHalf,
@@ -420,7 +406,7 @@ void SkLinearGradient::shadeSpan16(int x, int y,
         }
 
         LinearShade16Proc shadeProc = shadeSpan16_linear_repeat;
-        if (SkFixedNearlyZero(dx)) {
+        if (fixed_nearly_zero(dx)) {
             shadeProc = shadeSpan16_linear_vertical;
         } else if (SkShader::kClamp_TileMode == fTileMode) {
             shadeProc = shadeSpan16_linear_clamp;
@@ -440,7 +426,7 @@ void SkLinearGradient::shadeSpan16(int x, int y,
 
             int index = fi >> kCache16Shift;
             *dstC++ = cache[toggle + index];
-            toggle ^= SkGradientShaderBase::kDitherStride16;
+            toggle = next_dither_toggle16(toggle);
 
             dstX += SK_Scalar1;
         } while (--count != 0);
@@ -456,22 +442,21 @@ void SkLinearGradient::shadeSpan16(int x, int y,
 class GrGLLinearGradient : public GrGLGradientEffect {
 public:
 
-    GrGLLinearGradient(const GrBackendEffectFactory& factory,
-                       const GrEffect&)
+    GrGLLinearGradient(const GrBackendEffectFactory& factory, const GrDrawEffect&)
                        : INHERITED (factory) { }
 
     virtual ~GrGLLinearGradient() { }
 
     virtual void emitCode(GrGLShaderBuilder*,
-                          const GrEffectStage&,
+                          const GrDrawEffect&,
                           EffectKey,
-                          const char* vertexCoords,
                           const char* outputColor,
                           const char* inputColor,
+                          const TransformedCoordsArray&,
                           const TextureSamplerArray&) SK_OVERRIDE;
 
-    static EffectKey GenKey(const GrEffectStage& stage, const GrGLCaps&) {
-        return GenMatrixKey(stage);
+    static EffectKey GenKey(const GrDrawEffect& drawEffect, const GrGLCaps&) {
+        return GenBaseGradientKey(drawEffect);
     }
 
 private:
@@ -488,7 +473,7 @@ public:
                                const SkLinearGradient& shader,
                                const SkMatrix& matrix,
                                SkShader::TileMode tm) {
-        SkAutoTUnref<GrEffect> effect(SkNEW_ARGS(GrLinearGradient, (ctx, shader, matrix, tm)));
+        AutoEffectUnref effect(SkNEW_ARGS(GrLinearGradient, (ctx, shader, matrix, tm)));
         return CreateEffectRef(effect);
     }
 
@@ -518,6 +503,7 @@ GR_DEFINE_EFFECT_TEST(GrLinearGradient);
 
 GrEffectRef* GrLinearGradient::TestCreate(SkRandom* random,
                                           GrContext* context,
+                                          const GrDrawTargetCaps&,
                                           GrTexture**) {
     SkPoint points[] = {{random->nextUScalar1(), random->nextUScalar1()},
                         {random->nextUScalar1(), random->nextUScalar1()}};
@@ -537,19 +523,16 @@ GrEffectRef* GrLinearGradient::TestCreate(SkRandom* random,
 /////////////////////////////////////////////////////////////////////
 
 void GrGLLinearGradient::emitCode(GrGLShaderBuilder* builder,
-                                  const GrEffectStage& stage,
+                                  const GrDrawEffect&,
                                   EffectKey key,
-                                  const char* vertexCoords,
                                   const char* outputColor,
                                   const char* inputColor,
+                                  const TransformedCoordsArray& coords,
                                   const TextureSamplerArray& samplers) {
-    this->emitYCoordUniform(builder);
-    const char* coords;
-    this->setupMatrix(builder, key, vertexCoords, &coords);
-    SkString t;
-    t.append(coords);
+    this->emitUniforms(builder, key);
+    SkString t = builder->ensureFSCoords2D(coords, 0);
     t.append(".x");
-    this->emitColorLookup(builder, t.c_str(), outputColor, inputColor, samplers[0]);
+    this->emitColor(builder, t.c_str(), key, outputColor, inputColor, samplers);
 }
 
 /////////////////////////////////////////////////////////////////////

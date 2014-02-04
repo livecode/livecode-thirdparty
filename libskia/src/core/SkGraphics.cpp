@@ -19,7 +19,6 @@
 #include "SkPath.h"
 #include "SkPathEffect.h"
 #include "SkPixelRef.h"
-#include "SkRandom.h"
 #include "SkRefCnt.h"
 #include "SkRTConf.h"
 #include "SkScalerContext.h"
@@ -60,7 +59,6 @@ void SkGraphics::Init() {
     skRTConfRegistry().printNonDefault( );
 #endif
 
-    SkFlattenable::InitializeFlattenables();
 #ifdef BUILD_EMBOSS_TABLE
     SkEmbossMask_BuildTable();
 #endif
@@ -130,6 +128,7 @@ void SkGraphics::Init() {
 void SkGraphics::Term() {
     PurgeFontCache();
     SkPaint::Term();
+    SkXfermode::Term();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

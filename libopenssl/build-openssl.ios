@@ -27,10 +27,15 @@ fi
 if [ -e "$PLATFORMS_DIR/Xcode_4_6_0" ]; then
 	BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneSimulator,6.1,i386"
 fi
-BUILDS+=" Xcode_4_2_0,iPhoneOS,5.0,armv6|armv7"
-BUILDS+=" Xcode_4_3_1/Xcode.app/Contents/Developer,iPhoneOS,5.1,armv6|armv7"
+if [ -e "$PLATFORMS_DIR/Xcode_5_0_0" ]; then
+	BUILDS+=" Xcode_5_0_0/Xcode.app/Contents/Developer,iPhoneSimulator,7.0,i386"
+fi
+BUILDS+=" Xcode_4_2_0,iPhoneOS,5.0,armv7"
 if [ -e "$PLATFORMS_DIR/Xcode_4_6_0" ]; then
 	BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneOS,6.1,armv7"
+fi
+if [ -e "$PLATFORMS_DIR/Xcode_5_0_0" ]; then
+	BUILDS+=" Xcode_5_0_0/Xcode.app/Contents/Developer,iPhoneOS,7.0,armv7"
 fi
 
 ################################################################################
@@ -45,7 +50,8 @@ cd $ROOT_DIR
 
 if [ ! -e $OPENSSL_TGZ ]; then
 	echo "Fetching openssl-$OPENSSL_VERSION"
-	wget -nv http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+	#wget -nv http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+	curl http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz -o openssl-$OPENSSL_VERSION.tar.gz
 	if [ $? == 0 ]; then
 		echo "  fetched to $OPENSSL_TGZ"
 	else

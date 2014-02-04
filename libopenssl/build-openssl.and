@@ -10,6 +10,7 @@ INSTALL_DIR=$ROOT_DIR/prefix
 NDK=`pwd`/../../sdks/android-ndk
 TOOLCHAIN="$NDK/toolchains/arm-linux-androideabi-4.4.3/prebuilt/darwin-x86/bin/arm-linux-androideabi"
 PLATFORM="$NDK/platforms/android-8"
+THIS_DIR=`pwd`
 
 OPENSSL_VERSION=1.0.1e
 
@@ -19,7 +20,7 @@ mkdir -p $ROOT_DIR
 echo "Will install into $INSTALL_DIR"
 mkdir -p $INSTALL_DIR
 
-ARCHS="armv6 armv7"
+ARCHS="armv6"
 
 ################################################################################
 #
@@ -33,7 +34,8 @@ cd $ROOT_DIR
 
 if [ ! -e $OPENSSL_TGZ ]; then
 	echo "Fetching openssl-$OPENSSL_VERSION"
-	wget -nv http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+	#wget -nv http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
+	curl http://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz -o openssl-$OPENSSL_VERSION.tar.gz
 	if [ $? == 0 ]; then
 		echo "  fetched to $OPENSSL_TGZ"
 	else
@@ -93,6 +95,8 @@ do
 		export LDFLAGS=" ${ARCH_LINK} "
 		./Configure $OPENSSL_ARCH_CONFIG > "${OPENSSL_ARCH_LOG}" 2>&1
 		
+		sed -i "" "s|MAKEDEPPROG=makedepend|MAKEDEPPROG=$TOOLCHAIN-gcc -M|g" Makefile Makefile.org
+
 		echo "Building openssl-$OPENSSL_VERSION for $ARCH"
 		export ANDROID_DEV="$PLATFORM/arch-arm/usr"
 		make clean >> "${OPENSSL_ARCH_LOG}" 2>&1 && make depend  >> "${OPENSSL_ARCH_LOG}" 2>&1 && make >> "${OPENSSL_ARCH_LOG}" 2>&1 && make install_sw >> "${OPENSSL_ARCH_LOG}" 2>&1
@@ -101,10 +105,19 @@ do
 		else
 			echo "  failed"
 			exit
-		fi
-		
+		fi		
+
 		cd ..
 	else
 		echo "Found build of openssl-$OPENSSL_VERSION for $ARCH"
 	fi
+
+	CRYPTO_LIBS+="$INSTALL_DIR/android/$ARCH/lib/libcrypto.a "
+	SSL_LIBS+="$INSTALL_DIR/android/$ARCH/lib/libssl.a "
 done
+
+echo "Creating prebuilts"
+mkdir -p "$THIS_DIR/../../prebuilt/lib/android"
+cp $CRYPTO_LIBS "$THIS_DIR/../../prebuilt/lib/android/libcustomcrypto.a"
+cp $SSL_LIBS "$THIS_DIR/../../prebuilt/lib/android/libcustomssl.a"
+

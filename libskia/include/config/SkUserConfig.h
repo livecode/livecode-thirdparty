@@ -201,8 +201,8 @@
  */
 //#define SK_PDF_USE_PATHOPS
 
-#if defined(SK_BUILD_FOR_MAC) && !defined(SK_CPU_BENDIAN)
-    // MM-2013-02-14: Fiddled with byte order.
+#if defined(SK_BUILD_FOR_UNIX) || (defined(SK_BUILD_FOR_MAC) && !defined(SK_CPU_BENDIAN))
+    // MM-2014-02-05: [[ RefactorGraphics ]] Fiddled with byte order.
     #define SK_R32_SHIFT    16
     #define SK_G32_SHIFT    8
     #define SK_B32_SHIFT    0

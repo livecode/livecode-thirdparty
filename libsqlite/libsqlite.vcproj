@@ -39,7 +39,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="SQLITE_ENABLE_FTS3;SQLITE_ENABLE_FTS4;SQLITE_ENABLE_FTS3_PARANTHESIS;SQLITE_ENABLE_RTREE"
+				PreprocessorDefinitions="SQLITE_ENABLE_FTS3;SQLITE_ENABLE_FTS4;SQLITE_ENABLE_FTS3_PARENTHESIS;SQLITE_ENABLE_RTREE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				UsePrecompiledHeader="0"
@@ -98,7 +98,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="SQLITE_ENABLE_FTS3;SQLITE_ENABLE_FTS4;SQLITE_ENABLE_FTS3_PARANTHESIS;SQLITE_ENABLE_RTREE"
+				PreprocessorDefinitions="SQLITE_ENABLE_FTS3;SQLITE_ENABLE_FTS4;SQLITE_ENABLE_FTS3_PARENTHESIS;SQLITE_ENABLE_RTREE"
 				UsePrecompiledHeader="0"
 				DebugInformationFormat="3"
 			/>

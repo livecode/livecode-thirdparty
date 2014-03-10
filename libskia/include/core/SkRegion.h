@@ -86,6 +86,16 @@ public:
     const SkIRect& getBounds() const { return fBounds; }
 
     /**
+     *  Returns a value that grows approximately linearly with the number of
+     *  intervals comprised in the region. Empty region will return 0, Rect
+     *  will return 1, Complex will return a value > 1.
+     *
+     *  Use this to compare two regions, where the larger count likely
+     *  indicates a more complex region.
+     */
+    int computeRegionComplexity() const;
+
+    /**
      *  Returns true if the region is non-empty, and if so, appends the
      *  boundary(s) of the region to the specified path.
      *  If the region is empty, returns false, and path is left unmodified.
@@ -351,13 +361,16 @@ public:
      *  Write the region to the buffer, and return the number of bytes written.
      *  If buffer is NULL, it still returns the number of bytes.
      */
-    uint32_t writeToMemory(void* buffer) const;
-
+    size_t writeToMemory(void* buffer) const;
     /**
-     *  Initialized the region from the buffer, returning the number
-     *  of bytes actually read.
+     * Initializes the region from the buffer
+     *
+     * @param buffer Memory to read from
+     * @param length Amount of memory available in the buffer
+     * @return number of bytes read (must be a multiple of 4) or
+     *         0 if there was not enough memory available
      */
-    uint32_t readFromMemory(const void* buffer);
+    size_t readFromMemory(const void* buffer, size_t length);
 
     /**
      *  Returns a reference to a global empty region. Just a convenience for

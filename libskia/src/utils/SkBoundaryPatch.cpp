@@ -7,8 +7,6 @@
  */
 #include "SkBoundaryPatch.h"
 
-SK_DEFINE_INST_COUNT(SkBoundary)
-
 SkBoundaryPatch::SkBoundaryPatch() : fBoundary(NULL) {}
 
 SkBoundaryPatch::~SkBoundaryPatch() {
@@ -79,4 +77,3 @@ SkPoint SkCubicBoundary::eval(Edge e, SkScalar t) {
     SkEvalCubicAt(&fPts[e * 3], t, &loc, NULL, NULL);
     return loc;
 }
-

@@ -8,9 +8,12 @@
 #ifndef SkArithmeticMode_DEFINED
 #define SkArithmeticMode_DEFINED
 
-#include "SkXfermode.h"
+#include "SkFlattenable.h"
+#include "SkScalar.h"
 
-class SK_API SkArithmeticMode : public SkXfermode {
+class SkXfermode;
+
+class SK_API SkArithmeticMode {
 public:
     /**
      *  result = clamp[k1 * src * dst + k2 * src + k3 * dst + k4]
@@ -25,8 +28,10 @@ public:
     static SkXfermode* Create(SkScalar k1, SkScalar k2,
                               SkScalar k3, SkScalar k4);
 
+    SK_DECLARE_FLATTENABLE_REGISTRAR_GROUP();
+
 private:
-    typedef SkXfermode INHERITED;    
+    SkArithmeticMode(); // can't be instantiated
 };
 
 #endif

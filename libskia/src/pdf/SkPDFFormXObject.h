@@ -12,7 +12,9 @@
 
 #include "SkPDFStream.h"
 #include "SkPDFTypes.h"
+#include "SkRect.h"
 #include "SkRefCnt.h"
+#include "SkPDFResourceDict.h"
 #include "SkString.h"
 
 class SkMatrix;
@@ -36,13 +38,24 @@ public:
      *  @param device      The set of graphical elements on this form.
      */
     explicit SkPDFFormXObject(SkPDFDevice* device);
+    /**
+     * Create a PDF form XObject from a raw content stream and associated
+     * resources.
+     */
+    explicit SkPDFFormXObject(SkStream* content,
+                              SkRect bbox,
+                              SkPDFResourceDict* resourceDict);
     virtual ~SkPDFFormXObject();
 
     // The SkPDFObject interface.
-    virtual void getResources(SkTDArray<SkPDFObject*>* resourceList);
+    virtual void getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                              SkTSet<SkPDFObject*>* newResourceObjects);
 
 private:
-    SkTDArray<SkPDFObject*> fResources;
+    void init(const char* colorSpace,
+              SkPDFDict* resourceDict, SkPDFArray* bbox);
+
+    SkTSet<SkPDFObject*> fResources;
 };
 
 #endif

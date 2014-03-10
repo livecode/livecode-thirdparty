@@ -55,7 +55,8 @@ public:
      * can provide an optional aspect ratio parameter. This allows the bulk-load algorithm to create
      * better proportioned tiles of rectangles.
      */
-    static SkRTree* Create(int minChildren, int maxChildren, SkScalar aspectRatio = 1);
+    static SkRTree* Create(int minChildren, int maxChildren, SkScalar aspectRatio = 1,
+            bool orderWhenBulkLoading = true);
     virtual ~SkRTree();
 
     /**
@@ -86,6 +87,8 @@ public:
      * This gets the insertion count (rather than the node count)
      */
     virtual int getCount() const { return fCount; }
+
+    virtual void rewindInserts() SK_OVERRIDE;
 
 private:
 
@@ -119,21 +122,30 @@ private:
     typedef int32_t SkIRect::*SortSide;
 
     // Helper for sorting our children arrays by sides of their rects
-    static bool RectLessThan(SortSide const& side, const Branch lhs, const Branch rhs) {
-        return lhs.fBounds.*side < rhs.fBounds.*side;
-    }
+    struct RectLessThan {
+        RectLessThan(SkRTree::SortSide side) : fSide(side) { }
+        bool operator()(const SkRTree::Branch lhs, const SkRTree::Branch rhs) const {
+            return lhs.fBounds.*fSide < rhs.fBounds.*fSide;
+        }
+    private:
+        const SkRTree::SortSide fSide;
+    };
 
-    static bool RectLessX(int&, const Branch lhs, const Branch rhs) {
-        return ((lhs.fBounds.fRight - lhs.fBounds.fLeft) >> 1) <
-               ((rhs.fBounds.fRight - lhs.fBounds.fLeft) >> 1);
-    }
+    struct RectLessX {
+        bool operator()(const SkRTree::Branch lhs, const SkRTree::Branch rhs) {
+            return ((lhs.fBounds.fRight - lhs.fBounds.fLeft) >> 1) <
+                   ((rhs.fBounds.fRight - lhs.fBounds.fLeft) >> 1);
+        }
+    };
 
-    static bool RectLessY(int&, const Branch lhs, const Branch rhs) {
-        return ((lhs.fBounds.fBottom - lhs.fBounds.fTop) >> 1) <
-               ((rhs.fBounds.fBottom - lhs.fBounds.fTop) >> 1);
-    }
+    struct RectLessY {
+        bool operator()(const SkRTree::Branch lhs, const SkRTree::Branch rhs) {
+            return ((lhs.fBounds.fBottom - lhs.fBounds.fTop) >> 1) <
+                   ((rhs.fBounds.fBottom - lhs.fBounds.fTop) >> 1);
+        }
+    };
 
-    SkRTree(int minChildren, int maxChildren, SkScalar aspectRatio);
+    SkRTree(int minChildren, int maxChildren, SkScalar aspectRatio, bool orderWhenBulkLoading);
 
     /**
      * Recursively descend the tree to find an insertion position for 'branch', updates
@@ -167,12 +179,13 @@ private:
     const size_t fNodeSize;
 
     // This is the count of data elements (rather than total nodes in the tree)
-    size_t fCount;
+    int fCount;
 
     Branch fRoot;
     SkChunkAlloc fNodes;
     SkTDArray<Branch> fDeferredInserts;
     SkScalar fAspectRatio;
+    bool fSortWhenBulkLoading;
 
     Node* allocateNode(uint16_t level);
 
@@ -180,4 +193,3 @@ private:
 };
 
 #endif
-

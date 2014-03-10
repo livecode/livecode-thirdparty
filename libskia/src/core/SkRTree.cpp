@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2012 Google Inc.
  *
@@ -12,30 +11,29 @@
 static inline uint32_t get_area(const SkIRect& rect);
 static inline uint32_t get_overlap(const SkIRect& rect1, const SkIRect& rect2);
 static inline uint32_t get_margin(const SkIRect& rect);
-static inline uint32_t get_overlap_increase(const SkIRect& rect1, const SkIRect& rect2,
-                                            SkIRect expandBy);
 static inline uint32_t get_area_increase(const SkIRect& rect1, SkIRect rect2);
 static inline void join_no_empty_check(const SkIRect& joinWith, SkIRect* out);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-SK_DEFINE_INST_COUNT(SkRTree)
-
-SkRTree* SkRTree::Create(int minChildren, int maxChildren, SkScalar aspectRatio) {
+SkRTree* SkRTree::Create(int minChildren, int maxChildren, SkScalar aspectRatio,
+            bool sortWhenBulkLoading) {
     if (minChildren < maxChildren && (maxChildren + 1) / 2 >= minChildren &&
         minChildren > 0 && maxChildren < static_cast<int>(SK_MaxU16)) {
-        return new SkRTree(minChildren, maxChildren, aspectRatio);
+        return new SkRTree(minChildren, maxChildren, aspectRatio, sortWhenBulkLoading);
     }
     return NULL;
 }
 
-SkRTree::SkRTree(int minChildren, int maxChildren, SkScalar aspectRatio)
+SkRTree::SkRTree(int minChildren, int maxChildren, SkScalar aspectRatio,
+        bool sortWhenBulkLoading)
     : fMinChildren(minChildren)
     , fMaxChildren(maxChildren)
     , fNodeSize(sizeof(Node) + sizeof(Branch) * maxChildren)
     , fCount(0)
     , fNodes(fNodeSize * 256)
-    , fAspectRatio(aspectRatio) {
+    , fAspectRatio(aspectRatio)
+    , fSortWhenBulkLoading(sortWhenBulkLoading) {
     SkASSERT(minChildren < maxChildren && minChildren > 0 && maxChildren <
              static_cast<int>(SK_MaxU16));
     SkASSERT((maxChildren + 1) / 2 >= minChildren);
@@ -261,8 +259,7 @@ int SkRTree::distributeChildren(Branch* children) {
 
         // Evaluate each sort
         for (int j = 0; j < 2; ++j) {
-
-            SkQSort(sorts[i][j], children, children + fMaxChildren, &RectLessThan);
+            SkTQSort(children, children + fMaxChildren, RectLessThan(sorts[i][j]));
 
             // Evaluate each split index
             for (int32_t k = 1; k <= fMaxChildren - 2 * fMinChildren + 2; ++k) {
@@ -299,7 +296,7 @@ int SkRTree::distributeChildren(Branch* children) {
     // replicate the sort of the winning distribution, (we can skip this if the last
     // sort ended up being best)
     if (!(axis == 1 && sortSide == 1)) {
-        SkQSort(sorts[axis][sortSide], children, children + fMaxChildren, &RectLessThan);
+        SkTQSort(children, children + fMaxChildren, RectLessThan(sorts[axis][sortSide]));
     }
 
     return fMinChildren - 1 + k;
@@ -324,8 +321,14 @@ SkRTree::Branch SkRTree::bulkLoad(SkTDArray<Branch>* branches, int level) {
         branches->rewind();
         return out;
     } else {
-        // First we sort the whole list by y coordinates
-        SkQSort<int, Branch>(level, branches->begin(), branches->end() - 1, &RectLessY);
+        // We sort the whole list by y coordinates, if we are told to do so.
+        //
+        // We expect Webkit / Blink to give us a reasonable x,y order.
+        // Avoiding this call resulted in a 17% win for recording with
+        // negligible difference in playback speed.
+        if (fSortWhenBulkLoading) {
+            SkTQSort(branches->begin(), branches->end() - 1, RectLessY());
+        }
 
         int numBranches = branches->count() / fMaxChildren;
         int remainder = branches->count() % fMaxChildren;
@@ -342,23 +345,25 @@ SkRTree::Branch SkRTree::bulkLoad(SkTDArray<Branch>* branches, int level) {
             }
         }
 
-        int numStrips = SkScalarCeil(SkScalarSqrt(SkIntToScalar(numBranches) *
+        int numStrips = SkScalarCeilToInt(SkScalarSqrt(SkIntToScalar(numBranches) *
                                      SkScalarInvert(fAspectRatio)));
-        int numTiles = SkScalarCeil(SkIntToScalar(numBranches) /
+        int numTiles = SkScalarCeilToInt(SkIntToScalar(numBranches) /
                                     SkIntToScalar(numStrips));
         int currentBranch = 0;
 
         for (int i = 0; i < numStrips; ++i) {
-            int begin = currentBranch;
-            int end = currentBranch + numTiles * fMaxChildren - SkMin32(remainder,
-                      (fMaxChildren - fMinChildren) * numTiles);
-            if (end > branches->count()) {
-                end = branches->count();
-            }
+            // Once again, if we are told to do so, we sort by x.
+            if (fSortWhenBulkLoading) {
+                int begin = currentBranch;
+                int end = currentBranch + numTiles * fMaxChildren - SkMin32(remainder,
+                        (fMaxChildren - fMinChildren) * numTiles);
+                if (end > branches->count()) {
+                    end = branches->count();
+                }
 
-            // Now we sort horizontal strips of rectangles by their x coords
-            SkQSort<int, Branch>(level, branches->begin() + begin, branches->begin() + end - 1,
-                                 &RectLessX);
+                // Now we sort horizontal strips of rectangles by their x coords
+                SkTQSort(branches->begin() + begin, branches->begin() + end - 1, RectLessX());
+            }
 
             for (int j = 0; j < numTiles && currentBranch < branches->count(); ++j) {
                 int incrementBy = fMaxChildren;
@@ -399,7 +404,7 @@ void SkRTree::validate() {
     if (this->isEmpty()) {
         return;
     }
-    SkASSERT(fCount == (size_t)this->validateSubtree(fRoot.fChild.subtree, fRoot.fBounds, true));
+    SkASSERT(fCount == this->validateSubtree(fRoot.fChild.subtree, fRoot.fBounds, true));
 #endif
 }
 
@@ -436,6 +441,14 @@ int SkRTree::validateSubtree(Node* root, SkIRect bounds, bool isRoot) {
     }
 }
 
+void SkRTree::rewindInserts() {
+    SkASSERT(this->isEmpty()); // Currently only supports deferred inserts
+    while (!fDeferredInserts.isEmpty() &&
+           fClient->shouldRewind(fDeferredInserts.top().fChild.data)) {
+        fDeferredInserts.pop();
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 static inline uint32_t get_area(const SkIRect& rect) {
@@ -453,12 +466,6 @@ static inline uint32_t get_margin(const SkIRect& rect) {
     return 2 * (rect.width() + rect.height());
 }
 
-static inline uint32_t get_overlap_increase(const SkIRect& rect1, const SkIRect& rect2,
-                                          SkIRect expandBy) {
-    join_no_empty_check(rect1, &expandBy);
-    return get_overlap(expandBy, rect2) - get_overlap(rect1, rect2);
-}
-
 static inline uint32_t get_area_increase(const SkIRect& rect1, SkIRect rect2) {
     join_no_empty_check(rect1, &rect2);
     return get_area(rect2) - get_area(rect1);
@@ -473,4 +480,3 @@ static inline void join_no_empty_check(const SkIRect& joinWith, SkIRect* out) {
     if (joinWith.fRight > out->fRight) { out->fRight = joinWith.fRight; }
     if (joinWith.fBottom > out->fBottom) { out->fBottom = joinWith.fBottom; }
 }
-

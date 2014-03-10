@@ -11,9 +11,11 @@
 
 #include "GrTypes.h"
 #include "GrResource.h"
+#include "SkRect.h"
 
 class GrTexture;
 class GrRenderTarget;
+struct SkImageInfo;
 
 class GrSurface : public GrResource {
 public:
@@ -34,19 +36,14 @@ public:
     int height() const { return fDesc.fHeight; }
 
     /**
-     * Some surfaces will be stored such that the upper and left edges of the content meet at the
-     * the origin (in texture coord space) and for other surfaces the lower and left edges meet at
-     * the origin. Render-targets are always consistent with the convention of the underlying
-     * backend API to make it easier to mix native backend rendering with Skia rendering. Wrapped
-     * backend surfaces always use the backend's convention as well.
+     * Helper that gets the width and height of the surface as a bounding rectangle.
      */
-    enum Origin {
-        kTopLeft_Origin,
-        kBottomLeft_Origin,
-    };
-    Origin origin() const {
-        GrAssert(kTopLeft_Origin == fOrigin || kBottomLeft_Origin == fOrigin);
-        return fOrigin;
+    void getBoundsRect(SkRect* rect) const { rect->setWH(SkIntToScalar(this->width()),
+                                                         SkIntToScalar(this->height())); }
+
+    GrSurfaceOrigin origin() const {
+        SkASSERT(kTopLeft_GrSurfaceOrigin == fDesc.fOrigin || kBottomLeft_GrSurfaceOrigin == fDesc.fOrigin);
+        return fDesc.fOrigin;
     }
 
     /**
@@ -62,6 +59,8 @@ public:
      */
     const GrTextureDesc& desc() const { return fDesc; }
 
+    void asImageInfo(SkImageInfo*) const;
+
     /**
      * @return the texture associated with the surface, may be NULL.
      */
@@ -73,6 +72,22 @@ public:
      */
     virtual GrRenderTarget* asRenderTarget() = 0;
     virtual const GrRenderTarget* asRenderTarget() const = 0;
+
+    /**
+     * Checks whether this GrSurface refers to the same GPU object as other. This
+     * catches the case where a GrTexture and GrRenderTarget refer to the same
+     * GPU memory.
+     */
+    bool isSameAs(const GrSurface* other) const {
+        const GrRenderTarget* thisRT = this->asRenderTarget();
+        if (NULL != thisRT) {
+            return thisRT == other->asRenderTarget();
+        } else {
+            const GrTexture* thisTex = this->asTexture();
+            SkASSERT(NULL != thisTex); // We must be one or the other
+            return thisTex == other->asTexture();
+        }
+    }
 
     /**
      * Reads a rectangle of pixels from the surface.
@@ -114,18 +129,21 @@ public:
                              size_t rowBytes = 0,
                              uint32_t pixelOpsFlags = 0) = 0;
 
+    /**
+     * Write the contents of the surface to a PNG. Returns true if successful.
+     * @param filename      Full path to desired file
+     */
+    bool savePixels(const char* filename);
+
 protected:
-    GrSurface(GrGpu* gpu, const GrTextureDesc& desc, Origin origin)
-    : INHERITED(gpu)
-    , fDesc(desc)
-    , fOrigin(origin) {
+    GrSurface(GrGpu* gpu, bool isWrapped, const GrTextureDesc& desc)
+    : INHERITED(gpu, isWrapped)
+    , fDesc(desc) {
     }
 
     GrTextureDesc fDesc;
 
 private:
-    Origin fOrigin;
-
     typedef GrResource INHERITED;
 };
 

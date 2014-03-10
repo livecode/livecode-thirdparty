@@ -43,8 +43,7 @@ public:
     bool mustRenderClip(int32_t clipStackGenID,
                         const SkIRect& clipSpaceRect,
                         const SkIPoint clipSpaceToStencilOffset) const {
-        return SkClipStack::kInvalidGenID == clipStackGenID ||
-               fLastClipStackGenID != clipStackGenID ||
+        return fLastClipStackGenID != clipStackGenID ||
                fLastClipSpaceOffset != clipSpaceToStencilOffset ||
                !fLastClipStackRect.contains(clipSpaceRect);
     }
@@ -55,8 +54,8 @@ public:
     static GrResourceKey ComputeKey(int width, int height, int sampleCnt);
 
 protected:
-    GrStencilBuffer(GrGpu* gpu, int width, int height, int bits, int sampleCnt)
-        : GrResource(gpu)
+    GrStencilBuffer(GrGpu* gpu, bool isWrapped, int width, int height, int bits, int sampleCnt)
+        : GrResource(gpu, isWrapped)
         , fWidth(width)
         , fHeight(height)
         , fBits(bits)

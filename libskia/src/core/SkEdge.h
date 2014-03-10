@@ -14,14 +14,8 @@
 #include "SkFDot6.h"
 #include "SkMath.h"
 
-//#ifdef SK_IGNORE_SETLINE_FIX
-#if 1
-    #define SkEdge_Compute_DY(top, y0)  ((32 - (y0)) & 63)
-#else
-    // This is correct, as it favors the lower-pixel when y0 is on a 1/2 pixel
-    // boundary, returning 64 instead of the old code, which returns 0.
-    #define SkEdge_Compute_DY(top, y0)  ((top << 6) + 32 - (y0))
-#endif
+// This correctly favors the lower-pixel when y0 is on a 1/2 pixel boundary
+#define SkEdge_Compute_DY(top, y0)  ((top << 6) + 32 - (y0))
 
 struct SkEdge {
     enum Type {
@@ -95,19 +89,11 @@ int SkEdge::setLine(const SkPoint& p0, const SkPoint& p1, int shift) {
     SkFDot6 x0, y0, x1, y1;
 
     {
-#ifdef SK_SCALAR_IS_FLOAT
         float scale = float(1 << (shift + 6));
         x0 = int(p0.fX * scale);
         y0 = int(p0.fY * scale);
         x1 = int(p1.fX * scale);
         y1 = int(p1.fY * scale);
-#else
-        shift = 10 - shift;
-        x0 = p0.fX >> shift;
-        y0 = p0.fY >> shift;
-        x1 = p1.fX >> shift;
-        y1 = p1.fY >> shift;
-#endif
     }
 
     int winding = 1;

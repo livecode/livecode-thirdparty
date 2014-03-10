@@ -5,13 +5,11 @@
  * found in the LICENSE file.
  */
 
+#include "SkImageDecoder.h"
 #include "SkImage_Base.h"
 #include "SkBitmap.h"
 #include "SkCanvas.h"
 #include "SkData.h"
-//#include "../images/SkImageDecoder.h"
-#include "SkImageDecoder.h"
-
 
 class SkImage_Codec : public SkImage_Base {
 public:
@@ -21,6 +19,7 @@ public:
     virtual ~SkImage_Codec();
 
     virtual void onDraw(SkCanvas*, SkScalar, SkScalar, const SkPaint*) SK_OVERRIDE;
+    virtual void onDrawRectToRect(SkCanvas*, const SkRect*, const SkRect&, const SkPaint*) SK_OVERRIDE;
 
 private:
     SkData*     fEncodedData;
@@ -50,6 +49,17 @@ void SkImage_Codec::onDraw(SkCanvas* canvas, SkScalar x, SkScalar y, const SkPai
     canvas->drawBitmap(fBitmap, x, y, paint);
 }
 
+void SkImage_Codec::onDrawRectToRect(SkCanvas* canvas, const SkRect* src,
+                                     const SkRect& dst, const SkPaint* paint) {
+    if (!fBitmap.pixelRef()) {
+        if (!SkImageDecoder::DecodeMemory(fEncodedData->bytes(), fEncodedData->size(),
+                                          &fBitmap)) {
+            return;
+        }
+    }
+    canvas->drawBitmapRectToRect(fBitmap, src, dst, paint);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 SkImage* SkImage::NewEncodedData(SkData* data) {
@@ -66,4 +76,3 @@ SkImage* SkImage::NewEncodedData(SkData* data) {
 
     return SkNEW_ARGS(SkImage_Codec, (data, bitmap.width(), bitmap.height()));
 }
-

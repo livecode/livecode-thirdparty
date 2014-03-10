@@ -36,9 +36,11 @@ private:
 
 #define kMaxInt32   0x7FFFFFFF
 
+#ifdef SK_DEBUG
 static inline bool x_in_rect(int x, const SkIRect& rect) {
     return (unsigned)(x - rect.fLeft) < (unsigned)rect.width();
 }
+#endif
 
 static inline bool y_in_rect(int y, const SkIRect& rect) {
     return (unsigned)(y - rect.fTop) < (unsigned)rect.height();
@@ -56,7 +58,7 @@ struct SkAAClip::YOffset {
 struct SkAAClip::RunHead {
     int32_t fRefCnt;
     int32_t fRowCount;
-    int32_t fDataSize;
+    size_t  fDataSize;
 
     YOffset* yoffsets() {
         return (YOffset*)((char*)this + sizeof(RunHead));
@@ -135,6 +137,7 @@ SkAAClip::Iter::Iter(const SkAAClip& clip) {
         fDone = true;
         fTop = fBottom = clip.fBounds.fBottom;
         fData = NULL;
+        fCurrYOff = NULL;
         fStopYOff = NULL;
         return;
     }
@@ -193,7 +196,6 @@ void SkAAClip::validate() const {
     const RunHead* head = fRunHead;
     SkASSERT(head->fRefCnt > 0);
     SkASSERT(head->fRowCount > 0);
-    SkASSERT(head->fDataSize > 0);
 
     const YOffset* yoff = head->yoffsets();
     const YOffset* ystop = yoff + head->fRowCount;
@@ -210,7 +212,7 @@ void SkAAClip::validate() const {
         prevOffset = yoff->fOffset;
         const uint8_t* row = head->data() + yoff->fOffset;
         size_t rowLength = compute_row_length(row, fBounds.width());
-        SkASSERT(yoff->fOffset + rowLength <= (size_t) head->fDataSize);
+        SkASSERT(yoff->fOffset + rowLength <= head->fDataSize);
         yoff += 1;
     }
     // check the last entry;
@@ -1381,17 +1383,6 @@ static AlphaProc find_alpha_proc(SkRegion::Op op) {
     }
 }
 
-static const uint8_t gEmptyRow[] = {
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-    0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0, 0xFF, 0,
-};
-
 class RowIter {
 public:
     RowIter(const uint8_t* row, const SkIRect& bounds) {
@@ -2176,4 +2167,3 @@ void SkAAClipBlitter::blitMask(const SkMask& origMask, const SkIRect& clip) {
 const SkBitmap* SkAAClipBlitter::justAnOpaqueColor(uint32_t* value) {
     return NULL;
 }
-

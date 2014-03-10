@@ -269,36 +269,90 @@ static inline SkPMColor SkFourByteInterp(SkPMColor src, SkPMColor dst,
 }
 
 /**
- * 32b optimized version; currently appears to be 10% faster even on 64b
- * architectures than an equivalent 64b version and 30% faster than
- * SkFourByteInterp(). Third parameter controls blending of the first two:
- *   (src, dst, 0) returns dst
- *   (src, dst, 0xFF) returns src
- * ** Does not match the results of SkFourByteInterp() because we use
- * a more accurate scale computation!
- * TODO: migrate Skia function to using an accurate 255->266 alpha
- * conversion.
+ * 0xAARRGGBB -> 0x00AA00GG, 0x00RR00BB
+ */
+static inline void SkSplay(uint32_t color, uint32_t* ag, uint32_t* rb) {
+    const uint32_t mask = 0x00FF00FF;
+    *ag = (color >> 8) & mask;
+    *rb = color & mask;
+}
+
+/**
+ * 0xAARRGGBB -> 0x00AA00GG00RR00BB
+ * (note, ARGB -> AGRB)
+ */
+static inline uint64_t SkSplay(uint32_t color) {
+    const uint32_t mask = 0x00FF00FF;
+    uint64_t agrb = (color >> 8) & mask;  // 0x0000000000AA00GG
+    agrb <<= 32;                          // 0x00AA00GG00000000
+    agrb |= color & mask;                 // 0x00AA00GG00RR00BB
+    return agrb;
+}
+
+/**
+ * 0xAAxxGGxx, 0xRRxxBBxx-> 0xAARRGGBB
+ */
+static inline uint32_t SkUnsplay(uint32_t ag, uint32_t rb) {
+    const uint32_t mask = 0xFF00FF00;
+    return (ag & mask) | ((rb & mask) >> 8);
+}
+
+/**
+ * 0xAAxxGGxxRRxxBBxx -> 0xAARRGGBB
+ * (note, AGRB -> ARGB)
+ */
+static inline uint32_t SkUnsplay(uint64_t agrb) {
+    const uint32_t mask = 0xFF00FF00;
+    return SkPMColor(
+        ((agrb & mask) >> 8) |   // 0x00RR00BB
+        ((agrb >> 32) & mask));  // 0xAARRGGBB
+}
+
+static inline SkPMColor SkFastFourByteInterp256_32(SkPMColor src, SkPMColor dst, unsigned scale) {
+    SkASSERT(scale <= 256);
+
+    // Two 8-bit blends per two 32-bit registers, with space to make sure the math doesn't collide.
+    uint32_t src_ag, src_rb, dst_ag, dst_rb;
+    SkSplay(src, &src_ag, &src_rb);
+    SkSplay(dst, &dst_ag, &dst_rb);
+
+    const uint32_t ret_ag = src_ag * scale + (256 - scale) * dst_ag;
+    const uint32_t ret_rb = src_rb * scale + (256 - scale) * dst_rb;
+
+    return SkUnsplay(ret_ag, ret_rb);
+}
+
+static inline SkPMColor SkFastFourByteInterp256_64(SkPMColor src, SkPMColor dst, unsigned scale) {
+    SkASSERT(scale <= 256);
+    // Four 8-bit blends in one 64-bit register, with space to make sure the math doesn't collide.
+    return SkUnsplay(SkSplay(src) * scale + (256-scale) * SkSplay(dst));
+}
+
+// TODO(mtklein): Replace slow versions with fast versions, using scale + (scale>>7) everywhere.
+
+/**
+ * Same as SkFourByteInterp256, but faster.
+ */
+static inline SkPMColor SkFastFourByteInterp256(SkPMColor src, SkPMColor dst, unsigned scale) {
+    // On a 64-bit machine, _64 is about 10% faster than _32, but ~40% slower on a 32-bit machine.
+    if (sizeof(void*) == 4) {
+        return SkFastFourByteInterp256_32(src, dst, scale);
+    } else {
+        return SkFastFourByteInterp256_64(src, dst, scale);
+    }
+}
+
+/**
+ * Nearly the same as SkFourByteInterp, but faster and a touch more accurate, due to better
+ * srcWeight scaling to [0, 256].
  */
 static inline SkPMColor SkFastFourByteInterp(SkPMColor src,
                                              SkPMColor dst,
                                              U8CPU srcWeight) {
-    SkASSERT(srcWeight < 256);
-
-    // Reorders ARGB to AG-RB in order to reduce the number of operations.
-    const uint32_t mask = 0xFF00FF;
-    uint32_t src_rb = src & mask;
-    uint32_t src_ag = (src >> 8) & mask;
-    uint32_t dst_rb = dst & mask;
-    uint32_t dst_ag = (dst >> 8) & mask;
-
+    SkASSERT(srcWeight <= 255);
     // scale = srcWeight + (srcWeight >> 7) is more accurate than
     // scale = srcWeight + 1, but 7% slower
-    int scale = srcWeight + (srcWeight >> 7);
-
-    uint32_t ret_rb = src_rb * scale + (256 - scale) * dst_rb;
-    uint32_t ret_ag = src_ag * scale + (256 - scale) * dst_ag;
-
-    return (ret_ag & ~mask) | ((ret_rb & ~mask) >> 8);
+    return SkFastFourByteInterp256(src, dst, srcWeight + (srcWeight >> 7));
 }
 
 /**
@@ -313,9 +367,9 @@ static inline SkPMColor SkPackARGB32NoCheck(U8CPU a, U8CPU r, U8CPU g, U8CPU b) 
 static inline
 SkPMColor SkPremultiplyARGBInline(U8CPU a, U8CPU r, U8CPU g, U8CPU b) {
     SkA32Assert(a);
-    SkA32Assert(r);
-    SkA32Assert(g);
-    SkA32Assert(b);
+    SkR32Assert(r);
+    SkG32Assert(g);
+    SkB32Assert(b);
 
     if (a != 255) {
         r = SkMulDiv255Round(r, a);
@@ -329,7 +383,6 @@ SK_API extern const uint32_t gMask_00FF00FF;
 
 static inline uint32_t SkAlphaMulQ(uint32_t c, unsigned scale) {
     uint32_t mask = gMask_00FF00FF;
-//    uint32_t mask = 0xFF00FF;
 
     uint32_t rb = ((c & mask) * scale) >> 8;
     uint32_t ag = ((c >> 8) & mask) * scale;
@@ -833,32 +886,31 @@ static inline SkPMColor SkBlendLCD16Opaque(int srcR, int srcG, int srcB,
                         SkBlend32(srcB, dstB, maskB));
 }
 
-static inline void SkBlitLCD16Row(SkPMColor dst[], const uint16_t src[],
-                                  SkColor color, int width, SkPMColor) {
-    int srcA = SkColorGetA(color);
-    int srcR = SkColorGetR(color);
-    int srcG = SkColorGetG(color);
-    int srcB = SkColorGetB(color);
+static inline void SkBlitLCD16Row(SkPMColor dst[], const uint16_t mask[],
+                                  SkColor src, int width, SkPMColor) {
+    int srcA = SkColorGetA(src);
+    int srcR = SkColorGetR(src);
+    int srcG = SkColorGetG(src);
+    int srcB = SkColorGetB(src);
 
     srcA = SkAlpha255To256(srcA);
 
     for (int i = 0; i < width; i++) {
-        dst[i] = SkBlendLCD16(srcA, srcR, srcG, srcB, dst[i], src[i]);
+        dst[i] = SkBlendLCD16(srcA, srcR, srcG, srcB, dst[i], mask[i]);
     }
 }
 
-static inline void SkBlitLCD16OpaqueRow(SkPMColor dst[], const uint16_t src[],
-                                        SkColor color, int width,
+static inline void SkBlitLCD16OpaqueRow(SkPMColor dst[], const uint16_t mask[],
+                                        SkColor src, int width,
                                         SkPMColor opaqueDst) {
-    int srcR = SkColorGetR(color);
-    int srcG = SkColorGetG(color);
-    int srcB = SkColorGetB(color);
+    int srcR = SkColorGetR(src);
+    int srcG = SkColorGetG(src);
+    int srcB = SkColorGetB(src);
 
     for (int i = 0; i < width; i++) {
-        dst[i] = SkBlendLCD16Opaque(srcR, srcG, srcB, dst[i], src[i],
+        dst[i] = SkBlendLCD16Opaque(srcR, srcG, srcB, dst[i], mask[i],
                                     opaqueDst);
     }
 }
 
 #endif
-

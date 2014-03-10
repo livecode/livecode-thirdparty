@@ -8,8 +8,8 @@
 #ifndef GrRenderTarget_DEFINED
 #define GrRenderTarget_DEFINED
 
-#include "GrRect.h"
 #include "GrSurface.h"
+#include "SkRect.h"
 
 class GrStencilBuffer;
 class GrTexture;
@@ -90,12 +90,12 @@ public:
      * @param rect  a rect bounding the area needing resolve. NULL indicates
      *              the whole RT needs resolving.
      */
-    void flagAsNeedingResolve(const GrIRect* rect = NULL);
+    void flagAsNeedingResolve(const SkIRect* rect = NULL);
 
     /**
      * Call to override the region that needs to be resolved.
      */
-    void overrideResolveRect(const GrIRect rect);
+    void overrideResolveRect(const SkIRect rect);
 
     /**
      * Call to indicate that GrRenderTarget was externally resolved. This may
@@ -111,7 +111,7 @@ public:
     /**
      * Returns a rect bounding the region needing resolving.
      */
-    const GrIRect& getResolveRect() const { return fResolveRect; }
+    const SkIRect& getResolveRect() const { return fResolveRect; }
 
     /**
      * If the render target is multisampled this will perform a multisample
@@ -139,24 +139,13 @@ public:
 
 protected:
     GrRenderTarget(GrGpu* gpu,
+                   bool isWrapped,
                    GrTexture* texture,
-                   const GrTextureDesc& desc,
-                   Origin origin)
-        : INHERITED(gpu, desc, origin)
+                   const GrTextureDesc& desc)
+        : INHERITED(gpu, isWrapped, desc)
         , fStencilBuffer(NULL)
         , fTexture(texture) {
         fResolveRect.setLargestInverted();
-    }
-
-    friend class GrTexture;
-    // When a texture unrefs an owned render target this func
-    // removes the back pointer. This could be called from
-    // texture's destructor but would have to be done in derived
-    // classes. By the time of texture base destructor it has already
-    // lost its pointer to the rt.
-    void onTextureReleaseRenderTarget() {
-        GrAssert(NULL != fTexture);
-        fTexture = NULL;
     }
 
     // override of GrResource
@@ -164,10 +153,17 @@ protected:
     virtual void onRelease() SK_OVERRIDE;
 
 private:
+    friend class GrTexture;
+    // called by ~GrTexture to remove the non-ref'ed back ptr.
+    void owningTextureDestroyed() {
+        SkASSERT(NULL != fTexture);
+        fTexture = NULL;
+    }
+
     GrStencilBuffer*  fStencilBuffer;
     GrTexture*        fTexture; // not ref'ed
 
-    GrIRect           fResolveRect;
+    SkIRect           fResolveRect;
 
     typedef GrSurface INHERITED;
 };

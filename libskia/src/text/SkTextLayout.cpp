@@ -7,8 +7,6 @@
  */
 #include "SkTextLayout.h"
 
-SK_DEFINE_INST_COUNT(SkTextStyle)
-
 SkTextStyle::SkTextStyle() {
     fPaint.setAntiAlias(true);
 }
@@ -78,4 +76,3 @@ SkTextLayout::Line::~Line() {
 
 void SkTextLayout::draw(SkCanvas* canvas) {
 }
-

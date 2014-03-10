@@ -7,7 +7,8 @@
 
 
 #include "GrGLUtil.h"
-
+#include "SkMatrix.h"
+#include <stdio.h>
 
 void GrGLClearErr(const GrGLInterface* gl) {
     while (GR_GL_NO_ERROR != gl->fGetError()) {}
@@ -49,6 +50,37 @@ void GrGLCheckErr(const GrGLInterface* gl,
     }
 }
 
+namespace {
+// Mesa uses a non-standard version string of format: 1.4 Mesa <mesa_major>.<mesa_minor>.
+// The mapping of from mesa version to GL version came from here: http://www.mesa3d.org/intro.html
+bool get_gl_version_for_mesa(int mesaMajorVersion, int* major, int* minor) {
+    switch (mesaMajorVersion) {
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+            *major = 1;
+            *minor = mesaMajorVersion - 1;
+            return true;
+        case 7:
+            *major = 2;
+            *minor = 1;
+            return true;
+        case 8:
+            *major = 3;
+            *minor = 0;
+            return true;
+        case 9:
+            *major = 3;
+            *minor = 1;
+            return true;
+        default:
+            return false;
+    }
+}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #if GR_GL_LOG_CALLS
@@ -63,7 +95,7 @@ void GrGLCheckErr(const GrGLInterface* gl,
 
 GrGLBinding GrGLGetBindingInUseFromString(const char* versionString) {
     if (NULL == versionString) {
-        GrAssert(!"NULL GL version string.");
+        SkDEBUGFAIL("NULL GL version string.");
         return kNone_GrGLBinding;
     }
 
@@ -77,8 +109,7 @@ GrGLBinding GrGLGetBindingInUseFromString(const char* versionString) {
 
     // check for ES 1
     char profile[2];
-    n = sscanf(versionString, "OpenGL ES-%c%c %d.%d", profile, profile+1,
-               &major, &minor);
+    n = sscanf(versionString, "OpenGL ES-%c%c %d.%d", profile, profile+1, &major, &minor);
     if (4 == n) {
         // we no longer support ES1.
         return kNone_GrGLBinding;
@@ -87,20 +118,41 @@ GrGLBinding GrGLGetBindingInUseFromString(const char* versionString) {
     // check for ES2
     n = sscanf(versionString, "OpenGL ES %d.%d", &major, &minor);
     if (2 == n) {
-        return kES2_GrGLBinding;
+        return kES_GrGLBinding;
     }
     return kNone_GrGLBinding;
 }
 
+bool GrGLIsMesaFromVersionString(const char* versionString) {
+    int major, minor, mesaMajor, mesaMinor;
+    int n = sscanf(versionString, "%d.%d Mesa %d.%d", &major, &minor, &mesaMajor, &mesaMinor);
+    return 4 == n;
+}
+
+bool GrGLIsChromiumFromRendererString(const char* rendererString) {
+    return 0 == strcmp(rendererString, "Chromium");
+}
+
 GrGLVersion GrGLGetVersionFromString(const char* versionString) {
     if (NULL == versionString) {
-        GrAssert(!"NULL GL version string.");
+        SkDEBUGFAIL("NULL GL version string.");
         return 0;
     }
 
     int major, minor;
 
-    int n = sscanf(versionString, "%d.%d", &major, &minor);
+    // check for mesa
+    int mesaMajor, mesaMinor;
+    int n = sscanf(versionString, "%d.%d Mesa %d.%d", &major, &minor, &mesaMajor, &mesaMinor);
+    if (4 == n) {
+        if (get_gl_version_for_mesa(mesaMajor, &major, &minor)) {
+            return GR_GL_VER(major, minor);
+        } else {
+            return 0;
+        }
+    }
+
+    n = sscanf(versionString, "%d.%d", &major, &minor);
     if (2 == n) {
         return GR_GL_VER(major, minor);
     }
@@ -122,7 +174,7 @@ GrGLVersion GrGLGetVersionFromString(const char* versionString) {
 
 GrGLSLVersion GrGLGetGLSLVersionFromString(const char* versionString) {
     if (NULL == versionString) {
-        GrAssert(!"NULL GLSL version string.");
+        SkDEBUGFAIL("NULL GLSL version string.");
         return 0;
     }
 
@@ -149,37 +201,31 @@ GrGLSLVersion GrGLGetGLSLVersionFromString(const char* versionString) {
     return 0;
 }
 
-bool GrGLHasExtensionFromString(const char* ext, const char* extensionString) {
-    int extLength = strlen(ext);
-
-    while (true) {
-        int n = strcspn(extensionString, " ");
-        if (n == extLength && 0 == strncmp(ext, extensionString, n)) {
-            return true;
-        }
-        if (0 == extensionString[n]) {
-            return false;
-        }
-        extensionString += n+1;
-    }
-
-    return false;
-}
-
 GrGLVendor GrGLGetVendorFromString(const char* vendorString) {
     if (NULL != vendorString) {
+        if (0 == strcmp(vendorString, "ARM")) {
+            return kARM_GrGLVendor;
+        }
+        if (0 == strcmp(vendorString, "Imagination Technologies")) {
+            return kImagination_GrGLVendor;
+        }
         if (0 == strcmp(vendorString, "Intel")) {
             return kIntel_GrGLVendor;
         }
+        if (0 == strcmp(vendorString, "Qualcomm")) {
+            return kQualcomm_GrGLVendor;
+        }
     }
-
     return kOther_GrGLVendor;
 }
 
-bool GrGLHasExtension(const GrGLInterface* gl, const char* ext) {
-    const GrGLubyte* glstr;
-    GR_GL_CALL_RET(gl, glstr, GetString(GR_GL_EXTENSIONS));
-    return GrGLHasExtensionFromString(ext, (const char*) glstr);
+GrGLRenderer GrGLGetRendererFromString(const char* rendererString) {
+    if (NULL != rendererString) {
+        if (0 == strcmp(rendererString, "NVIDIA Tegra 3")) {
+            return kTegra3_GrGLRenderer;
+        }
+    }
+    return kOther_GrGLRenderer;
 }
 
 GrGLBinding GrGLGetBindingInUse(const GrGLInterface* gl) {
@@ -206,3 +252,51 @@ GrGLVendor GrGLGetVendor(const GrGLInterface* gl) {
     return GrGLGetVendorFromString((const char*) v);
 }
 
+GrGLRenderer GrGLGetRenderer(const GrGLInterface* gl) {
+    const GrGLubyte* v;
+    GR_GL_CALL_RET(gl, v, GetString(GR_GL_RENDERER));
+    return GrGLGetRendererFromString((const char*) v);
+}
+
+template<> void GrGLGetMatrix<3>(GrGLfloat* dest, const SkMatrix& src) {
+    // Col 0
+    dest[0] = SkScalarToFloat(src[SkMatrix::kMScaleX]);
+    dest[1] = SkScalarToFloat(src[SkMatrix::kMSkewY]);
+    dest[2] = SkScalarToFloat(src[SkMatrix::kMPersp0]);
+
+    // Col 1
+    dest[3] = SkScalarToFloat(src[SkMatrix::kMSkewX]);
+    dest[4] = SkScalarToFloat(src[SkMatrix::kMScaleY]);
+    dest[5] = SkScalarToFloat(src[SkMatrix::kMPersp1]);
+
+    // Col 2
+    dest[6] = SkScalarToFloat(src[SkMatrix::kMTransX]);
+    dest[7] = SkScalarToFloat(src[SkMatrix::kMTransY]);
+    dest[8] = SkScalarToFloat(src[SkMatrix::kMPersp2]);
+}
+
+template<> void GrGLGetMatrix<4>(GrGLfloat* dest, const SkMatrix& src) {
+    // Col 0
+    dest[0]  = SkScalarToFloat(src[SkMatrix::kMScaleX]);
+    dest[1]  = SkScalarToFloat(src[SkMatrix::kMSkewY]);
+    dest[2]  = 0;
+    dest[3]  = SkScalarToFloat(src[SkMatrix::kMPersp0]);
+
+    // Col 1
+    dest[4]  = SkScalarToFloat(src[SkMatrix::kMSkewX]);
+    dest[5]  = SkScalarToFloat(src[SkMatrix::kMScaleY]);
+    dest[6]  = 0;
+    dest[7]  = SkScalarToFloat(src[SkMatrix::kMPersp1]);
+
+    // Col 2
+    dest[8]  = 0;
+    dest[9]  = 0;
+    dest[10] = 1;
+    dest[11] = 0;
+
+    // Col 3
+    dest[12] = SkScalarToFloat(src[SkMatrix::kMTransX]);
+    dest[13] = SkScalarToFloat(src[SkMatrix::kMTransY]);
+    dest[14] = 0;
+    dest[15] = SkScalarToFloat(src[SkMatrix::kMPersp2]);
+}

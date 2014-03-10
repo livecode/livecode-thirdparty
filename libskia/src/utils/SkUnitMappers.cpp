@@ -8,7 +8,6 @@
 #include "SkUnitMappers.h"
 #include "SkFlattenableBuffers.h"
 
-SK_DEFINE_INST_COUNT(SkUnitMapper)
 
 SkDiscreteMapper::SkDiscreteMapper(int segments) {
     if (segments < 2) {
@@ -19,7 +18,7 @@ SkDiscreteMapper::SkDiscreteMapper(int segments) {
             segments = 0xFFFF;
         }
         fSegments = segments;
-        fScale = SK_Fract1 / (segments - 1);
+        fScale = (1 << 30) / (segments - 1);
     }
 }
 

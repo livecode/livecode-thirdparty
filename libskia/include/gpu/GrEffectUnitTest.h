@@ -9,10 +9,11 @@
 #define GrEffectUnitTest_DEFINED
 
 #include "SkRandom.h"
-#include "GrNoncopyable.h"
 #include "SkTArray.h"
+#include "SkTypes.h"
 
 class SkMatrix;
+class GrDrawTargetCaps;
 
 namespace GrEffectUnitTest {
 // Used to access the dummy textures in TestCreate procs.
@@ -34,10 +35,13 @@ class GrContext;
 class GrEffectRef;
 class GrTexture;
 
-class GrEffectTestFactory : GrNoncopyable {
+class GrEffectTestFactory : public SkNoncopyable {
 public:
 
-    typedef GrEffectRef* (*CreateProc)(SkRandom*, GrContext*, GrTexture* dummyTextures[]);
+    typedef GrEffectRef* (*CreateProc)(SkRandom*,
+                                       GrContext*,
+                                       const GrDrawTargetCaps& caps,
+                                       GrTexture* dummyTextures[]);
 
     GrEffectTestFactory(CreateProc createProc) {
         fCreateProc = createProc;
@@ -46,10 +50,11 @@ public:
 
     static GrEffectRef* CreateStage(SkRandom* random,
                                     GrContext* context,
+                                    const GrDrawTargetCaps& caps,
                                     GrTexture* dummyTextures[]) {
         uint32_t idx = random->nextRangeU(0, GetFactories()->count() - 1);
         GrEffectTestFactory* factory = (*GetFactories())[idx];
-        return factory->fCreateProc(random, context, dummyTextures);
+        return factory->fCreateProc(random, context, caps, dummyTextures);
     }
 
 private:
@@ -62,13 +67,19 @@ private:
  */
 #define GR_DECLARE_EFFECT_TEST                                                      \
     static GrEffectTestFactory gTestFactory;                                        \
-    static GrEffectRef* TestCreate(SkRandom*, GrContext*, GrTexture* dummyTextures[2])
+    static GrEffectRef* TestCreate(SkRandom*,                                    \
+                                   GrContext*,                                      \
+                                   const GrDrawTargetCaps&,                         \
+                                   GrTexture* dummyTextures[2])
 
 /** GrEffect subclasses should insert this macro in their implementation file. They must then
  *  also implement this static function:
- *      GrEffect* TestCreate(SkRandom*, GrContext*, GrTexture* dummyTextures[2]);
+ *      GrEffect* TestCreate(SkRandom*,
+ *                           GrContext*,
+ *                           const GrDrawTargetCaps&,
+ *                           GrTexture* dummyTextures[2]);
  * dummyTextures[] are valid textures that can optionally be used to construct GrTextureAccesses.
- * The first texture has config kSkia8888_PM_GrPixelConfig and the second has
+ * The first texture has config kSkia8888_GrPixelConfig and the second has
  * kAlpha_8_GrPixelConfig. TestCreate functions are also free to create additional textures using
  * the GrContext.
  */
@@ -79,8 +90,11 @@ private:
 
 // The unit test relies on static initializers. Just declare the TestCreate function so that
 // its definitions will compile.
-#define GR_DECLARE_EFFECT_TEST \
-    static GrEffectRef* TestCreate(SkRandom*, GrContext*, GrTexture* dummyTextures[2])
+#define GR_DECLARE_EFFECT_TEST                                                      \
+    static GrEffectRef* TestCreate(SkRandom*,                                    \
+                                   GrContext*,                                      \
+                                   const GrDrawTargetCaps&,                         \
+                                   GrTexture* dummyTextures[2])
 #define GR_DEFINE_EFFECT_TEST(X)
 
 #endif // !SK_ALLOW_STATIC_GLOBAL_INITIALIZERS

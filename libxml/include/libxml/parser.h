@@ -916,6 +916,22 @@ XMLPUBFUN xmlDocPtr XMLCALL
 					 const char *filename);
 XMLPUBFUN xmlDocPtr XMLCALL
 		xmlParseEntity		(const char *filename);
+
+// MW-2014-03-10: [[ Bug 11903 ]] These functions are the same as the 'WithData'
+//   ones, except they take an options bitset rather than a recovery bool. This
+//   allows revXML to pass through XML_PARSE_HUGE - allowing large XML files to
+//   be processed.		
+XMLPUBFUN xmlDocPtr XMLCALL
+		xmlSAXParseMemoryWithDataAndOptions (xmlSAXHandlerPtr sax,
+					 const char *buffer,
+					 int size,
+					 int optons,
+					 void *data);
+XMLPUBFUN xmlDocPtr XMLCALL
+		xmlSAXParseFileWithDataAndOptions	(xmlSAXHandlerPtr sax,
+					 const char *filename,
+					 int options,
+					 void *data);
 #endif /* LIBXML_SAX1_ENABLED */
 
 #ifdef LIBXML_VALID_ENABLED

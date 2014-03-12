@@ -15,18 +15,18 @@
 /**
  * A ref counted tex id that deletes the texture in its destructor.
  */
-class GrGLTexID : public GrRefCnt {
+class GrGLTexID : public SkRefCnt {
 public:
     SK_DECLARE_INST_COUNT(GrGLTexID)
 
-    GrGLTexID(const GrGLInterface* gl, GrGLuint texID, bool ownsID)
+    GrGLTexID(const GrGLInterface* gl, GrGLuint texID, bool isWrapped)
         : fGL(gl)
         , fTexID(texID)
-        , fOwnsID(ownsID) {
+        , fIsWrapped(isWrapped) {
     }
 
     virtual ~GrGLTexID() {
-        if (0 != fTexID && fOwnsID) {
+        if (0 != fTexID && !fIsWrapped) {
             GR_GL_CALL(fGL, DeleteTextures(1, &fTexID));
         }
     }
@@ -37,9 +37,9 @@ public:
 private:
     const GrGLInterface* fGL;
     GrGLuint             fTexID;
-    bool                 fOwnsID;
+    bool                 fIsWrapped;
 
-    typedef GrRefCnt INHERITED;
+    typedef SkRefCnt INHERITED;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,8 @@ class GrGLTexture : public GrTexture {
 
 public:
     struct TexParams {
-        GrGLenum fFilter;
+        GrGLenum fMinFilter;
+        GrGLenum fMagFilter;
         GrGLenum fWrapS;
         GrGLenum fWrapT;
         GrGLenum fSwizzleRGBA[4];
@@ -58,8 +59,7 @@ public:
 
     struct Desc : public GrTextureDesc {
         GrGLuint        fTextureID;
-        bool            fOwnsID;
-        Origin          fOrigin;
+        bool            fIsWrapped;
     };
 
     // creates a texture that is also an RT
@@ -71,27 +71,27 @@ public:
     GrGLTexture(GrGpuGL* gpu,
                 const Desc& textureDesc);
 
-
     virtual ~GrGLTexture() { this->release(); }
 
     virtual GrBackendObject getTextureHandle() const SK_OVERRIDE;
 
     virtual void invalidateCachedState() SK_OVERRIDE { fTexParams.invalidate(); }
 
-    // these functions
+    // These functions are used to track the texture parameters associated with the texture.
     const TexParams& getCachedTexParams(GrGpu::ResetTimestamp* timestamp) const {
         *timestamp = fTexParamsTimestamp;
         return fTexParams;
     }
+
     void setCachedTexParams(const TexParams& texParams,
                             GrGpu::ResetTimestamp timestamp) {
         fTexParams = texParams;
         fTexParamsTimestamp = timestamp;
     }
-    GrGLuint textureID() const { return fTexIDObj->id(); }
+
+    GrGLuint textureID() const { return (NULL != fTexIDObj.get()) ? fTexIDObj->id() : 0; }
 
 protected:
-
     // overrides of GrTexture
     virtual void onAbandon() SK_OVERRIDE;
     virtual void onRelease() SK_OVERRIDE;
@@ -99,7 +99,7 @@ protected:
 private:
     TexParams                       fTexParams;
     GrGpu::ResetTimestamp           fTexParamsTimestamp;
-    GrGLTexID*                      fTexIDObj;
+    SkAutoTUnref<GrGLTexID>         fTexIDObj;
 
     void init(GrGpuGL* gpu,
               const Desc& textureDesc,

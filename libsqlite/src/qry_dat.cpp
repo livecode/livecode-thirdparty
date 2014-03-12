@@ -138,6 +138,11 @@ field_value::field_value (const field_value & fv) {
       set_asDouble(fv.get_asDouble());
       break;
     }
+	  case ft_Object: {
+		  set_asString(fv.get_asString());
+		  set_isBinary();
+		  break;
+	  }
   }
   
   // OK-2010-02-17: [[Bug 8273]] - Copy is_null from fv, rather than assume its false.
@@ -158,6 +163,7 @@ field_value::~field_value(){
 string field_value::get_asString() const {
     string tmp;
     switch (field_type) {
+	case ft_Object:
     case ft_String: {
       tmp = str_value;
       return tmp;
@@ -520,6 +526,12 @@ field_value& field_value::operator= (const field_value & fv) {
       set_asString(fv.get_asString());
       t_type_matched = true;
       break;
+    }
+	  case ft_Object: {
+		set_asString(fv.get_asString());
+		set_isBinary();	
+		t_type_matched = true;
+		break;
     }
     case ft_Boolean:{
       set_asBool(fv.get_asBool());

@@ -88,10 +88,81 @@ SkDashPathEffect::~SkDashPathEffect() {
     sk_free(fIntervals);
 }
 
+static void outset_for_stroke(SkRect* rect, const SkStrokeRec& rec) {
+    SkScalar radius = SkScalarHalf(rec.getWidth());
+    if (0 == radius) {
+        radius = SK_Scalar1;    // hairlines
+    }
+    if (SkPaint::kMiter_Join == rec.getJoin()) {
+        radius = SkScalarMul(radius, rec.getMiter());
+    }
+    rect->outset(radius, radius);
+}
+
+// Only handles lines for now. If returns true, dstPath is the new (smaller)
+// path. If returns false, then dstPath parameter is ignored.
+static bool cull_path(const SkPath& srcPath, const SkStrokeRec& rec,
+                      const SkRect* cullRect, SkScalar intervalLength,
+                      SkPath* dstPath) {
+    if (NULL == cullRect) {
+        return false;
+    }
+
+    SkPoint pts[2];
+    if (!srcPath.isLine(pts)) {
+        return false;
+    }
+
+    SkRect bounds = *cullRect;
+    outset_for_stroke(&bounds, rec);
+
+    SkScalar dx = pts[1].x() - pts[0].x();
+    SkScalar dy = pts[1].y() - pts[0].y();
+
+    // just do horizontal lines for now (lazy)
+    if (dy) {
+        return false;
+    }
+
+    SkScalar minX = pts[0].fX;
+    SkScalar maxX = pts[1].fX;
+
+    if (maxX < bounds.fLeft || minX > bounds.fRight) {
+        return false;
+    }
+
+    if (dx < 0) {
+        SkTSwap(minX, maxX);
+    }
+
+    // Now we actually perform the chop, removing the excess to the left and
+    // right of the bounds (keeping our new line "in phase" with the dash,
+    // hence the (mod intervalLength).
+
+    if (minX < bounds.fLeft) {
+        minX = bounds.fLeft - SkScalarMod(bounds.fLeft - minX,
+                                          intervalLength);
+    }
+    if (maxX > bounds.fRight) {
+        maxX = bounds.fRight + SkScalarMod(maxX - bounds.fRight,
+                                           intervalLength);
+    }
+
+    SkASSERT(maxX >= minX);
+    if (dx < 0) {
+        SkTSwap(minX, maxX);
+    }
+    pts[0].fX = minX;
+    pts[1].fX = maxX;
+
+    dstPath->moveTo(pts[0]);
+    dstPath->lineTo(pts[1]);
+    return true;
+}
+
 class SpecialLineRec {
 public:
     bool init(const SkPath& src, SkPath* dst, SkStrokeRec* rec,
-              SkScalar pathLength,
               int intervalCount, SkScalar intervalLength) {
         if (rec->isHairlineStyle() || !src.isLine(fPts)) {
             return false;
@@ -101,6 +172,8 @@ public:
         if (SkPaint::kButt_Cap != rec->getCap()) {
             return false;
         }
+
+        SkScalar pathLength = SkPoint::Distance(fPts[0], fPts[1]);
 
         fTangent = fPts[1] - fPts[0];
         if (fTangent.isZero()) {
@@ -156,19 +229,26 @@ private:
 };
 
 bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
-                                  SkStrokeRec* rec) const {
+                              SkStrokeRec* rec, const SkRect* cullRect) const {
     // we do nothing if the src wants to be filled, or if our dashlength is 0
     if (rec->isFillStyle() || fInitialDashLength < 0) {
         return false;
     }
 
-    SkPathMeasure   meas(src, false);
     const SkScalar* intervals = fIntervals;
     SkScalar        dashCount = 0;
+    int             segCount = 0;
+
+    SkPath cullPathStorage;
+    const SkPath* srcPtr = &src;
+    if (cull_path(src, *rec, cullRect, fIntervalLength, &cullPathStorage)) {
+        srcPtr = &cullPathStorage;
+    }
 
     SpecialLineRec lineRec;
-    const bool specialLine = lineRec.init(src, dst, rec, meas.getLength(),
-                                          fCount >> 1, fIntervalLength);
+    bool specialLine = lineRec.init(*srcPtr, dst, rec, fCount >> 1, fIntervalLength);
+
+    SkPathMeasure   meas(*srcPtr, false);
 
     do {
         bool        skipFirstSegment = meas.isClosed();
@@ -197,7 +277,7 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
                 scale = SkScalarDiv(length, fIntervalLength);
             } else {
                 SkScalar div = SkScalarDiv(length, fIntervalLength);
-                int n = SkScalarFloor(div);
+                int n = SkScalarFloorToInt(div);
                 scale = SkScalarDiv(length, n * fIntervalLength);
             }
         }
@@ -212,6 +292,7 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
             addedSegment = false;
             if (is_even(index) && dlen > 0 && !skipFirstSegment) {
                 addedSegment = true;
+                ++segCount;
 
                 if (specialLine) {
                     lineRec.addSegment(SkDoubleToScalar(distance),
@@ -243,8 +324,13 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
         if (meas.isClosed() && is_even(fInitialDashIndex) &&
                 fInitialDashLength > 0) {
             meas.getSegment(0, SkScalarMul(fInitialDashLength, scale), dst, !addedSegment);
+            ++segCount;
         }
     } while (meas.nextContour());
+
+    if (segCount > 1) {
+        dst->setConvexity(SkPath::kConcave_Convexity);
+    }
 
     return true;
 }
@@ -256,7 +342,8 @@ bool SkDashPathEffect::filterPath(SkPath* dst, const SkPath& src,
 bool SkDashPathEffect::asPoints(PointData* results,
                                 const SkPath& src,
                                 const SkStrokeRec& rec,
-                                const SkMatrix& matrix) const {
+                                const SkMatrix& matrix,
+                                const SkRect* cullRect) const {
     // width < 0 -> fill && width == 0 -> hairline so requiring width > 0 rules both out
     if (fInitialDashLength < 0 || 0 >= rec.getWidth()) {
         return false;
@@ -328,12 +415,10 @@ bool SkDashPathEffect::asPoints(PointData* results,
 
         results->fNumPoints = 0;
         SkScalar len2 = length;
-        bool partialFirst = false;
         if (clampedInitialDashLength > 0 || 0 == fInitialDashIndex) {
             SkASSERT(len2 >= clampedInitialDashLength);
             if (0 == fInitialDashIndex) {
                 if (clampedInitialDashLength > 0) {
-                    partialFirst = true;
                     if (clampedInitialDashLength >= fIntervals[0]) {
                         ++results->fNumPoints;  // partial first dash
                     }
@@ -443,7 +528,7 @@ bool SkDashPathEffect::asPoints(PointData* results,
     return true;
 }
 
-SkFlattenable::Factory SkDashPathEffect::getFactory() {
+SkFlattenable::Factory SkDashPathEffect::getFactory() const {
     return fInitialDashLength < 0 ? NULL : CreateProc;
 }
 
@@ -469,6 +554,11 @@ SkDashPathEffect::SkDashPathEffect(SkFlattenableReadBuffer& buffer) : INHERITED(
     fScaleToFit = buffer.readBool();
 
     fCount = buffer.getArrayCount();
-    fIntervals = (SkScalar*)sk_malloc_throw(sizeof(SkScalar) * fCount);
-    buffer.readScalarArray(fIntervals);
+    size_t allocSize = sizeof(SkScalar) * fCount;
+    if (buffer.validateAvailable(allocSize)) {
+        fIntervals = (SkScalar*)sk_malloc_throw(allocSize);
+        buffer.readScalarArray(fIntervals, fCount);
+    } else {
+        fIntervals = NULL;
+    }
 }

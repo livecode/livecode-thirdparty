@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2010 Google Inc.
  *
@@ -6,9 +5,11 @@
  * found in the LICENSE file.
  */
 
-
-
 #include "SkGr.h"
+#include "SkConfig8888.h"
+#include "SkMessageBus.h"
+#include "SkPixelRef.h"
+#include "GrResourceCache.h"
 
 /*  Fill out buffer with the compressed format Ganesh expects from a colortable
  based bitmap. [palette (colortable) + indices].
@@ -24,7 +25,7 @@
 static void build_compressed_data(void* buffer, const SkBitmap& bitmap) {
     SkASSERT(SkBitmap::kIndex8_Config == bitmap.config());
 
-    SkAutoLockPixels apl(bitmap);
+    SkAutoLockPixels alp(bitmap);
     if (!bitmap.readyToDraw()) {
         SkDEBUGFAIL("bitmap not ready to draw!");
         return;
@@ -33,13 +34,17 @@ static void build_compressed_data(void* buffer, const SkBitmap& bitmap) {
     SkColorTable* ctable = bitmap.getColorTable();
     char* dst = (char*)buffer;
 
-    memcpy(dst, ctable->lockColors(), ctable->count() * sizeof(SkPMColor));
-    ctable->unlockColors(false);
+    uint32_t* colorTableDst = reinterpret_cast<uint32_t*>(dst);
+    const uint32_t* colorTableSrc = reinterpret_cast<const uint32_t*>(ctable->lockColors());
+    SkConvertConfig8888Pixels(colorTableDst, 0, SkCanvas::kRGBA_Premul_Config8888,
+                              colorTableSrc, 0, SkCanvas::kNative_Premul_Config8888,
+                              ctable->count(), 1);
+    ctable->unlockColors();
 
     // always skip a full 256 number of entries, even if we memcpy'd fewer
     dst += kGrColorTableSize;
 
-    if (bitmap.width() == bitmap.rowBytes()) {
+    if ((unsigned)bitmap.width() == bitmap.rowBytes()) {
         memcpy(dst, bitmap.getPixels(), bitmap.getSize());
     } else {
         // need to trim off the extra bytes per row
@@ -84,16 +89,32 @@ static void generate_bitmap_texture_desc(const SkBitmap& bitmap, GrTextureDesc* 
     desc->fSampleCnt = 0;
 }
 
+namespace {
+
+// When the SkPixelRef genID changes, invalidate a corresponding GrResource described by key.
+class GrResourceInvalidator : public SkPixelRef::GenIDChangeListener {
+public:
+    explicit GrResourceInvalidator(GrResourceKey key) : fKey(key) {}
+private:
+    GrResourceKey fKey;
+
+    virtual void onChange() SK_OVERRIDE {
+        const GrResourceInvalidatedMessage message = { fKey };
+        SkMessageBus<GrResourceInvalidatedMessage>::Post(message);
+    }
+};
+
+}  // namespace
+
+static void add_genID_listener(GrResourceKey key, SkPixelRef* pixelRef) {
+    SkASSERT(NULL != pixelRef);
+    pixelRef->addGenIDChangeListener(SkNEW_ARGS(GrResourceInvalidator, (key)));
+}
+
 static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
                                               bool cache,
                                               const GrTextureParams* params,
                                               const SkBitmap& origBitmap) {
-    SkAutoLockPixels alp(origBitmap);
-
-    if (!origBitmap.readyToDraw()) {
-        return NULL;
-    }
-
     SkBitmap tmpBitmap;
 
     const SkBitmap* bitmap = &origBitmap;
@@ -104,10 +125,8 @@ static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
     if (SkBitmap::kIndex8_Config == bitmap->config()) {
         // build_compressed_data doesn't do npot->pot expansion
         // and paletted textures can't be sub-updated
-        if (ctx->supportsIndex8PixelConfig(params,
-                                           bitmap->width(), bitmap->height())) {
-            size_t imagesize = bitmap->width() * bitmap->height() +
-                                kGrColorTableSize;
+        if (ctx->supportsIndex8PixelConfig(params, bitmap->width(), bitmap->height())) {
+            size_t imagesize = bitmap->width() * bitmap->height() + kGrColorTableSize;
             SkAutoMalloc storage(imagesize);
 
             build_compressed_data(storage.get(), origBitmap);
@@ -118,11 +137,16 @@ static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
             if (cache) {
                 GrCacheID cacheID;
                 generate_bitmap_cache_id(origBitmap, &cacheID);
-                return ctx->createTexture(params, desc, cacheID,
-                                          storage.get(),
-                                          bitmap->width());
+
+                GrResourceKey key;
+                GrTexture* result = ctx->createTexture(params, desc, cacheID,
+                                                       storage.get(), bitmap->width(), &key);
+                if (NULL != result) {
+                    add_genID_listener(key, origBitmap.pixelRef());
+                }
+                return result;
             } else {
-                GrTexture* result = ctx->lockScratchTexture(desc,
+                GrTexture* result = ctx->lockAndRefScratchTexture(desc,
                                                             GrContext::kExact_ScratchTexMatch);
                 result->writePixels(0, 0, bitmap->width(),
                                     bitmap->height(), desc.fConfig,
@@ -137,20 +161,29 @@ static GrTexture* sk_gr_create_bitmap_texture(GrContext* ctx,
         }
     }
 
+    SkAutoLockPixels alp(*bitmap);
+    if (!bitmap->readyToDraw()) {
+        return NULL;
+    }
     if (cache) {
         // This texture is likely to be used again so leave it in the cache
         GrCacheID cacheID;
         generate_bitmap_cache_id(origBitmap, &cacheID);
-        return ctx->createTexture(params, desc, cacheID,
-                                  bitmap->getPixels(),
-                                  bitmap->rowBytes());
-    } else {
+
+        GrResourceKey key;
+        GrTexture* result = ctx->createTexture(params, desc, cacheID,
+                                               bitmap->getPixels(), bitmap->rowBytes(), &key);
+        if (NULL != result) {
+            add_genID_listener(key, origBitmap.pixelRef());
+        }
+        return result;
+   } else {
         // This texture is unlikely to be used again (in its present form) so
         // just use a scratch texture. This will remove the texture from the
         // cache so no one else can find it. Additionally, once unlocked, the
         // scratch texture will go to the end of the list for purging so will
         // likely be available for this volatile bitmap the next time around.
-        GrTexture* result = ctx->lockScratchTexture(desc, GrContext::kExact_ScratchTexMatch);
+        GrTexture* result = ctx->lockAndRefScratchTexture(desc, GrContext::kExact_ScratchTexMatch);
         result->writePixels(0, 0,
                             bitmap->width(), bitmap->height(),
                             desc.fConfig,
@@ -171,9 +204,9 @@ bool GrIsBitmapInCache(const GrContext* ctx,
     return ctx->isTextureInCache(desc, cacheID, params);
 }
 
-GrTexture* GrLockCachedBitmapTexture(GrContext* ctx,
-                                     const SkBitmap& bitmap,
-                                     const GrTextureParams* params) {
+GrTexture* GrLockAndRefCachedBitmapTexture(GrContext* ctx,
+                                           const SkBitmap& bitmap,
+                                           const GrTextureParams* params) {
     GrTexture* result = NULL;
 
     bool cache = !bitmap.isVolatile();
@@ -187,7 +220,7 @@ GrTexture* GrLockCachedBitmapTexture(GrContext* ctx,
         GrTextureDesc desc;
         generate_bitmap_texture_desc(bitmap, &desc);
 
-        result = ctx->findTexture(desc, cacheID, params);
+        result = ctx->findAndRefTexture(desc, cacheID, params);
     }
     if (NULL == result) {
         result = sk_gr_create_bitmap_texture(ctx, cache, params, bitmap);
@@ -199,10 +232,11 @@ GrTexture* GrLockCachedBitmapTexture(GrContext* ctx,
     return result;
 }
 
-void GrUnlockCachedBitmapTexture(GrTexture* texture) {
-    GrAssert(NULL != texture->getContext());
+void GrUnlockAndUnrefCachedBitmapTexture(GrTexture* texture) {
+    SkASSERT(NULL != texture->getContext());
 
     texture->getContext()->unlockScratchTexture(texture);
+    texture->unref();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -218,10 +252,39 @@ GrPixelConfig SkBitmapConfig2GrPixelConfig(SkBitmap::Config config) {
         case SkBitmap::kARGB_4444_Config:
             return kRGBA_4444_GrPixelConfig;
         case SkBitmap::kARGB_8888_Config:
-            return kSkia8888_PM_GrPixelConfig;
+            return kSkia8888_GrPixelConfig;
         default:
-            // kNo_Config, kA1_Config missing, and kRLE_Index8_Config
+            // kNo_Config, kA1_Config missing
             return kUnknown_GrPixelConfig;
     }
 }
 
+bool GrPixelConfig2ColorType(GrPixelConfig config, SkColorType* ctOut) {
+    SkColorType ct;
+    switch (config) {
+        case kAlpha_8_GrPixelConfig:
+            ct = kAlpha_8_SkColorType;
+            break;
+        case kIndex_8_GrPixelConfig:
+            ct = kIndex_8_SkColorType;
+            break;
+        case kRGB_565_GrPixelConfig:
+            ct = kRGB_565_SkColorType;
+            break;
+        case kRGBA_4444_GrPixelConfig:
+            ct = kARGB_4444_SkColorType;
+            break;
+        case kRGBA_8888_GrPixelConfig:
+            ct = kRGBA_8888_SkColorType;
+            break;
+        case kBGRA_8888_GrPixelConfig:
+            ct = kBGRA_8888_SkColorType;
+            break;
+        default:
+            return false;
+    }
+    if (ctOut) {
+        *ctOut = ct;
+    }
+    return true;
+}

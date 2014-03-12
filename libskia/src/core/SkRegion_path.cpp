@@ -15,10 +15,11 @@
 
 class SkRgnBuilder : public SkBlitter {
 public:
+    SkRgnBuilder();
     virtual ~SkRgnBuilder();
 
     // returns true if it could allocate the working storage needed
-    bool init(int maxHeight, int maxTransitions);
+    bool init(int maxHeight, int maxTransitions, bool pathIsInverse);
 
     void done() {
         if (fCurrScanline != NULL) {
@@ -98,30 +99,46 @@ private:
     }
 };
 
+SkRgnBuilder::SkRgnBuilder()
+    : fStorage(NULL) {
+}
+
 SkRgnBuilder::~SkRgnBuilder() {
     sk_free(fStorage);
 }
 
-bool SkRgnBuilder::init(int maxHeight, int maxTransitions) {
+bool SkRgnBuilder::init(int maxHeight, int maxTransitions, bool pathIsInverse) {
     if ((maxHeight | maxTransitions) < 0) {
         return false;
     }
 
-    Sk64 count, size;
+    if (pathIsInverse) {
+        // allow for additional X transitions to "invert" each scanline
+        // [ L' ... normal transitions ... R' ]
+        //
+        maxTransitions += 2;
+    }
 
     // compute the count with +1 and +3 slop for the working buffer
-    count.setMul(maxHeight + 1, 3 + maxTransitions);
-    if (!count.is32() || count.isNeg()) {
-        return false;
-    }
-    fStorageCount = count.get32();
+    int64_t count = sk_64_mul(maxHeight + 1, 3 + maxTransitions);
 
-    size.setMul(fStorageCount, sizeof(SkRegion::RunType));
-    if (!size.is32() || size.isNeg()) {
-        return false;
+    if (pathIsInverse) {
+        // allow for two "empty" rows for the top and bottom
+        //      [ Y, 1, L, R, S] == 5 (*2 for top and bottom)
+        count += 10;
     }
 
-    fStorage = (SkRegion::RunType*)sk_malloc_flags(size.get32(), 0);
+    if (count < 0 || !sk_64_isS32(count)) {
+        return false;
+    }
+    fStorageCount = sk_64_asS32(count);
+
+    int64_t size = sk_64_mul(fStorageCount, sizeof(SkRegion::RunType));
+    if (size < 0 || !sk_64_isS32(size)) {
+        return false;
+    }
+
+    fStorage = (SkRegion::RunType*)sk_malloc_flags(sk_64_asS32(size), 0);
     if (NULL == fStorage) {
         return false;
     }
@@ -216,25 +233,36 @@ void SkRgnBuilder::copyToRgn(SkRegion::RunType runs[]) const {
     *runs = SkRegion::kRunTypeSentinel;
 }
 
-static int count_path_runtype_values(const SkPath& path, int* itop, int* ibot) {
+static unsigned verb_to_initial_last_index(unsigned verb) {
     static const uint8_t gPathVerbToInitialLastIndex[] = {
         0,  //  kMove_Verb
         1,  //  kLine_Verb
         2,  //  kQuad_Verb
+        2,  //  kConic_Verb
         3,  //  kCubic_Verb
         0,  //  kClose_Verb
         0   //  kDone_Verb
     };
+    SkASSERT((unsigned)verb < SK_ARRAY_COUNT(gPathVerbToInitialLastIndex));
+    return gPathVerbToInitialLastIndex[verb];
+}
 
+static unsigned verb_to_max_edges(unsigned verb) {
     static const uint8_t gPathVerbToMaxEdges[] = {
         0,  //  kMove_Verb
         1,  //  kLine_Verb
         2,  //  kQuad_VerbB
+        2,  //  kConic_VerbB
         3,  //  kCubic_Verb
         0,  //  kClose_Verb
         0   //  kDone_Verb
     };
+    SkASSERT((unsigned)verb < SK_ARRAY_COUNT(gPathVerbToMaxEdges));
+    return gPathVerbToMaxEdges[verb];
+}
 
+
+static int count_path_runtype_values(const SkPath& path, int* itop, int* ibot) {
     SkPath::Iter    iter(path, true);
     SkPoint         pts[4];
     SkPath::Verb    verb;
@@ -244,9 +272,9 @@ static int count_path_runtype_values(const SkPath& path, int* itop, int* ibot) {
     SkScalar    bot = SkIntToScalar(SK_MinS16);
 
     while ((verb = iter.next(pts, false)) != SkPath::kDone_Verb) {
-        maxEdges += gPathVerbToMaxEdges[verb];
+        maxEdges += verb_to_max_edges(verb);
 
-        int lastIndex = gPathVerbToInitialLastIndex[verb];
+        int lastIndex = verb_to_initial_last_index(verb);
         if (lastIndex > 0) {
             for (int i = 1; i <= lastIndex; i++) {
                 if (top > pts[i].fY) {
@@ -265,8 +293,8 @@ static int count_path_runtype_values(const SkPath& path, int* itop, int* ibot) {
     }
     SkASSERT(top <= bot);
 
-    *itop = SkScalarRound(top);
-    *ibot = SkScalarRound(bot);
+    *itop = SkScalarRoundToInt(top);
+    *ibot = SkScalarRoundToInt(bot);
     return maxEdges;
 }
 
@@ -301,7 +329,9 @@ bool SkRegion::setPath(const SkPath& path, const SkRegion& clip) {
 
     SkRgnBuilder builder;
 
-    if (!builder.init(bot - top, SkMax32(pathTransitions, clipTransitions))) {
+    if (!builder.init(bot - top,
+                      SkMax32(pathTransitions, clipTransitions),
+                      path.isInverseFillType())) {
         // can't allocate working space, so return false
         return this->setEmpty();
     }
@@ -488,4 +518,3 @@ bool SkRegion::getBoundaryPath(SkPath* path) const {
 
     return true;
 }
-

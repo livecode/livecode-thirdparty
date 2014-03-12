@@ -28,7 +28,7 @@ GrResourceKey::ResourceType GrResourceKey::GenerateResourceType() {
 GrResourceEntry::GrResourceEntry(const GrResourceKey& key, GrResource* resource)
         : fKey(key), fResource(resource) {
     // we assume ownership of the resource, and will unref it when we die
-    GrAssert(resource);
+    SkASSERT(resource);
     resource->ref();
 }
 
@@ -37,10 +37,10 @@ GrResourceEntry::~GrResourceEntry() {
     fResource->unref();
 }
 
-#if GR_DEBUG
+#ifdef SK_DEBUG
 void GrResourceEntry::validate() const {
-    GrAssert(fResource);
-    GrAssert(fResource->getCacheEntry() == this);
+    SkASSERT(fResource);
+    SkASSERT(fResource->getCacheEntry() == this);
     fResource->validate();
 }
 #endif
@@ -62,7 +62,10 @@ GrResourceCache::GrResourceCache(int maxCount, size_t maxBytes) :
     fClientDetachedCount          = 0;
     fClientDetachedBytes          = 0;
 
-    fPurging = false;
+    fPurging                      = false;
+
+    fOverbudgetCB                 = NULL;
+    fOverbudgetData               = NULL;
 }
 
 GrResourceCache::~GrResourceCache() {
@@ -85,10 +88,10 @@ GrResourceCache::~GrResourceCache() {
 }
 
 void GrResourceCache::getLimits(int* maxResources, size_t* maxResourceBytes) const{
-    if (maxResources) {
+    if (NULL != maxResources) {
         *maxResources = fMaxCount;
     }
-    if (maxResourceBytes) {
+    if (NULL != maxResourceBytes) {
         *maxResourceBytes = fMaxBytes;
     }
 }
@@ -123,7 +126,7 @@ void GrResourceCache::internalDetach(GrResourceEntry* entry,
 #endif
 
     } else {
-        GrAssert(kAccountFor_BudgetBehavior == behavior);
+        SkASSERT(kAccountFor_BudgetBehavior == behavior);
 
         fEntryCount -= 1;
         fEntryBytes -= entry->resource()->sizeInBytes();
@@ -139,7 +142,7 @@ void GrResourceCache::attachToHead(GrResourceEntry* entry,
         fClientDetachedCount -= 1;
         fClientDetachedBytes -= entry->resource()->sizeInBytes();
     } else {
-        GrAssert(kAccountFor_BudgetBehavior == behavior);
+        SkASSERT(kAccountFor_BudgetBehavior == behavior);
 
         fEntryCount += 1;
         fEntryBytes += entry->resource()->sizeInBytes();
@@ -161,7 +164,7 @@ void GrResourceCache::attachToHead(GrResourceEntry* entry,
 class GrTFindUnreffedFunctor {
 public:
     bool operator()(const GrResourceEntry* entry) const {
-        return 1 == entry->resource()->getRefCnt();
+        return entry->resource()->unique();
     }
 };
 
@@ -193,19 +196,15 @@ GrResource* GrResourceCache::find(const GrResourceKey& key, uint32_t ownershipFl
     return entry->fResource;
 }
 
-bool GrResourceCache::hasKey(const GrResourceKey& key) const {
-    return NULL != fCache.find(key);
-}
-
 void GrResourceCache::addResource(const GrResourceKey& key,
                                   GrResource* resource,
                                   uint32_t ownershipFlags) {
-    GrAssert(NULL == resource->getCacheEntry());
+    SkASSERT(NULL == resource->getCacheEntry());
     // we don't expect to create new resources during a purge. In theory
     // this could cause purgeAsNeeded() into an infinite loop (e.g.
     // each resource destroyed creates and locks 2 resources and
     // unlocks 1 thereby causing a new purge).
-    GrAssert(!fPurging);
+    SkASSERT(!fPurging);
     GrAutoResourceCacheValidate atcv(this);
 
     GrResourceEntry* entry = SkNEW_ARGS(GrResourceEntry, (key, resource));
@@ -213,11 +212,6 @@ void GrResourceCache::addResource(const GrResourceKey& key,
 
     this->attachToHead(entry);
     fCache.insert(key, entry);
-
-#if GR_DUMP_TEXTURE_UPLOAD
-    GrPrintf("--- add resource to cache %p, count=%d bytes= %d %d\n",
-             entry, fEntryCount, resource->sizeInBytes(), fEntryBytes);
-#endif
 
     if (ownershipFlags & kHide_OwnershipFlag) {
         this->makeExclusive(entry);
@@ -233,7 +227,7 @@ void GrResourceCache::makeExclusive(GrResourceEntry* entry) {
     this->internalDetach(entry, kIgnore_BudgetBehavior);
     fCache.remove(entry->key(), entry);
 
-#if GR_DEBUG
+#ifdef SK_DEBUG
     fExclusiveList.addToHead(entry);
 #endif
 }
@@ -254,7 +248,7 @@ void GrResourceCache::removeInvalidResource(GrResourceEntry* entry) {
 void GrResourceCache::makeNonExclusive(GrResourceEntry* entry) {
     GrAutoResourceCacheValidate atcv(this);
 
-#if GR_DEBUG
+#ifdef SK_DEBUG
     fExclusiveList.remove(entry);
 #endif
 
@@ -278,58 +272,100 @@ void GrResourceCache::makeNonExclusive(GrResourceEntry* entry) {
  * resource's destructor inserting new resources into the cache. If these
  * new resources were unlocked before purgeAsNeeded completed it could
  * potentially make purgeAsNeeded loop infinitely.
+ *
+ * extraCount and extraBytes are added to the current resource totals to account
+ * for incoming resources (e.g., GrContext is about to add 10MB split between
+ * 10 textures).
  */
-void GrResourceCache::purgeAsNeeded() {
-    if (!fPurging) {
-        fPurging = true;
-        bool withinBudget = false;
-        bool changed = false;
-
-        // The purging process is repeated several times since one pass
-        // may free up other resources
-        do {
-            EntryList::Iter iter;
-
-            changed = false;
-
-            // Note: the following code relies on the fact that the
-            // doubly linked list doesn't invalidate its data/pointers
-            // outside of the specific area where a deletion occurs (e.g.,
-            // in internalDetach)
-            GrResourceEntry* entry = iter.init(fList, EntryList::Iter::kTail_IterStart);
-
-            while (NULL != entry) {
-                GrAutoResourceCacheValidate atcv(this);
-
-                if (fEntryCount <= fMaxCount && fEntryBytes <= fMaxBytes) {
-                    withinBudget = true;
-                    break;
-                }
-
-                GrResourceEntry* prev = iter.prev();
-                if (1 == entry->fResource->getRefCnt()) {
-                    changed = true;
-
-                    // remove from our cache
-                    fCache.remove(entry->key(), entry);
-
-                    // remove from our llist
-                    this->internalDetach(entry);
-
-        #if GR_DUMP_TEXTURE_UPLOAD
-                    GrPrintf("--- ~resource from cache %p [%d %d]\n",
-                             entry->resource(),
-                             entry->resource()->width(),
-                             entry->resource()->height());
-        #endif
-
-                    delete entry;
-                }
-                entry = prev;
-            }
-        } while (!withinBudget && changed);
-        fPurging = false;
+void GrResourceCache::purgeAsNeeded(int extraCount, size_t extraBytes) {
+    if (fPurging) {
+        return;
     }
+
+    fPurging = true;
+
+    this->purgeInvalidated();
+
+    this->internalPurge(extraCount, extraBytes);
+    if (((fEntryCount+extraCount) > fMaxCount ||
+        (fEntryBytes+extraBytes) > fMaxBytes) &&
+        NULL != fOverbudgetCB) {
+        // Despite the purge we're still over budget. See if Ganesh can
+        // release some resources and purge again.
+        if ((*fOverbudgetCB)(fOverbudgetData)) {
+            this->internalPurge(extraCount, extraBytes);
+        }
+    }
+
+    fPurging = false;
+}
+
+void GrResourceCache::purgeInvalidated() {
+    SkTDArray<GrResourceInvalidatedMessage> invalidated;
+    fInvalidationInbox.poll(&invalidated);
+
+    for (int i = 0; i < invalidated.count(); i++) {
+        // We're somewhat missing an opportunity here.  We could use the
+        // default find functor that gives us back resources whether we own
+        // them exclusively or not, and when they're not exclusively owned mark
+        // them for purging later when they do become exclusively owned.
+        //
+        // This is complicated and confusing.  May try this in the future.  For
+        // now, these resources are just LRU'd as if we never got the message.
+        GrResourceEntry* entry = fCache.find(invalidated[i].key, GrTFindUnreffedFunctor());
+        if (entry) {
+            this->deleteResource(entry);
+        }
+    }
+}
+
+void GrResourceCache::deleteResource(GrResourceEntry* entry) {
+    SkASSERT(1 == entry->fResource->getRefCnt());
+
+    // remove from our cache
+    fCache.remove(entry->key(), entry);
+
+    // remove from our llist
+    this->internalDetach(entry);
+    delete entry;
+}
+
+void GrResourceCache::internalPurge(int extraCount, size_t extraBytes) {
+    SkASSERT(fPurging);
+
+    bool withinBudget = false;
+    bool changed = false;
+
+    // The purging process is repeated several times since one pass
+    // may free up other resources
+    do {
+        EntryList::Iter iter;
+
+        changed = false;
+
+        // Note: the following code relies on the fact that the
+        // doubly linked list doesn't invalidate its data/pointers
+        // outside of the specific area where a deletion occurs (e.g.,
+        // in internalDetach)
+        GrResourceEntry* entry = iter.init(fList, EntryList::Iter::kTail_IterStart);
+
+        while (NULL != entry) {
+            GrAutoResourceCacheValidate atcv(this);
+
+            if ((fEntryCount+extraCount) <= fMaxCount &&
+                (fEntryBytes+extraBytes) <= fMaxBytes) {
+                withinBudget = true;
+                break;
+            }
+
+            GrResourceEntry* prev = iter.prev();
+            if (entry->fResource->unique()) {
+                changed = true;
+                this->deleteResource(entry);
+            }
+            entry = prev;
+        }
+    } while (!withinBudget && changed);
 }
 
 void GrResourceCache::purgeAllUnlocked() {
@@ -339,22 +375,22 @@ void GrResourceCache::purgeAllUnlocked() {
     // so we don't want to just do a simple loop kicking each
     // entry out. Instead change the budget and purge.
 
-    int savedMaxBytes = fMaxBytes;
+    size_t savedMaxBytes = fMaxBytes;
     int savedMaxCount = fMaxCount;
     fMaxBytes = (size_t) -1;
     fMaxCount = 0;
     this->purgeAsNeeded();
 
-#if GR_DEBUG
-    GrAssert(fExclusiveList.countEntries() == fClientDetachedCount);
-    GrAssert(countBytes(fExclusiveList) == fClientDetachedBytes);
+#ifdef SK_DEBUG
+    SkASSERT(fExclusiveList.countEntries() == fClientDetachedCount);
+    SkASSERT(countBytes(fExclusiveList) == fClientDetachedBytes);
     if (!fCache.count()) {
         // Items may have been detached from the cache (such as the backing
         // texture for an SkGpuDevice). The above purge would not have removed
         // them.
-        GrAssert(fEntryCount == fClientDetachedCount);
-        GrAssert(fEntryBytes == fClientDetachedBytes);
-        GrAssert(fList.isEmpty());
+        SkASSERT(fEntryCount == fClientDetachedCount);
+        SkASSERT(fEntryBytes == fClientDetachedBytes);
+        SkASSERT(fList.isEmpty());
     }
 #endif
 
@@ -364,7 +400,7 @@ void GrResourceCache::purgeAllUnlocked() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if GR_DEBUG
+#ifdef SK_DEBUG
 size_t GrResourceCache::countBytes(const EntryList& list) {
     size_t bytes = 0;
 
@@ -386,11 +422,11 @@ static bool both_zero_or_nonzero(int count, size_t bytes) {
 void GrResourceCache::validate() const {
     fList.validate();
     fExclusiveList.validate();
-    GrAssert(both_zero_or_nonzero(fEntryCount, fEntryBytes));
-    GrAssert(both_zero_or_nonzero(fClientDetachedCount, fClientDetachedBytes));
-    GrAssert(fClientDetachedBytes <= fEntryBytes);
-    GrAssert(fClientDetachedCount <= fEntryCount);
-    GrAssert((fEntryCount - fClientDetachedCount) == fCache.count());
+    SkASSERT(both_zero_or_nonzero(fEntryCount, fEntryBytes));
+    SkASSERT(both_zero_or_nonzero(fClientDetachedCount, fClientDetachedBytes));
+    SkASSERT(fClientDetachedBytes <= fEntryBytes);
+    SkASSERT(fClientDetachedCount <= fEntryCount);
+    SkASSERT((fEntryCount - fClientDetachedCount) == fCache.count());
 
     fCache.validate();
 
@@ -411,22 +447,22 @@ void GrResourceCache::validate() const {
     int count = 0;
     for ( ; NULL != entry; entry = iter.next()) {
         entry->validate();
-        GrAssert(fCache.find(entry->key()));
+        SkASSERT(fCache.find(entry->key()));
         count += 1;
     }
-    GrAssert(count == fEntryCount - fClientDetachedCount);
+    SkASSERT(count == fEntryCount - fClientDetachedCount);
 
     size_t bytes = countBytes(fList);
-    GrAssert(bytes == fEntryBytes  - fClientDetachedBytes);
+    SkASSERT(bytes == fEntryBytes  - fClientDetachedBytes);
 
     bytes = countBytes(fExclusiveList);
-    GrAssert(bytes == fClientDetachedBytes);
+    SkASSERT(bytes == fClientDetachedBytes);
 
-    GrAssert(fList.countEntries() == fEntryCount - fClientDetachedCount);
+    SkASSERT(fList.countEntries() == fEntryCount - fClientDetachedCount);
 
-    GrAssert(fExclusiveList.countEntries() == fClientDetachedCount);
+    SkASSERT(fExclusiveList.countEntries() == fClientDetachedCount);
 }
-#endif // GR_DEBUG
+#endif // SK_DEBUG
 
 #if GR_CACHE_STATS
 

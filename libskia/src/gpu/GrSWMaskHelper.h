@@ -9,13 +9,13 @@
 #define GrSWMaskHelper_DEFINED
 
 #include "GrColor.h"
-#include "SkMatrix.h"
-#include "GrNoncopyable.h"
+#include "GrDrawState.h"
 #include "SkBitmap.h"
 #include "SkDraw.h"
+#include "SkMatrix.h"
 #include "SkRasterClip.h"
 #include "SkRegion.h"
-#include "GrDrawState.h"
+#include "SkTypes.h"
 
 class GrAutoScratchTexture;
 class GrContext;
@@ -38,7 +38,7 @@ class GrDrawTarget;
  * The result of this process will be the final mask (on the GPU) in the
  * upper left hand corner of the texture.
  */
-class GrSWMaskHelper : public GrNoncopyable {
+class GrSWMaskHelper : public SkNoncopyable {
 public:
     GrSWMaskHelper(GrContext* context)
     : fContext(context) {
@@ -48,10 +48,10 @@ public:
     // may be accumulated in the helper during creation, "resultBounds"
     // allows the caller to specify the region of interest - to limit the
     // amount of work.
-    bool init(const GrIRect& resultBounds, const SkMatrix* matrix);
+    bool init(const SkIRect& resultBounds, const SkMatrix* matrix);
 
     // Draw a single rect into the accumulation bitmap using the specified op
-    void draw(const GrRect& rect, SkRegion::Op op,
+    void draw(const SkRect& rect, SkRegion::Op op,
               bool antiAlias, uint8_t alpha);
 
     // Draw a single path into the accumuation bitmap using the specified op
@@ -63,8 +63,7 @@ public:
     bool getTexture(GrAutoScratchTexture* texture);
 
     // Move the mask generation results from the internal bitmap to the gpu.
-    // The space outside of the mask is cleared using "alpha"
-    void toTexture(GrTexture* texture, uint8_t alpha);
+    void toTexture(GrTexture* texture);
 
     // Reset the internal bitmap
     void clear(uint8_t alpha) {
@@ -76,7 +75,7 @@ public:
     static GrTexture* DrawPathMaskToTexture(GrContext* context,
                                             const SkPath& path,
                                             const SkStrokeRec& stroke,
-                                            const GrIRect& resultBounds,
+                                            const SkIRect& resultBounds,
                                             bool antiAlias,
                                             SkMatrix* matrix);
 
@@ -92,7 +91,7 @@ public:
     // output of DrawPathMaskToTexture.
     static void DrawToTargetWithPathMask(GrTexture* texture,
                                          GrDrawTarget* target,
-                                         const GrIRect& rect);
+                                         const SkIRect& rect);
 
 protected:
 private:
@@ -102,7 +101,7 @@ private:
     SkDraw          fDraw;
     SkRasterClip    fRasterClip;
 
-    typedef GrNoncopyable INHERITED;
+    typedef SkNoncopyable INHERITED;
 };
 
 #endif // GrSWMaskHelper_DEFINED

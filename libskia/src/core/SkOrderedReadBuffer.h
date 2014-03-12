@@ -10,12 +10,17 @@
 #define SkOrderedReadBuffer_DEFINED
 
 #include "SkRefCnt.h"
-#include "SkBitmap.h"
 #include "SkBitmapHeap.h"
 #include "SkFlattenableBuffers.h"
 #include "SkPath.h"
+#include "SkPicture.h"
 #include "SkReader32.h"
-#include "SkSerializationHelpers.h"
+
+class SkBitmap;
+
+#if defined(SK_DEBUG) && defined(SK_BUILD_FOR_MAC)
+    #define DEBUG_NON_DETERMINISTIC_ASSERT
+#endif
 
 class SkOrderedReadBuffer : public SkFlattenableReadBuffer {
 public:
@@ -43,11 +48,11 @@ public:
     virtual int32_t read32() SK_OVERRIDE;
 
     // strings -- the caller is responsible for freeing the string contents
-    virtual char* readString() SK_OVERRIDE;
+    virtual void readString(SkString* string) SK_OVERRIDE;
     virtual void* readEncodedString(size_t* length, SkPaint::TextEncoding encoding) SK_OVERRIDE;
 
     // common data structures
-    virtual SkFlattenable* readFlattenable() SK_OVERRIDE;
+    virtual SkFlattenable* readFlattenable(SkFlattenable::Type) SK_OVERRIDE;
     virtual void readPoint(SkPoint* point) SK_OVERRIDE;
     virtual void readMatrix(SkMatrix* matrix) SK_OVERRIDE;
     virtual void readIRect(SkIRect* rect) SK_OVERRIDE;
@@ -56,11 +61,11 @@ public:
     virtual void readPath(SkPath* path) SK_OVERRIDE;
 
     // binary data and arrays
-    virtual uint32_t readByteArray(void* value) SK_OVERRIDE;
-    virtual uint32_t readColorArray(SkColor* colors) SK_OVERRIDE;
-    virtual uint32_t readIntArray(int32_t* values) SK_OVERRIDE;
-    virtual uint32_t readPointArray(SkPoint* points) SK_OVERRIDE;
-    virtual uint32_t readScalarArray(SkScalar* values) SK_OVERRIDE;
+    virtual bool readByteArray(void* value, size_t size) SK_OVERRIDE;
+    virtual bool readColorArray(SkColor* colors, size_t size) SK_OVERRIDE;
+    virtual bool readIntArray(int32_t* values, size_t size) SK_OVERRIDE;
+    virtual bool readPointArray(SkPoint* points, size_t size) SK_OVERRIDE;
+    virtual bool readScalarArray(SkScalar* values, size_t size) SK_OVERRIDE;
 
     // helpers to get info about arrays and binary data
     virtual uint32_t getArrayCount() SK_OVERRIDE;
@@ -99,15 +104,17 @@ public:
     }
 
     /**
-     *  Provide a function to decode an SkBitmap from an SkStream. Only used if the writer encoded
-     *  the SkBitmap. If the proper decoder cannot be used, a red bitmap with the appropriate size
-     *  will be used.
+     *  Provide a function to decode an SkBitmap from encoded data. Only used if the writer
+     *  encoded the SkBitmap. If the proper decoder cannot be used, a red bitmap with the
+     *  appropriate size will be used.
      */
-    void setBitmapDecoder(SkSerializationHelpers::DecodeBitmap bitmapDecoder) {
+    void setBitmapDecoder(SkPicture::InstallPixelRefProc bitmapDecoder) {
         fBitmapDecoder = bitmapDecoder;
     }
 
 private:
+    bool readArray(void* value, size_t size, size_t elementSize);
+
     SkReader32 fReader;
     void* fMemoryPtr;
 
@@ -119,7 +126,13 @@ private:
     SkFlattenable::Factory* fFactoryArray;
     int                     fFactoryCount;
 
-    SkSerializationHelpers::DecodeBitmap fBitmapDecoder;
+    SkPicture::InstallPixelRefProc fBitmapDecoder;
+
+#ifdef DEBUG_NON_DETERMINISTIC_ASSERT
+    // Debugging counter to keep track of how many bitmaps we
+    // have decoded.
+    int fDecodedBitmapIndex;
+#endif // DEBUG_NON_DETERMINISTIC_ASSERT
 
     typedef SkFlattenableReadBuffer INHERITED;
 };

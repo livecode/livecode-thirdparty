@@ -12,14 +12,12 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-SK_DEFINE_INST_COUNT(SkPathEffect)
-
 void SkPathEffect::computeFastBounds(SkRect* dst, const SkRect& src) const {
     *dst = src;
 }
 
 bool SkPathEffect::asPoints(PointData* results, const SkPath& src,
-                            const SkStrokeRec&, const SkMatrix&) const {
+                    const SkStrokeRec&, const SkMatrix&, const SkRect*) const {
     return false;
 }
 
@@ -48,15 +46,15 @@ void SkPairPathEffect::flatten(SkFlattenableWriteBuffer& buffer) const {
 }
 
 SkPairPathEffect::SkPairPathEffect(SkFlattenableReadBuffer& buffer) {
-    fPE0 = buffer.readFlattenableT<SkPathEffect>();
-    fPE1 = buffer.readFlattenableT<SkPathEffect>();
+    fPE0 = buffer.readPathEffect();
+    fPE1 = buffer.readPathEffect();
     // either of these may fail, so we have to check for nulls later on
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 bool SkComposePathEffect::filterPath(SkPath* dst, const SkPath& src,
-                                     SkStrokeRec* rec) const {
+                             SkStrokeRec* rec, const SkRect* cullRect) const {
     // we may have failed to unflatten these, so we have to check
     if (!fPE0 || !fPE1) {
         return false;
@@ -65,16 +63,17 @@ bool SkComposePathEffect::filterPath(SkPath* dst, const SkPath& src,
     SkPath          tmp;
     const SkPath*   ptr = &src;
 
-    if (fPE1->filterPath(&tmp, src, rec)) {
+    if (fPE1->filterPath(&tmp, src, rec, cullRect)) {
         ptr = &tmp;
     }
-    return fPE0->filterPath(dst, *ptr, rec);
+    return fPE0->filterPath(dst, *ptr, rec, cullRect);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
 bool SkSumPathEffect::filterPath(SkPath* dst, const SkPath& src,
-                                 SkStrokeRec* rec) const {
+                             SkStrokeRec* rec, const SkRect* cullRect) const {
     // use bit-or so that we always call both, even if the first one succeeds
-    return fPE0->filterPath(dst, src, rec) | fPE1->filterPath(dst, src, rec);
+    return fPE0->filterPath(dst, src, rec, cullRect) |
+           fPE1->filterPath(dst, src, rec, cullRect);
 }

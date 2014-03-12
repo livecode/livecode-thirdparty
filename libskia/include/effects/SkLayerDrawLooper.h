@@ -9,9 +9,9 @@
 #define SkLayerDrawLooper_DEFINED
 
 #include "SkDrawLooper.h"
+#include "SkPaint.h"
+#include "SkPoint.h"
 #include "SkXfermode.h"
-
-struct SkPoint;
 
 class SK_API SkLayerDrawLooper : public SkDrawLooper {
 public:
@@ -90,7 +90,7 @@ public:
     SkPaint* addLayer(const LayerInfo&);
 
     /**
-     *  This layer will draw with the original paint, ad the specified offset
+     *  This layer will draw with the original paint, at the specified offset
      */
     void addLayer(SkScalar dx, SkScalar dy);
 
@@ -99,10 +99,14 @@ public:
      */
     void addLayer() { this->addLayer(0, 0); }
 
+    /// Similar to addLayer, but adds a layer to the top.
+    SkPaint* addLayerOnTop(const LayerInfo&);
+
     // overrides from SkDrawLooper
     virtual void init(SkCanvas*);
     virtual bool next(SkCanvas*, SkPaint* paint);
 
+    SK_DEVELOPER_TO_STRING()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLayerDrawLooper)
 
 protected:
@@ -114,10 +118,9 @@ private:
         Rec*    fNext;
         SkPaint fPaint;
         LayerInfo fInfo;
-
-        static Rec* Reverse(Rec*);
     };
     Rec*    fRecs;
+    Rec*    fTopRec;
     int     fCount;
 
     // state-machine during the init/next cycle

@@ -10,18 +10,19 @@
 
 #if SK_ANGLE
 
-#include "SkGLContext.h"
+#include "SkGLContextHelper.h"
 
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
 
-class SkANGLEGLContext : public SkGLContext {
+class SkANGLEGLContext : public SkGLContextHelper {
 public:
     SkANGLEGLContext();
 
     virtual ~SkANGLEGLContext();
 
     virtual void makeCurrent() const SK_OVERRIDE;
+    virtual void swapBuffers() const SK_OVERRIDE;
 
     class AutoContextRestore {
     public:

@@ -13,15 +13,12 @@
 
 class SkPicture;
 
-extern SkBitmap::Config SkImageInfoToBitmapConfig(const SkImage::Info&,
-                                                  bool* isOpaque);
-
-extern int SkImageBytesPerPixel(SkImage::ColorType);
-
-extern bool SkBitmapToImageInfo(const SkBitmap&, SkImage::Info*);
+extern SkBitmap::Config SkImageInfoToBitmapConfig(const SkImageInfo&);
+extern SkBitmap::Config SkColorTypeToBitmapConfig(SkColorType);
+extern bool SkBitmapConfigToColorType(SkBitmap::Config, SkColorType* ctOut);
 
 // Call this if you explicitly want to use/share this pixelRef in the image
-extern SkImage* SkNewImageFromPixelRef(const SkImage::Info&, SkPixelRef*,
+extern SkImage* SkNewImageFromPixelRef(const SkImageInfo&, SkPixelRef*,
                                        size_t rowBytes);
 
 /**
@@ -31,7 +28,7 @@ extern SkImage* SkNewImageFromPixelRef(const SkImage::Info&, SkPixelRef*,
  *  is true.
  *
  *  If the bitmap's config cannot be converted into a corresponding
- *  SkImage::Info, or the bitmap's pixels cannot be accessed, this will return
+ *  SkImageInfo, or the bitmap's pixels cannot be accessed, this will return
  *  NULL.
  */
 extern SkImage* SkNewImageFromBitmap(const SkBitmap&, bool canSharePixelRef);
@@ -39,15 +36,17 @@ extern SkImage* SkNewImageFromBitmap(const SkBitmap&, bool canSharePixelRef);
 extern void SkImagePrivDrawPicture(SkCanvas*, SkPicture*,
                                    SkScalar x, SkScalar y, const SkPaint*);
 
+extern void SkImagePrivDrawPicture(SkCanvas*, SkPicture*,
+                                   const SkRect*, const SkRect&, const SkPaint*);
+
 /**
  *  Return an SkImage whose contents are those of the specified picture. Note:
  *  The picture itself is unmodified, and may continue to be used for recording
  */
 extern SkImage* SkNewImageFromPicture(const SkPicture*);
 
-static inline size_t SkImageMinRowBytes(const SkImage::Info& info) {
-    size_t rb = info.fWidth * SkImageBytesPerPixel(info.fColorType);
-    return SkAlign4(rb);
+static inline size_t SkImageMinRowBytes(const SkImageInfo& info) {
+    return SkAlign4(info.minRowBytes());
 }
 
 // Given an image created from SkNewImageFromBitmap, return its pixelref. This
@@ -55,10 +54,13 @@ static inline size_t SkImageMinRowBytes(const SkImage::Info& info) {
 // in which case the surface may need to perform a copy-on-write.
 extern SkPixelRef* SkBitmapImageGetPixelRef(SkImage* rasterImage);
 
+// Given an image created with NewPicture, return its SkPicture.
+extern SkPicture* SkPictureImageGetPicture(SkImage* pictureImage);
+
 // Given an image created with NewTexture, return its GrTexture. This
 // may be called to see if the surface and the image share the same GrTexture,
 // in which case the surface may need to perform a copy-on-write.
-extern GrTexture* SkTextureImageGetTexture(SkImage* rasterImage);
+extern GrTexture* SkTextureImageGetTexture(SkImage* textureImage);
 
 // Update the texture wrapped by an image created with NewTexture. This
 // is called when a surface and image share the same GrTexture and the

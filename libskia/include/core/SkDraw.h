@@ -10,21 +10,21 @@
 #ifndef SkDraw_DEFINED
 #define SkDraw_DEFINED
 
-#include "SkBitmap.h"
 #include "SkCanvas.h"
 #include "SkMask.h"
-#include "SkMatrix.h"
 #include "SkPaint.h"
-#include "SkRect.h"
-#include "SkAutoKern.h"
 
+class SkBitmap;
 class SkBounder;
 class SkClipStack;
-class SkDevice;
+class SkBaseDevice;
+class SkMatrix;
 class SkPath;
 class SkRegion;
 class SkRasterClip;
 struct SkDrawProcs;
+struct SkRect;
+class SkRRect;
 
 class SkDraw {
 public:
@@ -35,6 +35,7 @@ public:
     void    drawPoints(SkCanvas::PointMode, size_t count, const SkPoint[],
                        const SkPaint&, bool forceUseDevice = false) const;
     void    drawRect(const SkRect&, const SkPaint&) const;
+    void    drawRRect(const SkRRect&, const SkPaint&) const;
     /**
      *  To save on mallocs, we allow a flag that tells us that srcPath is
      *  mutable, so that we don't have to make copies of it as we transform it.
@@ -44,8 +45,15 @@ public:
      *  affect the geometry/rasterization, then the pre matrix can just be
      *  pre-concated with the current matrix.
      */
-    void    drawPath(const SkPath& srcPath, const SkPaint&,
-                     const SkMatrix* prePathMatrix, bool pathIsMutable) const;
+    void    drawPath(const SkPath& path, const SkPaint& paint,
+                     const SkMatrix* prePathMatrix, bool pathIsMutable) const {
+        this->drawPath(path, paint, prePathMatrix, pathIsMutable, false);
+    }
+
+    void drawPath(const SkPath& path, const SkPaint& paint) const {
+        this->drawPath(path, paint, NULL, false, false);
+    }
+
     void    drawBitmap(const SkBitmap&, const SkMatrix&, const SkPaint&) const;
     void    drawSprite(const SkBitmap&, int x, int y, const SkPaint&) const;
     void    drawText(const char text[], size_t byteLength, SkScalar x,
@@ -55,19 +63,20 @@ public:
                         int scalarsPerPosition, const SkPaint& paint) const;
     void    drawTextOnPath(const char text[], size_t byteLength,
                         const SkPath&, const SkMatrix*, const SkPaint&) const;
-#ifdef SK_BUILD_FOR_ANDROID
-    void    drawPosTextOnPath(const char text[], size_t byteLength,
-                              const SkPoint pos[], const SkPaint& paint,
-                              const SkPath& path, const SkMatrix* matrix) const;
-#endif
     void    drawVertices(SkCanvas::VertexMode mode, int count,
                          const SkPoint vertices[], const SkPoint textures[],
                          const SkColor colors[], SkXfermode* xmode,
                          const uint16_t indices[], int ptCount,
                          const SkPaint& paint) const;
 
-    void drawPath(const SkPath& src, const SkPaint& paint) const {
-        this->drawPath(src, paint, NULL, false);
+    /**
+     *  Overwrite the target with the path's coverage (i.e. its mask).
+     *  Will overwrite the entire device, so it need not be zero'd first.
+     *
+     *  Only device A8 is supported right now.
+     */
+    void drawPathCoverage(const SkPath& src, const SkPaint& paint) const {
+        this->drawPath(src, paint, NULL, false, true);
     }
 
     /** Helper function that creates a mask from a path and an optional maskfilter.
@@ -97,14 +106,34 @@ public:
      */
     static RectType ComputeRectType(const SkPaint&, const SkMatrix&,
                                     SkPoint* strokeSize);
-	
-	// MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
-	void    drawDevMask(const SkMask& mask, const SkPaint&) const;	
 
+    static bool ShouldDrawTextAsPaths(const SkPaint&, const SkMatrix&);
+    void        drawText_asPaths(const char text[], size_t byteLength,
+                                 SkScalar x, SkScalar y, const SkPaint&) const;
+    void        drawPosText_asPaths(const char text[], size_t byteLength,
+                                    const SkScalar pos[], SkScalar constY,
+                                    int scalarsPerPosition, const SkPaint&) const;
+
+    // MM-2013-08-16: [[ RefactorGraphics ]] Expose drawDevMask. Used to render masks produced by platform specific text rendering procedures.
+	void    drawDevMask(const SkMask& mask, const SkPaint&) const;
+    
 private:
-    void    drawText_asPaths(const char text[], size_t byteLength,
-                             SkScalar x, SkScalar y, const SkPaint&) const;
+    //void    drawDevMask(const SkMask& mask, const SkPaint&) const;
     void    drawBitmapAsMask(const SkBitmap&, const SkPaint&) const;
+
+    void    drawPath(const SkPath&, const SkPaint&, const SkMatrix* preMatrix,
+                     bool pathIsMutable, bool drawCoverage) const;
+
+    /**
+     *  Return the current clip bounds, in local coordinates, with slop to account
+     *  for antialiasing or hairlines (i.e. device-bounds outset by 1, and then
+     *  run through the inverse of the matrix).
+     *
+     *  If the matrix cannot be inverted, or the current clip is empty, return
+     *  false and ignore bounds parameter.
+     */
+    bool SK_WARN_UNUSED_RESULT
+    computeConservativeLocalClipBounds(SkRect* bounds) const;
 
 public:
     const SkBitmap* fBitmap;        // required
@@ -113,7 +142,7 @@ public:
     const SkRasterClip* fRC;        // required
 
     const SkClipStack* fClipStack;  // optional
-    SkDevice*       fDevice;        // optional
+    SkBaseDevice*   fDevice;        // optional
     SkBounder*      fBounder;       // optional
     SkDrawProcs*    fProcs;         // optional
 
@@ -125,5 +154,3 @@ public:
 };
 
 #endif
-
-

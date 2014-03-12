@@ -43,11 +43,6 @@
  */
 class GrPaint {
 public:
-    enum {
-        kMaxColorStages     = 2,
-        kMaxCoverageStages  = 1,
-    };
-
     GrPaint() { this->reset(); }
 
     GrPaint(const GrPaint& paint) { *this = paint; }
@@ -90,132 +85,49 @@ public:
     bool isDither() const { return fDither; }
 
     /**
-     * Enables a SkXfermode::Mode-based color filter applied to the primitive color. The constant
-     * color passed to this function is considered the "src" color and the primitive's color is
-     * considered the "dst" color. Defaults to kDst_Mode which equates to simply passing through
-     * the primitive color unmodified.
+     * Appends an additional color effect to the color computation.
      */
-    void setXfermodeColorFilter(SkXfermode::Mode mode, GrColor color) {
-        fColorFilterColor = color;
-        fColorFilterXfermode = mode;
-    }
-    SkXfermode::Mode getColorFilterMode() const { return fColorFilterXfermode; }
-    GrColor getColorFilterColor() const { return fColorFilterColor; }
-
-    /**
-     * Disables the SkXfermode::Mode color filter.
-     */
-    void resetColorFilter() {
-        fColorFilterXfermode = SkXfermode::kDst_Mode;
-        fColorFilterColor = GrColorPackRGBA(0xff, 0xff, 0xff, 0xff);
+    const GrEffectRef* addColorEffect(const GrEffectRef* effect, int attr0 = -1, int attr1 = -1) {
+        SkASSERT(NULL != effect);
+        if (!(*effect)->willUseInputColor()) {
+            fColorStages.reset();
+        }
+        SkNEW_APPEND_TO_TARRAY(&fColorStages, GrEffectStage, (effect, attr0, attr1));
+        return effect;
     }
 
     /**
-     * Specifies a stage of the color pipeline. Usually the texture matrices of color stages apply
-     * to the primitive's positions. Some GrContext calls take explicit coords as an array or a
-     * rect. In this case these are the pre-matrix coords to colorStage(0).
+     * Appends an additional coverage effect to the coverage computation.
      */
-    GrEffectStage* colorStage(int i) {
-        GrAssert((unsigned)i < kMaxColorStages);
-        return fColorStages + i;
-    }
-
-    const GrEffectStage& getColorStage(int i) const {
-        GrAssert((unsigned)i < kMaxColorStages);
-        return fColorStages[i];
-    }
-
-    bool isColorStageEnabled(int i) const {
-        GrAssert((unsigned)i < kMaxColorStages);
-        return (NULL != fColorStages[i].getEffect());
+    const GrEffectRef* addCoverageEffect(const GrEffectRef* effect, int attr0 = -1, int attr1 = -1) {
+        SkASSERT(NULL != effect);
+        if (!(*effect)->willUseInputColor()) {
+            fCoverageStages.reset();
+        }
+        SkNEW_APPEND_TO_TARRAY(&fCoverageStages, GrEffectStage, (effect, attr0, attr1));
+        return effect;
     }
 
     /**
-     * Specifies a stage of the coverage pipeline. Coverage stages' texture matrices are always
-     * applied to the primitive's position, never to explicit texture coords.
+     * Helpers for adding color or coverage effects that sample a texture. The matrix is applied
+     * to the src space position to compute texture coordinates.
      */
-    GrEffectStage* coverageStage(int i) {
-        GrAssert((unsigned)i < kMaxCoverageStages);
-        return fCoverageStages + i;
-    }
+    void addColorTextureEffect(GrTexture* texture, const SkMatrix& matrix);
+    void addCoverageTextureEffect(GrTexture* texture, const SkMatrix& matrix);
 
-    const GrEffectStage& getCoverageStage(int i) const {
-        GrAssert((unsigned)i < kMaxCoverageStages);
-        return fCoverageStages[i];
-    }
+    void addColorTextureEffect(GrTexture* texture,
+                               const SkMatrix& matrix,
+                               const GrTextureParams& params);
+    void addCoverageTextureEffect(GrTexture* texture,
+                                  const SkMatrix& matrix,
+                                  const GrTextureParams& params);
 
-    bool isCoverageStageEnabled(int i) const {
-        GrAssert((unsigned)i < kMaxCoverageStages);
-        return (NULL != fCoverageStages[i].getEffect());
-    }
+    int numColorStages() const { return fColorStages.count(); }
+    int numCoverageStages() const { return fCoverageStages.count(); }
+    int numTotalStages() const { return this->numColorStages() + this->numCoverageStages(); }
 
-    bool hasCoverageStage() const {
-        for (int i = 0; i < kMaxCoverageStages; ++i) {
-            if (this->isCoverageStageEnabled(i)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool hasColorStage() const {
-        for (int i = 0; i < kMaxColorStages; ++i) {
-            if (this->isColorStageEnabled(i)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool hasStage() const { return this->hasColorStage() || this->hasCoverageStage(); }
-
-    /**
-     * Called when the source coord system is changing. preConcatInverse is the inverse of the
-     * transformation from the old coord system to the new coord system. Returns false if the matrix
-     * cannot be inverted.
-     */
-    bool sourceCoordChangeByInverse(const SkMatrix& preConcatInverse) {
-        SkMatrix inv;
-        bool computed = false;
-        for (int i = 0; i < kMaxColorStages; ++i) {
-            if (this->isColorStageEnabled(i)) {
-                if (!computed && !preConcatInverse.invert(&inv)) {
-                    return false;
-                } else {
-                    computed = true;
-                }
-                fColorStages[i].preConcatCoordChange(inv);
-            }
-        }
-        for (int i = 0; i < kMaxCoverageStages; ++i) {
-            if (this->isCoverageStageEnabled(i)) {
-                if (!computed && !preConcatInverse.invert(&inv)) {
-                    return false;
-                } else {
-                    computed = true;
-                }
-                fCoverageStages[i].preConcatCoordChange(inv);
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Called when the source coord system is changing. preConcat gives the transformation from the
-     * old coord system to the new coord system.
-     */
-    void sourceCoordChange(const SkMatrix& preConcat) {
-        for (int i = 0; i < kMaxColorStages; ++i) {
-            if (this->isColorStageEnabled(i)) {
-                fColorStages[i].preConcatCoordChange(preConcat);
-            }
-        }
-        for (int i = 0; i < kMaxCoverageStages; ++i) {
-            if (this->isCoverageStageEnabled(i)) {
-                fCoverageStages[i].preConcatCoordChange(preConcat);
-            }
-        }
-    }
+    const GrEffectStage& getColorStage(int s) const { return fColorStages[s]; }
+    const GrEffectStage& getCoverageStage(int s) const { return fCoverageStages[s]; }
 
     GrPaint& operator=(const GrPaint& paint) {
         fSrcBlendCoeff = paint.fSrcBlendCoeff;
@@ -226,19 +138,9 @@ public:
         fColor = paint.fColor;
         fCoverage = paint.fCoverage;
 
-        fColorFilterColor = paint.fColorFilterColor;
-        fColorFilterXfermode = paint.fColorFilterXfermode;
+        fColorStages = paint.fColorStages;
+        fCoverageStages = paint.fCoverageStages;
 
-        for (int i = 0; i < kMaxColorStages; ++i) {
-            if (paint.isColorStageEnabled(i)) {
-                fColorStages[i] = paint.fColorStages[i];
-            }
-        }
-        for (int i = 0; i < kMaxCoverageStages; ++i) {
-            if (paint.isCoverageStageEnabled(i)) {
-                fCoverageStages[i] = paint.fCoverageStages[i];
-            }
-        }
         return *this;
     }
 
@@ -251,22 +153,70 @@ public:
         this->resetColor();
         this->resetCoverage();
         this->resetStages();
-        this->resetColorFilter();
     }
 
-    // internal use
-    // GrPaint's textures and masks map to the first N stages
-    // of GrDrawTarget in that order (textures followed by masks)
-    enum {
-        kFirstColorStage = 0,
-        kFirstCoverageStage = kMaxColorStages,
-        kTotalStages = kFirstColorStage + kMaxColorStages + kMaxCoverageStages,
-    };
+    /**
+     * Determines whether the drawing with this paint is opaque with respect to both color blending
+     * and fractional coverage. It does not consider whether AA has been enabled on the paint or
+     * not. Depending upon whether multisampling or coverage-based AA is in use, AA may make the
+     * result only apply to the interior of primitives.
+     *
+     */
+    bool isOpaque() const;
+
+    /**
+     * Returns true if isOpaque would return true and the paint represents a solid constant color
+     * draw. If the result is true, constantColor will be updated to contain the constant color.
+     */
+    bool isOpaqueAndConstantColor(GrColor* constantColor) const;
 
 private:
 
-    GrEffectStage               fColorStages[kMaxColorStages];
-    GrEffectStage               fCoverageStages[kMaxCoverageStages];
+    /**
+     * Helper for isOpaque and isOpaqueAndConstantColor.
+     */
+    bool getOpaqueAndKnownColor(GrColor* solidColor, uint32_t* solidColorKnownComponents) const;
+
+    /**
+     * Called when the source coord system from which geometry is rendered changes. It ensures that
+     * the local coordinates seen by effects remains unchanged. oldToNew gives the transformation
+     * from the previous coord system to the new coord system.
+     */
+    void localCoordChange(const SkMatrix& oldToNew) {
+        for (int i = 0; i < fColorStages.count(); ++i) {
+            fColorStages[i].localCoordChange(oldToNew);
+        }
+        for (int i = 0; i < fCoverageStages.count(); ++i) {
+            fCoverageStages[i].localCoordChange(oldToNew);
+        }
+    }
+
+    bool localCoordChangeInverse(const SkMatrix& newToOld) {
+        SkMatrix oldToNew;
+        bool computed = false;
+        for (int i = 0; i < fColorStages.count(); ++i) {
+            if (!computed && !newToOld.invert(&oldToNew)) {
+                return false;
+            } else {
+                computed = true;
+            }
+            fColorStages[i].localCoordChange(oldToNew);
+        }
+        for (int i = 0; i < fCoverageStages.count(); ++i) {
+            if (!computed && !newToOld.invert(&oldToNew)) {
+                return false;
+            } else {
+                computed = true;
+            }
+            fCoverageStages[i].localCoordChange(oldToNew);
+        }
+        return true;
+    }
+
+    friend class GrContext; // To access above two functions
+
+    SkSTArray<4, GrEffectStage> fColorStages;
+    SkSTArray<2, GrEffectStage> fCoverageStages;
 
     GrBlendCoeff                fSrcBlendCoeff;
     GrBlendCoeff                fDstBlendCoeff;
@@ -275,9 +225,6 @@ private:
 
     GrColor                     fColor;
     uint8_t                     fCoverage;
-
-    GrColor                     fColorFilterColor;
-    SkXfermode::Mode            fColorFilterXfermode;
 
     void resetBlend() {
         fSrcBlendCoeff = kOne_GrBlendCoeff;
@@ -298,12 +245,8 @@ private:
     }
 
     void resetStages() {
-        for (int i = 0; i < kMaxColorStages; ++i) {
-            fColorStages[i].reset();
-        }
-        for (int i = 0; i < kMaxCoverageStages; ++i) {
-            fCoverageStages[i].reset();
-        }
+        fColorStages.reset();
+        fCoverageStages.reset();
     }
 };
 

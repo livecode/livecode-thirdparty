@@ -6,8 +6,8 @@
  * found in the LICENSE file.
  */
 
-#ifndef SkSkTScopedPtr_DEFINED
-#define SkSkTScopedPtr_DEFINED
+#ifndef SkTScopedComPtr_DEFINED
+#define SkTScopedComPtr_DEFINED
 
 #include "SkTypes.h"
 #include "SkTemplates.h"
@@ -18,6 +18,18 @@ private:
     virtual ULONG STDMETHODCALLTYPE AddRef(void) = 0;
     virtual ULONG STDMETHODCALLTYPE Release(void) = 0;
 };
+
+template<typename T> T* SkRefComPtr(T* ptr) {
+    ptr->AddRef();
+    return ptr;
+}
+
+template<typename T> T* SkSafeRefComPtr(T* ptr) {
+    if (ptr) {
+        ptr->AddRef();
+    }
+    return ptr;
+}
 
 template<typename T>
 class SkTScopedComPtr : SkNoncopyable {

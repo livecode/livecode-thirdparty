@@ -6,12 +6,13 @@
  * found in the LICENSE file.
  */
 
+#include "SkAnnotation.h"
+#include "SkBitmapDevice.h"
 #include "SkBitmapHeap.h"
 #include "SkCanvas.h"
 #include "SkColorFilter.h"
 #include "SkData.h"
 #include "SkDrawLooper.h"
-#include "SkDevice.h"
 #include "SkGPipe.h"
 #include "SkGPipePriv.h"
 #include "SkImageFilter.h"
@@ -149,19 +150,36 @@ const SkFlatData* FlattenableHeap::flatToReplace() const {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class FlatDictionary : public SkFlatDictionary<SkFlattenable> {
-public:
-    FlatDictionary(FlattenableHeap* heap)
-            : SkFlatDictionary<SkFlattenable>(heap) {
-        fFlattenProc = &flattenFlattenableProc;
-        // No need to define fUnflattenProc since the writer will never
-        // unflatten the data.
+struct SkFlattenableTraits {
+    static void flatten(SkOrderedWriteBuffer& buffer, const SkFlattenable& flattenable) {
+        buffer.writeFlattenable(&flattenable);
     }
-    static void flattenFlattenableProc(SkOrderedWriteBuffer& buffer,
-                                       const void* obj) {
-        buffer.writeFlattenable((SkFlattenable*)obj);
-    }
+    // No need to define unflatten if we never call it.
+};
+typedef SkFlatDictionary<SkFlattenable, SkFlattenableTraits> FlatDictionary;
 
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * If SkBitmaps are to be flattened to send to the reader, this class is
+ * provided to the SkBitmapHeap to tell the SkGPipeCanvas to do so.
+ */
+class BitmapShuttle : public SkBitmapHeap::ExternalStorage {
+public:
+    BitmapShuttle(SkGPipeCanvas*);
+
+    ~BitmapShuttle();
+
+    virtual bool insert(const SkBitmap& bitmap, int32_t slot) SK_OVERRIDE;
+
+    /**
+     *  Remove the SkGPipeCanvas used for insertion. After this, calls to
+     *  insert will crash.
+     */
+    void removeCanvas();
+
+private:
+    SkGPipeCanvas*    fCanvas;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -172,26 +190,33 @@ public:
                   uint32_t width, uint32_t height);
     virtual ~SkGPipeCanvas();
 
-    void finish() {
-        if (!fDone) {
-            if (this->needOpBytes()) {
-                this->writeOp(kDone_DrawOp);
-                this->doNotify();
-                if (shouldFlattenBitmaps(fFlags)) {
-                    // In this case, a BitmapShuttle is reffed by the SkBitmapHeap
-                    // and refs this canvas. Unref the SkBitmapHeap to end the
-                    // circular reference. When shouldFlattenBitmaps is false,
-                    // there is no circular reference, so the SkBitmapHeap can be
-                    // safely unreffed in the destructor.
-                    fBitmapHeap->unref();
-                    // This eliminates a similar circular reference (Canvas owns
-                    // the FlattenableHeap which holds a ref to the SkBitmapHeap).
-                    fFlattenableHeap.setBitmapStorage(NULL);
-                    fBitmapHeap = NULL;
-                }
-            }
-            fDone = true;
+    /**
+     *  Called when nothing else is to be written to the stream. Any repeated
+     *  calls are ignored.
+     *
+     *  @param notifyReaders Whether to send a message to the reader(s) that
+     *      the writer is through sending commands. Should generally be true,
+     *      unless there is an error which prevents further messages from
+     *      being sent.
+     */
+    void finish(bool notifyReaders) {
+        if (fDone) {
+            return;
         }
+        if (notifyReaders && this->needOpBytes()) {
+            this->writeOp(kDone_DrawOp);
+            this->doNotify();
+        }
+        if (shouldFlattenBitmaps(fFlags)) {
+            // The following circular references exist:
+            // fFlattenableHeap -> fWriteBuffer -> fBitmapStorage -> fExternalStorage -> fCanvas
+            // fBitmapHeap -> fExternalStorage -> fCanvas
+            // fFlattenableHeap -> fBitmapStorage -> fExternalStorage -> fCanvas
+
+            // Break them all by destroying the final link to this SkGPipeCanvas.
+            fBitmapShuttle->removeCanvas();
+        }
+        fDone = true;
     }
 
     void flushRecording(bool detachCurrentBlock);
@@ -229,7 +254,8 @@ public:
     virtual void drawBitmap(const SkBitmap&, SkScalar left, SkScalar top,
                             const SkPaint*) SK_OVERRIDE;
     virtual void drawBitmapRectToRect(const SkBitmap&, const SkRect* src,
-                                const SkRect& dst, const SkPaint*) SK_OVERRIDE;
+                                      const SkRect& dst, const SkPaint* paint,
+                                      DrawBitmapRectFlags flags) SK_OVERRIDE;
     virtual void drawBitmapMatrix(const SkBitmap&, const SkMatrix&,
                                   const SkPaint*) SK_OVERRIDE;
     virtual void drawBitmapNine(const SkBitmap& bitmap, const SkIRect& center,
@@ -253,6 +279,9 @@ public:
                           const uint16_t indices[], int indexCount,
                               const SkPaint&) SK_OVERRIDE;
     virtual void drawData(const void*, size_t) SK_OVERRIDE;
+    virtual void beginCommentGroup(const char* description) SK_OVERRIDE;
+    virtual void addComment(const char* kywd, const char* value) SK_OVERRIDE;
+    virtual void endCommentGroup() SK_OVERRIDE;
 
     /**
      * Flatten an SkBitmap to send to the reader, where it will be referenced
@@ -289,7 +318,7 @@ private:
 
     inline void doNotify() {
         if (!fDone) {
-            size_t bytes = fWriter.size() - fBytesNotified;
+            size_t bytes = fWriter.bytesWritten() - fBytesNotified;
             if (bytes > 0) {
                 fController->notifyWritten(bytes);
                 fBytesNotified += bytes;
@@ -301,9 +330,11 @@ private:
     // if a new SkFlatData was added when in cross process mode
     void flattenFactoryNames();
 
-    FlattenableHeap fFlattenableHeap;
-    FlatDictionary  fFlatDictionary;
-    int fCurrFlatIndex[kCount_PaintFlats];
+    FlattenableHeap             fFlattenableHeap;
+    FlatDictionary              fFlatDictionary;
+    SkAutoTUnref<BitmapShuttle> fBitmapShuttle;
+    int                         fCurrFlatIndex[kCount_PaintFlats];
+
     int flattenToIndex(SkFlattenable* obj, PaintFlats);
 
     // Common code used by drawBitmap*. Behaves differently depending on the
@@ -341,7 +372,7 @@ bool SkGPipeCanvas::shuttleBitmap(const SkBitmap& bm, int32_t slot) {
     SkASSERT(shouldFlattenBitmaps(fFlags));
     SkOrderedWriteBuffer buffer(1024);
     buffer.setNamedFactoryRecorder(fFactorySet);
-    bm.flatten(buffer);
+    buffer.writeBitmap(bm);
     this->flattenFactoryNames();
     uint32_t size = buffer.size();
     if (this->needOpBytes(size)) {
@@ -385,24 +416,6 @@ int SkGPipeCanvas::flattenToIndex(SkFlattenable* obj, PaintFlats paintflat) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/**
- * If SkBitmaps are to be flattened to send to the reader, this class is
- * provided to the SkBitmapHeap to tell the SkGPipeCanvas to do so.
- */
-class BitmapShuttle : public SkBitmapHeap::ExternalStorage {
-public:
-    BitmapShuttle(SkGPipeCanvas*);
-
-    ~BitmapShuttle();
-
-    virtual bool insert(const SkBitmap& bitmap, int32_t slot) SK_OVERRIDE;
-
-private:
-    SkGPipeCanvas*    fCanvas;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
 #define MIN_BLOCK_SIZE  (16 * 1024)
 #define BITMAPS_TO_KEEP 5
 #define FLATTENABLES_TO_KEEP 10
@@ -426,7 +439,7 @@ SkGPipeCanvas::SkGPipeCanvas(SkGPipeController* controller,
     // We don't allocate pixels for the bitmap
     SkBitmap bitmap;
     bitmap.setConfig(SkBitmap::kARGB_8888_Config, width, height);
-    SkDevice* device = SkNEW_ARGS(SkDevice, (bitmap));
+    SkBaseDevice* device = SkNEW_ARGS(SkBitmapDevice, (bitmap));
     this->setDevice(device)->unref();
 
     // Tell the reader the appropriate flags to use.
@@ -435,9 +448,8 @@ SkGPipeCanvas::SkGPipeCanvas(SkGPipeController* controller,
     }
 
     if (shouldFlattenBitmaps(flags)) {
-        BitmapShuttle* shuttle = SkNEW_ARGS(BitmapShuttle, (this));
-        fBitmapHeap = SkNEW_ARGS(SkBitmapHeap, (shuttle, BITMAPS_TO_KEEP));
-        shuttle->unref();
+        fBitmapShuttle.reset(SkNEW_ARGS(BitmapShuttle, (this)));
+        fBitmapHeap = SkNEW_ARGS(SkBitmapHeap, (fBitmapShuttle.get(), BITMAPS_TO_KEEP));
     } else {
         fBitmapHeap = SkNEW_ARGS(SkBitmapHeap,
                                  (BITMAPS_TO_KEEP, controller->numberOfReaders()));
@@ -451,7 +463,7 @@ SkGPipeCanvas::SkGPipeCanvas(SkGPipeController* controller,
 }
 
 SkGPipeCanvas::~SkGPipeCanvas() {
-    this->finish();
+    this->finish(true);
     SkSafeUnref(fFactorySet);
     SkSafeUnref(fBitmapHeap);
 }
@@ -462,14 +474,15 @@ bool SkGPipeCanvas::needOpBytes(size_t needed) {
     }
 
     needed += 4;  // size of DrawOp atom
-    if (fWriter.size() + needed > fBlockSize) {
+    if (fWriter.bytesWritten() + needed > fBlockSize) {
         // Before we wipe out any data that has already been written, read it
         // out.
         this->doNotify();
         size_t blockSize = SkMax32(MIN_BLOCK_SIZE, needed);
         void* block = fController->requestBlock(blockSize, &fBlockSize);
         if (NULL == block) {
-            fDone = true;
+            // Do not notify the readers, which would call this function again.
+            this->finish(false);
             return false;
         }
         SkASSERT(SkIsAlign4(fBlockSize));
@@ -689,7 +702,7 @@ void SkGPipeCanvas::drawPaint(const SkPaint& paint) {
 }
 
 void SkGPipeCanvas::drawPoints(PointMode mode, size_t count,
-                                   const SkPoint pts[], const SkPaint& paint) {
+                               const SkPoint pts[], const SkPaint& paint) {
     if (count) {
         NOTIFY_SETUP(this);
         this->writePaint(paint);
@@ -769,7 +782,8 @@ void SkGPipeCanvas::drawBitmap(const SkBitmap& bm, SkScalar left, SkScalar top,
 }
 
 void SkGPipeCanvas::drawBitmapRectToRect(const SkBitmap& bm, const SkRect* src,
-                                   const SkRect& dst, const SkPaint* paint) {
+                                         const SkRect& dst, const SkPaint* paint,
+                                         DrawBitmapRectFlags dbmrFlags) {
     NOTIFY_SETUP(this);
     size_t opBytesNeeded = sizeof(SkRect);
     bool hasSrc = src != NULL;
@@ -779,6 +793,9 @@ void SkGPipeCanvas::drawBitmapRectToRect(const SkBitmap& bm, const SkRect* src,
         opBytesNeeded += sizeof(int32_t) * 4;
     } else {
         flags = 0;
+    }
+    if (dbmrFlags & kBleed_DrawBitmapRectFlag) {
+        flags |= kDrawBitmap_Bleed_DrawOpFlag;
     }
 
     if (this->commonDrawBitmap(bm, kDrawBitmapRectToRect_DrawOp, flags, opBytesNeeded, paint)) {
@@ -904,9 +921,9 @@ void SkGPipeCanvas::drawPicture(SkPicture& picture) {
     this->INHERITED::drawPicture(picture);
 }
 
-void SkGPipeCanvas::drawVertices(VertexMode mode, int vertexCount,
+void SkGPipeCanvas::drawVertices(VertexMode vmode, int vertexCount,
                                  const SkPoint vertices[], const SkPoint texs[],
-                                 const SkColor colors[], SkXfermode*,
+                                 const SkColor colors[], SkXfermode* xfer,
                                  const uint16_t indices[], int indexCount,
                                  const SkPaint& paint) {
     if (0 == vertexCount) {
@@ -929,10 +946,14 @@ void SkGPipeCanvas::drawVertices(VertexMode mode, int vertexCount,
         flags |= kDrawVertices_HasIndices_DrawOpFlag;
         size += 4 + SkAlign4(indexCount * sizeof(uint16_t));
     }
+    if (xfer && !SkXfermode::IsMode(xfer, SkXfermode::kModulate_Mode)) {
+        flags |= kDrawVertices_HasXfermode_DrawOpFlag;
+        size += sizeof(int32_t);    // mode enum
+    }
 
     if (this->needOpBytes(size)) {
         this->writeOp(kDrawVertices_DrawOp, flags, 0);
-        fWriter.write32(mode);
+        fWriter.write32(vmode);
         fWriter.write32(vertexCount);
         fWriter.write(vertices, vertexCount * sizeof(SkPoint));
         if (texs) {
@@ -941,9 +962,11 @@ void SkGPipeCanvas::drawVertices(VertexMode mode, int vertexCount,
         if (colors) {
             fWriter.write(colors, vertexCount * sizeof(SkColor));
         }
-
-        // TODO: flatten xfermode
-
+        if (flags & kDrawVertices_HasXfermode_DrawOpFlag) {
+            SkXfermode::Mode mode = SkXfermode::kModulate_Mode;
+            (void)xfer->asMode(&mode);
+            fWriter.write32(mode);
+        }
         if (indices && indexCount > 0) {
             fWriter.write32(indexCount);
             fWriter.writePad(indices, indexCount * sizeof(uint16_t));
@@ -966,6 +989,18 @@ void SkGPipeCanvas::drawData(const void* ptr, size_t size) {
             fWriter.writePad(ptr, size);
         }
     }
+}
+
+void SkGPipeCanvas::beginCommentGroup(const char* description) {
+    // ignore for now
+}
+
+void SkGPipeCanvas::addComment(const char* kywd, const char* value) {
+    // ignore for now
+}
+
+void SkGPipeCanvas::endCommentGroup() {
+    // ignore for now
 }
 
 void SkGPipeCanvas::flushRecording(bool detachCurrentBlock) {
@@ -1101,6 +1136,26 @@ void SkGPipeCanvas::writePaint(const SkPaint& paint) {
 //            SkDebugf("[%d] %08X\n", i, storage[i]);
         }
     }
+
+    //
+    //  Do these after we've written kPaintOp_DrawOp
+
+    if (base.getAnnotation() != paint.getAnnotation()) {
+        if (NULL == paint.getAnnotation()) {
+            if (this->needOpBytes()) {
+                this->writeOp(kSetAnnotation_DrawOp, 0, 0);
+            }
+        } else {
+            SkOrderedWriteBuffer buffer(1024);
+            paint.getAnnotation()->writeToBuffer(buffer);
+            const size_t size = buffer.bytesWritten();
+            if (this->needOpBytes(size)) {
+                this->writeOp(kSetAnnotation_DrawOp, 0, size);
+                buffer.writeToMemory(fWriter.reserve(size));
+            }
+        }
+        base.setAnnotation(paint.getAnnotation());
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1138,7 +1193,7 @@ SkCanvas* SkGPipeWriter::startRecording(SkGPipeController* controller, uint32_t 
 
 void SkGPipeWriter::endRecording() {
     if (fCanvas) {
-        fCanvas->finish();
+        fCanvas->finish(true);
         fCanvas->unref();
         fCanvas = NULL;
     }
@@ -1170,9 +1225,18 @@ BitmapShuttle::BitmapShuttle(SkGPipeCanvas* canvas) {
 }
 
 BitmapShuttle::~BitmapShuttle() {
-    fCanvas->unref();
+    this->removeCanvas();
 }
 
 bool BitmapShuttle::insert(const SkBitmap& bitmap, int32_t slot) {
+    SkASSERT(fCanvas != NULL);
     return fCanvas->shuttleBitmap(bitmap, slot);
+}
+
+void BitmapShuttle::removeCanvas() {
+    if (NULL == fCanvas) {
+        return;
+    }
+    fCanvas->unref();
+    fCanvas = NULL;
 }

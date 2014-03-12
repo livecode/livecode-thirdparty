@@ -17,12 +17,15 @@
 
 class SkWBMPImageDecoder : public SkImageDecoder {
 public:
-    virtual Format getFormat() const {
+    virtual Format getFormat() const SK_OVERRIDE {
         return kWBMP_Format;
     }
 
 protected:
-    virtual bool onDecode(SkStream* stream, SkBitmap* bm, Mode);
+    virtual bool onDecode(SkStream* stream, SkBitmap* bm, Mode) SK_OVERRIDE;
+
+private:
+    typedef SkImageDecoder INHERITED;
 };
 
 static bool read_byte(SkStream* stream, uint8_t* data)
@@ -108,12 +111,12 @@ bool SkWBMPImageDecoder::onDecode(SkStream* stream, SkBitmap* decodedBitmap,
     int width = head.fWidth;
     int height = head.fHeight;
 
-    // assign these directly, in case we return kDimensions_Result
-    decodedBitmap->setConfig(SkBitmap::kIndex8_Config, width, height);
-    decodedBitmap->setIsOpaque(true);
+    decodedBitmap->setConfig(SkBitmap::kIndex8_Config, width, height, 0,
+                             kOpaque_SkAlphaType);
 
-    if (SkImageDecoder::kDecodeBounds_Mode == mode)
+    if (SkImageDecoder::kDecodeBounds_Mode == mode) {
         return true;
+    }
 
     const SkPMColor colors[] = { SK_ColorBLACK, SK_ColorWHITE };
     SkColorTable* ct = SkNEW_ARGS(SkColorTable, (colors, 2));
@@ -149,9 +152,7 @@ bool SkWBMPImageDecoder::onDecode(SkStream* stream, SkBitmap* decodedBitmap,
 DEFINE_DECODER_CREATOR(WBMPImageDecoder);
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "SkTRegistry.h"
-
-static SkImageDecoder* sk_wbmp_dfactory(SkStream* stream) {
+static SkImageDecoder* sk_wbmp_dfactory(SkStreamRewindable* stream) {
     wbmp_head   head;
 
     if (head.init(stream)) {
@@ -160,5 +161,13 @@ static SkImageDecoder* sk_wbmp_dfactory(SkStream* stream) {
     return NULL;
 }
 
-static SkTRegistry<SkImageDecoder*, SkStream*> gReg(sk_wbmp_dfactory);
+static SkImageDecoder::Format get_format_wbmp(SkStreamRewindable* stream) {
+    wbmp_head head;
+    if (head.init(stream)) {
+        return SkImageDecoder::kWBMP_Format;
+    }
+    return SkImageDecoder::kUnknown_Format;
+}
 
+static SkImageDecoder_DecodeReg gDReg(sk_wbmp_dfactory);
+static SkImageDecoder_FormatReg gFormatReg(get_format_wbmp);

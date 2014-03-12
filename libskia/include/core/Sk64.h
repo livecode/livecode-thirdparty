@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2006 The Android Open Source Project
  *
@@ -6,19 +5,32 @@
  * found in the LICENSE file.
  */
 
-
 #ifndef Sk64_DEFINED
 #define Sk64_DEFINED
 
-#include "SkFixed.h"
+#include "SkTypes.h"
 
 /** \class Sk64
 
     Sk64 is a 64-bit math package that does not require long long support from the compiler.
 */
 struct SK_API Sk64 {
-    int32_t  fHi;   //!< the high 32 bits of the number (including sign)
+public:
+
+    // MM-2014-01-09: [[ RefactorGraphics ]] Made fHi and fLo public in order to appease compiler.
+	int32_t  fHi;   //!< the high 32 bits of the number (including sign)
     uint32_t fLo;   //!< the low 32 bits of the number
+
+    int32_t hi() const { return fHi; }
+    uint32_t lo() const { return fLo; }
+
+    int64_t as64() const { return ((int64_t)fHi << 32) | fLo; }
+    int64_t getLongLong() const { return this->as64(); }
+
+    void set64(int64_t value) {
+        fHi = (int32_t)(value >> 32);
+        fLo = (uint32_t)value;
+    }
 
     /** Returns non-zero if the Sk64 can be represented as a signed 32 bit integer
     */
@@ -28,32 +40,9 @@ struct SK_API Sk64 {
     */
     SkBool is64() const { return fHi != ((int32_t)fLo >> 31); }
 
-    /** Returns non-zero if the Sk64 can be represented as a signed 48 bit integer. Used to know
-        if we can shift the value down by 16 to treat it as a SkFixed.
-    */
-    SkBool isFixed() const;
-
     /** Return the signed 32 bit integer equivalent. Asserts that is32() returns non-zero.
     */
     int32_t get32() const { SkASSERT(this->is32()); return (int32_t)fLo; }
-
-    /** Return the number >> 16. Asserts that this does not loose any significant high bits.
-    */
-    SkFixed getFixed() const {
-        SkASSERT(this->isFixed());
-
-        uint32_t sum = fLo + (1 << 15);
-        int32_t  hi = fHi;
-        if (sum < fLo) {
-            hi += 1;
-        }
-        return (hi << 16) | (sum >> 16);
-    }
-
-    /** Return the number >> 30. Asserts that this does not loose any
-        significant high bits.
-    */
-    SkFract getFract() const;
 
     /** Returns the square-root of the number as a signed 32 bit value. */
     int32_t getSqrt() const;
@@ -168,36 +157,6 @@ struct SK_API Sk64 {
     */
     void    div(int32_t, DivOptions);
 
-    /** return (this + other >> 16) as a 32bit result */
-    SkFixed addGetFixed(const Sk64& other) const {
-        return this->addGetFixed(other.fHi, other.fLo);
-    }
-
-    /** return (this + Sk64(hi, lo) >> 16) as a 32bit result */
-    SkFixed addGetFixed(int32_t hi, uint32_t lo) const {
-#ifdef SK_DEBUG
-        Sk64    tmp(*this);
-        tmp.add(hi, lo);
-#endif
-
-        uint32_t sum = fLo + lo;
-        hi += fHi + (sum < fLo);
-        lo = sum;
-
-        sum = lo + (1 << 15);
-        if (sum < lo)
-            hi += 1;
-
-        hi = (hi << 16) | (sum >> 16);
-        SkASSERT(hi == tmp.getFixed());
-        return hi;
-    }
-
-    /** Return the result of dividing the number by denom, treating the answer
-        as a SkFixed. (*this) << 16 / denom. It is an error for denom to be 0.
-    */
-    SkFixed getFixedDiv(const Sk64& denom) const;
-
     friend bool operator==(const Sk64& a, const Sk64& b) {
         return a.fHi == b.fHi && a.fLo == b.fLo;
     }
@@ -222,10 +181,8 @@ struct SK_API Sk64 {
         return a.fHi > b.fHi || (a.fHi == b.fHi && a.fLo >= b.fLo);
     }
 
-#ifdef SkLONGLONG
-    SkLONGLONG getLongLong() const;
-#endif
+    // Private to unittests. Parameter is (skiatest::Reporter*)
+    static void UnitTestWithReporter(void* skiatest_reporter);
 };
 
 #endif
-

@@ -37,7 +37,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)src\utils&quot;;&quot;$(ProjectDir)src\core&quot;;&quot;$(ProjectDir)src\sfnt&quot;;&quot;$(ProjectDir)src\image&quot;;&quot;$(ProjectDir)src\opts&quot;"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)include\utils&quot;;&quot;$(ProjectDir)include\text&quot;;&quot;$(ProjectDir)include\svg&quot;;&quot;$(ProjectDir)include\ports&quot;;&quot;$(ProjectDir)include\pipe&quot;;&quot;$(ProjectDir)include\pdf&quot;;&quot;$(ProjectDir)include\images&quot;;&quot;$(ProjectDir)include\gpu&quot;;&quot;$(ProjectDir)include\effects&quot;;&quot;$(ProjectDir)include\device&quot;;&quot;$(ProjectDir)include\core&quot;;&quot;$(ProjectDir)include\config&quot;;&quot;$(ProjectDir)include\pathops&quot;;&quot;($ProjectDir)include&quot;;&quot;$(ProjectDir)src\utils&quot;;&quot;$(ProjectDir)src\core&quot;;&quot;$(ProjectDir)src\sfnt&quot;;&quot;$(ProjectDir)src\image&quot;;&quot;$(ProjectDir)src\opts&quot;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				UsePrecompiledHeader="0"
@@ -95,7 +95,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)src\utils&quot;;&quot;$(ProjectDir)src\core&quot;;&quot;$(ProjectDir)src\sfnt&quot;;&quot;$(ProjectDir)src\image&quot;;&quot;$(ProjectDir)src\opts&quot;"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)include\utils&quot;;&quot;$(ProjectDir)include\text&quot;;&quot;$(ProjectDir)include\svg&quot;;&quot;$(ProjectDir)include\ports&quot;;&quot;$(ProjectDir)include\pipe&quot;;&quot;$(ProjectDir)include\pdf&quot;;&quot;$(ProjectDir)include\images&quot;;&quot;$(ProjectDir)include\gpu&quot;;&quot;$(ProjectDir)include\effects&quot;;&quot;$(ProjectDir)include\device&quot;;&quot;$(ProjectDir)include\core&quot;;&quot;$(ProjectDir)include\config&quot;;&quot;$(ProjectDir)include\pathops&quot;;&quot;($ProjectDir)include&quot;;&quot;$(ProjectDir)src\utils&quot;;&quot;$(ProjectDir)src\core&quot;;&quot;$(ProjectDir)src\sfnt&quot;;&quot;$(ProjectDir)src\image&quot;;&quot;$(ProjectDir)src\opts&quot;"
 				UsePrecompiledHeader="0"
 				DebugInformationFormat="3"
 			/>
@@ -162,24 +162,10 @@
 				<File
 					RelativePath="src\ports\SkDebug_win.cpp"
 					>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="src\ports\SkFontHost_none.cpp"
 					>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-						/>
-					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="src\ports\SkFontHost_win.cpp"

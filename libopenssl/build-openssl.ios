@@ -30,12 +30,18 @@ fi
 if [ -e "$PLATFORMS_DIR/Xcode_5_0_0" ]; then
 	BUILDS+=" Xcode_5_0_0/Xcode.app/Contents/Developer,iPhoneSimulator,7.0,i386"
 fi
+if [ -e "$PLATFORMS_DIR/Xcode_5_1_0" ]; then
+	BUILDS+=" Xcode_5_1_0/Xcode.app/Contents/Developer,iPhoneSimulator,7.1,i386"
+fi
 BUILDS+=" Xcode_4_2_0,iPhoneOS,5.0,armv7"
 if [ -e "$PLATFORMS_DIR/Xcode_4_6_0" ]; then
 	BUILDS+=" Xcode_4_6_0/Xcode.app/Contents/Developer,iPhoneOS,6.1,armv7"
 fi
 if [ -e "$PLATFORMS_DIR/Xcode_5_0_0" ]; then
 	BUILDS+=" Xcode_5_0_0/Xcode.app/Contents/Developer,iPhoneOS,7.0,armv7"
+fi
+if [ -e "$PLATFORMS_DIR/Xcode_5_1_0" ]; then
+	BUILDS+=" Xcode_5_1_0/Xcode.app/Contents/Developer,iPhoneOS,7.1,armv7"
 fi
 
 ################################################################################
@@ -117,6 +123,7 @@ do
 			export CROSS_TOP="${PLATFORMS_DIR}/${DEVELOPER}/Platforms/${PLATFORM}.platform/Developer"
 			export CROSS_SDK="${PLATFORM}${VERSION}.sdk"
 			export CC="${CROSS_TOP}/usr/bin/gcc -arch ${ARCH} ${ARCH_FLAGS}"
+
 			./Configure $OPENSSL_ARCH_CONFIG > "${OPENSSL_ARCH_LOG}" 2>&1
 			
 			# add -isysroot to CC=

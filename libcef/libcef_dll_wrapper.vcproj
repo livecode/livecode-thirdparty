@@ -83,7 +83,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy /Y &quot;$(SolutionDir)prebuilt\lib\libcef\*.dll&quot; &quot;$(OutDir)&quot;"
+				CommandLine="copy /Y &quot;$(SolutionDir)prebuilt\lib\libcef\win32\*.dll&quot; &quot;$(OutDir)&quot;"
 			/>
 		</Configuration>
 		<Configuration
@@ -151,7 +151,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy /Y &quot;$(SolutionDir)prebuilt\lib\libcef\*.dll&quot; &quot;$(OutDir)&quot;"
+				CommandLine="copy /Y &quot;$(SolutionDir)prebuilt\lib\libcef\win32\*.dll&quot; &quot;$(OutDir)&quot;"
 			/>
 		</Configuration>
 		<Configuration

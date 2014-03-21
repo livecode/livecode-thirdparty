@@ -7,7 +7,6 @@
 
 #include "GrSimpleTextureEffect.h"
 #include "gl/GrGLEffect.h"
-#include "gl/GrGLEffectMatrix.h"
 #include "gl/GrGLSL.h"
 #include "gl/GrGLTexture.h"
 #include "GrTBackendEffectFactory.h"
@@ -15,43 +14,26 @@
 
 class GrGLSimpleTextureEffect : public GrGLEffect {
 public:
-    GrGLSimpleTextureEffect(const GrBackendEffectFactory& factory, const GrEffect&)
-    : INHERITED (factory) {}
+    GrGLSimpleTextureEffect(const GrBackendEffectFactory& factory, const GrDrawEffect&)
+        : INHERITED (factory) {
+    }
 
     virtual void emitCode(GrGLShaderBuilder* builder,
-                          const GrEffectStage&,
+                          const GrDrawEffect& drawEffect,
                           EffectKey key,
-                          const char* vertexCoords,
                           const char* outputColor,
                           const char* inputColor,
+                          const TransformedCoordsArray& coords,
                           const TextureSamplerArray& samplers) SK_OVERRIDE {
-        const char* coordName;
-        GrSLType coordType = fEffectMatrix.emitCode(builder, key, vertexCoords, &coordName);
-        builder->fFSCode.appendf("\t%s = ", outputColor);
-        builder->appendTextureLookupAndModulate(&builder->fFSCode,
-                                                inputColor,
-                                                samplers[0],
-                                                coordName,
-                                                coordType);
-        builder->fFSCode.append(";\n");
-    }
-
-    static inline EffectKey GenKey(const GrEffectStage& stage, const GrGLCaps&) {
-        const GrSimpleTextureEffect& ste =
-            static_cast<const GrSimpleTextureEffect&>(*stage.getEffect());
-        return GrGLEffectMatrix::GenKey(ste.getMatrix(),
-                                        stage.getCoordChangeMatrix(),
-                                        ste.texture(0));
-    }
-
-    virtual void setData(const GrGLUniformManager& uman, const GrEffectStage& stage) SK_OVERRIDE {
-        const GrSimpleTextureEffect& ste =
-            static_cast<const GrSimpleTextureEffect&>(*stage.getEffect());
-        fEffectMatrix.setData(uman, ste.getMatrix(), stage.getCoordChangeMatrix(), ste.texture(0));
+        builder->fsCodeAppendf("\t%s = ", outputColor);
+        builder->fsAppendTextureLookupAndModulate(inputColor,
+                                                  samplers[0],
+                                                  coords[0].c_str(),
+                                                  coords[0].type());
+        builder->fsCodeAppend(";\n");
     }
 
 private:
-    GrGLEffectMatrix fEffectMatrix;
     typedef GrGLEffect INHERITED;
 };
 
@@ -70,10 +52,29 @@ const GrBackendEffectFactory& GrSimpleTextureEffect::getFactory() const {
 GR_DEFINE_EFFECT_TEST(GrSimpleTextureEffect);
 
 GrEffectRef* GrSimpleTextureEffect::TestCreate(SkRandom* random,
-                                               GrContext* context,
+                                               GrContext*,
+                                               const GrDrawTargetCaps&,
                                                GrTexture* textures[]) {
     int texIdx = random->nextBool() ? GrEffectUnitTest::kSkiaPMTextureIdx :
                                       GrEffectUnitTest::kAlphaTextureIdx;
+    static const SkShader::TileMode kTileModes[] = {
+        SkShader::kClamp_TileMode,
+        SkShader::kRepeat_TileMode,
+        SkShader::kMirror_TileMode,
+    };
+    SkShader::TileMode tileModes[] = {
+        kTileModes[random->nextULessThan(SK_ARRAY_COUNT(kTileModes))],
+        kTileModes[random->nextULessThan(SK_ARRAY_COUNT(kTileModes))],
+    };
+    GrTextureParams params(tileModes, random->nextBool() ? GrTextureParams::kBilerp_FilterMode :
+                                                           GrTextureParams::kNone_FilterMode);
+
+    static const GrCoordSet kCoordSets[] = {
+        kLocal_GrCoordSet,
+        kPosition_GrCoordSet
+    };
+    GrCoordSet coordSet = kCoordSets[random->nextULessThan(GR_ARRAY_COUNT(kCoordSets))];
+
     const SkMatrix& matrix = GrEffectUnitTest::TestMatrix(random);
-    return GrSimpleTextureEffect::Create(textures[texIdx], matrix);
+    return GrSimpleTextureEffect::Create(textures[texIdx], matrix, coordSet);
 }

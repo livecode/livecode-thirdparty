@@ -31,7 +31,7 @@ static bool ComputeStep(const SkPoint& a, const SkPoint& b, SkScalar radius,
 }
 
 bool SkCornerPathEffect::filterPath(SkPath* dst, const SkPath& src,
-                                    SkStrokeRec*) const {
+                                    SkStrokeRec*, const SkRect*) const {
     if (0 == fRadius) {
         return false;
     }
@@ -110,6 +110,9 @@ bool SkCornerPathEffect::filterPath(SkPath* dst, const SkPath& src,
                                 lastCorner.fY + firstStep.fY);
                     }
                 dst->close();
+                break;
+            case SkPath::kConic_Verb:
+                SkASSERT(0);
                 break;
             case SkPath::kDone_Verb:
                 goto DONE;

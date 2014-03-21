@@ -33,6 +33,7 @@ const GrGLInterface* GrGLCreateNativeInterface() {
         interface->fColorMask = glColorMask;
         interface->fCompileShader = glCompileShader;
         interface->fCompressedTexImage2D = glCompressedTexImage2D;
+        interface->fCopyTexSubImage2D = glCopyTexSubImage2D;
         interface->fCreateProgram = glCreateProgram;
         interface->fCreateShader = glCreateShader;
         interface->fCullFace = glCullFace;
@@ -53,6 +54,7 @@ const GrGLInterface* GrGLCreateNativeInterface() {
         interface->fFlush = glFlush;
         interface->fFrontFace = glFrontFace;
         interface->fGenBuffers = glGenBuffers;
+        interface->fGenerateMipmap = glGenerateMipmap;
         interface->fGetBufferParameteriv = glGetBufferParameteriv;
         interface->fGetError = glGetError;
         interface->fGetIntegerv = glGetIntegerv;
@@ -79,11 +81,14 @@ const GrGLInterface* GrGLCreateNativeInterface() {
         // mac uses GLenum for internalFormat param (non-standard)
         // amounts to int vs. uint.
         interface->fTexImage2D = (GrGLTexImage2DProc)glTexImage2D;
-    #if GL_ARB_texture_storage
+#if GL_ARB_texture_storage
         interface->fTexStorage2D = glTexStorage2D;
-    #elif GL_EXT_texture_storage
+#elif GL_EXT_texture_storage
         interface->fTexStorage2D = glTexStorage2DEXT;
-    #endif
+#endif
+#if GL_EXT_discard_framebuffer
+        interface->fDiscardFramebuffer = glDiscardFramebufferEXT;
+#endif
         interface->fTexParameteri = glTexParameteri;
         interface->fTexParameteriv = glTexParameteriv;
         interface->fTexSubImage2D = glTexSubImage2D;
@@ -124,18 +129,23 @@ const GrGLInterface* GrGLCreateNativeInterface() {
         interface->fFramebufferRenderbuffer = glFramebufferRenderbuffer;
         interface->fBindRenderbuffer = glBindRenderbuffer;
 
-    #if GL_OES_mapbuffer
+#if GL_OES_mapbuffer
         interface->fMapBuffer = glMapBufferOES;
         interface->fUnmapBuffer = glUnmapBufferOES;
-    #endif
+#endif
 
-    #if GL_APPLE_framebuffer_multisample
+#if GL_APPLE_framebuffer_multisample
         interface->fRenderbufferStorageMultisample = glRenderbufferStorageMultisampleAPPLE;
         interface->fResolveMultisampleFramebuffer = glResolveMultisampleFramebufferAPPLE;
-    #endif
-        interface->fBindFragDataLocationIndexed = NULL;
+#endif
 
-        interface->fBindingsExported = kES2_GrGLBinding;
+#if GL_OES_vertex_array_object
+        interface->fBindVertexArray = glBindVertexArrayOES;
+        interface->fDeleteVertexArrays = glDeleteVertexArraysOES;
+        interface->fGenVertexArrays = glGenVertexArraysOES;
+#endif
+
+        interface->fBindingsExported = kES_GrGLBinding;
     }
     glInterface.get()->ref();
     return glInterface.get();

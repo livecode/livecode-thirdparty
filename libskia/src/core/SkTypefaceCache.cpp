@@ -11,7 +11,22 @@
 #include "SkTypefaceCache.h"
 #include "SkThread.h"
 
-#define TYPEFACE_CACHE_LIMIT    128
+#define TYPEFACE_CACHE_LIMIT    1024
+
+SkTypefaceCache::SkTypefaceCache() {}
+
+SkTypefaceCache::~SkTypefaceCache() {
+    const Rec* curr = fArray.begin();
+    const Rec* stop = fArray.end();
+    while (curr < stop) {
+        if (curr->fStrong) {
+            curr->fFace->unref();
+        } else {
+            curr->fFace->weak_unref();
+        }
+        curr += 1;
+    }
+}
 
 void SkTypefaceCache::add(SkTypeface* face,
                           SkTypeface::Style requestedStyle,
@@ -69,9 +84,7 @@ void SkTypefaceCache::purge(int numToPurge) {
     while (i < count) {
         SkTypeface* face = fArray[i].fFace;
         bool strong = fArray[i].fStrong;
-        if ((strong && face->getRefCnt() == 1) ||
-            (!strong && face->weak_expired()))
-        {
+        if ((strong && face->unique()) || (!strong && face->weak_expired())) {
             if (strong) {
                 face->unref();
             } else {
@@ -145,4 +158,3 @@ void SkTypefaceCache::Dump() {
     (void)Get().findByProcAndRef(DumpProc, NULL);
 #endif
 }
-

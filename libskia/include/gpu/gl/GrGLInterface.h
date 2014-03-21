@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
@@ -6,12 +5,11 @@
  * found in the LICENSE file.
  */
 
-
 #ifndef GrGLInterface_DEFINED
 #define GrGLInterface_DEFINED
 
 #include "GrGLFunctions.h"
-#include "GrRefCnt.h"
+#include "SkRefCnt.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -23,12 +21,15 @@ enum GrGLBinding {
     kNone_GrGLBinding = 0x0,
 
     kDesktop_GrGLBinding = 0x01,
-    kES2_GrGLBinding = 0x02,
+    kES_GrGLBinding = 0x02,  // ES2+ only
 
     // for iteration of GrGLBindings
     kFirstGrGLBinding = kDesktop_GrGLBinding,
-    kLastGrGLBinding = kES2_GrGLBinding
+    kLastGrGLBinding = kES_GrGLBinding
 };
+
+// Temporary alias until Chromium can be updated.
+static const GrGLBinding kES2_GrGLBinding = kES_GrGLBinding;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +84,7 @@ const GrGLInterface* GrGLCreateANGLEInterface();
  * Creates a null GrGLInterface that doesn't draw anything. Used for measuring
  * CPU overhead.
  */
-const GrGLInterface* GrGLCreateNullInterface();
+const SK_API GrGLInterface* GrGLCreateNullInterface();
 
 /**
  * Creates a debugging GrGLInterface that doesn't draw anything. Used for
@@ -107,7 +108,7 @@ typedef intptr_t GrGLInterfaceCallbackData;
  * non-NULL or GrContext creation will fail. This can be tested with the
  * validate() method when the OpenGL context has been made current.
  */
-struct GR_API GrGLInterface : public GrRefCnt {
+struct SK_API GrGLInterface : public SkRefCnt {
 private:
     // simple wrapper class that exists only to initialize a pointer to NULL
     template <typename FNPTR_TYPE> class GLPtr {
@@ -119,7 +120,7 @@ private:
         FNPTR_TYPE fPtr;
     };
 
-    typedef GrRefCnt INHERITED;
+    typedef SkRefCnt INHERITED;
 
 public:
     SK_DECLARE_INST_COUNT(GrGLInterface)
@@ -146,6 +147,7 @@ public:
     GLPtr<GrGLBindFramebufferProc> fBindFramebuffer;
     GLPtr<GrGLBindRenderbufferProc> fBindRenderbuffer;
     GLPtr<GrGLBindTextureProc> fBindTexture;
+    GLPtr<GrGLBindVertexArrayProc> fBindVertexArray;
     GLPtr<GrGLBlendColorProc> fBlendColor;
     GLPtr<GrGLBlendFuncProc> fBlendFunc;
     GLPtr<GrGLBlitFramebufferProc> fBlitFramebuffer;
@@ -155,9 +157,11 @@ public:
     GLPtr<GrGLClearProc> fClear;
     GLPtr<GrGLClearColorProc> fClearColor;
     GLPtr<GrGLClearStencilProc> fClearStencil;
+    GLPtr<GrGLClientActiveTextureProc> fClientActiveTexture;
     GLPtr<GrGLColorMaskProc> fColorMask;
     GLPtr<GrGLCompileShaderProc> fCompileShader;
     GLPtr<GrGLCompressedTexImage2DProc> fCompressedTexImage2D;
+    GLPtr<GrGLCopyTexSubImage2DProc> fCopyTexSubImage2D;
     GLPtr<GrGLCreateProgramProc> fCreateProgram;
     GLPtr<GrGLCreateShaderProc> fCreateShader;
     GLPtr<GrGLCullFaceProc> fCullFace;
@@ -168,26 +172,32 @@ public:
     GLPtr<GrGLDeleteRenderbuffersProc> fDeleteRenderbuffers;
     GLPtr<GrGLDeleteShaderProc> fDeleteShader;
     GLPtr<GrGLDeleteTexturesProc> fDeleteTextures;
+    GLPtr<GrGLDeleteVertexArraysProc> fDeleteVertexArrays;
     GLPtr<GrGLDepthMaskProc> fDepthMask;
     GLPtr<GrGLDisableProc> fDisable;
+    GLPtr<GrGLDisableClientStateProc> fDisableClientState;
     GLPtr<GrGLDisableVertexAttribArrayProc> fDisableVertexAttribArray;
     GLPtr<GrGLDrawArraysProc> fDrawArrays;
     GLPtr<GrGLDrawBufferProc> fDrawBuffer;
     GLPtr<GrGLDrawBuffersProc> fDrawBuffers;
     GLPtr<GrGLDrawElementsProc> fDrawElements;
     GLPtr<GrGLEnableProc> fEnable;
+    GLPtr<GrGLEnableClientStateProc> fEnableClientState;
     GLPtr<GrGLEnableVertexAttribArrayProc> fEnableVertexAttribArray;
     GLPtr<GrGLEndQueryProc> fEndQuery;
     GLPtr<GrGLFinishProc> fFinish;
     GLPtr<GrGLFlushProc> fFlush;
     GLPtr<GrGLFramebufferRenderbufferProc> fFramebufferRenderbuffer;
     GLPtr<GrGLFramebufferTexture2DProc> fFramebufferTexture2D;
+    GLPtr<GrGLFramebufferTexture2DMultisampleProc> fFramebufferTexture2DMultisample;
     GLPtr<GrGLFrontFaceProc> fFrontFace;
     GLPtr<GrGLGenBuffersProc> fGenBuffers;
     GLPtr<GrGLGenFramebuffersProc> fGenFramebuffers;
+    GLPtr<GrGLGenerateMipmapProc> fGenerateMipmap;
     GLPtr<GrGLGenQueriesProc> fGenQueries;
     GLPtr<GrGLGenRenderbuffersProc> fGenRenderbuffers;
     GLPtr<GrGLGenTexturesProc> fGenTextures;
+    GLPtr<GrGLGenVertexArraysProc> fGenVertexArrays;
     GLPtr<GrGLGetBufferParameterivProc> fGetBufferParameteriv;
     GLPtr<GrGLGetErrorProc> fGetError;
     GLPtr<GrGLGetFramebufferAttachmentParameterivProc> fGetFramebufferAttachmentParameteriv;
@@ -203,18 +213,48 @@ public:
     GLPtr<GrGLGetShaderInfoLogProc> fGetShaderInfoLog;
     GLPtr<GrGLGetShaderivProc> fGetShaderiv;
     GLPtr<GrGLGetStringProc> fGetString;
+    GLPtr<GrGLGetStringiProc> fGetStringi;
     GLPtr<GrGLGetTexLevelParameterivProc> fGetTexLevelParameteriv;
     GLPtr<GrGLGetUniformLocationProc> fGetUniformLocation;
     GLPtr<GrGLLineWidthProc> fLineWidth;
     GLPtr<GrGLLinkProgramProc> fLinkProgram;
+    GLPtr<GrGLLoadIdentityProc> fLoadIdentity;
+    GLPtr<GrGLLoadMatrixfProc> fLoadMatrixf;
     GLPtr<GrGLMapBufferProc> fMapBuffer;
+    GLPtr<GrGLMatrixModeProc> fMatrixMode;
     GLPtr<GrGLPixelStoreiProc> fPixelStorei;
     GLPtr<GrGLQueryCounterProc> fQueryCounter;
     GLPtr<GrGLReadBufferProc> fReadBuffer;
     GLPtr<GrGLReadPixelsProc> fReadPixels;
     GLPtr<GrGLRenderbufferStorageProc> fRenderbufferStorage;
+
+#if !GR_GL_IGNORE_ES3_MSAA
+    //  On OpenGL ES there are multiple incompatible extensions that add support for MSAA
+    //  and ES3 adds MSAA support to the standard. On an ES3 driver we may still use the
+    //  older extensions for performance reasons or due to ES3 driver bugs. We want the function
+    //  that creates the GrGLInterface to provide all available functions and internally
+    //  we will select among them. They all have a method called glRenderbufferStorageMultisample*.
+    //  So we have separate function pointers for GL_IMG/EXT_multisampled_to_texture,
+    //  GL_CHROMIUM/ANGLE_framebuffer_multisample/ES3, and GL_APPLE_framebuffer_multisample
+    //  variations.
+    //
+    //  If a driver supports multiple GL_ARB_framebuffer_multisample-style extensions then we will
+    //  assume the function pointers for the standard (or equivalent GL_ARB) version have
+    //  been preferred over GL_EXT, GL_CHROMIUM, or GL_ANGLE variations that have reduced
+    //  functionality.
+
+    //  GL_EXT_multisampled_render_to_texture (preferred) or GL_IMG_multisampled_render_to_texture
+    GLPtr<GrGLRenderbufferStorageMultisampleProc> fRenderbufferStorageMultisampleES2EXT;
+    //  GL_APPLE_framebuffer_multisample
+    GLPtr<GrGLRenderbufferStorageMultisampleProc> fRenderbufferStorageMultisampleES2APPLE;
+#endif
+    //  This is used to store the pointer for GL_ARB/EXT/ANGLE/CHROMIUM_framebuffer_multisample or
+    //  the standard function in ES3+ or GL 3.0+.
     GLPtr<GrGLRenderbufferStorageMultisampleProc> fRenderbufferStorageMultisample;
-    GLPtr<GrGLRenderbufferStorageMultisampleCoverageProc> fRenderbufferStorageMultisampleCoverage;
+
+    // Pointer to BindUniformLocationCHROMIUM from the GL_CHROMIUM_bind_uniform_location extension.
+    GLPtr<GrGLBindUniformLocation> fBindUniformLocation;
+
     GLPtr<GrGLResolveMultisampleFramebufferProc> fResolveMultisampleFramebuffer;
     GLPtr<GrGLScissorProc> fScissor;
     GLPtr<GrGLShaderSourceProc> fShaderSource;
@@ -224,11 +264,15 @@ public:
     GLPtr<GrGLStencilMaskSeparateProc> fStencilMaskSeparate;
     GLPtr<GrGLStencilOpProc> fStencilOp;
     GLPtr<GrGLStencilOpSeparateProc> fStencilOpSeparate;
+    GLPtr<GrGLTexGenfProc> fTexGenf;
+    GLPtr<GrGLTexGenfvProc> fTexGenfv;
+    GLPtr<GrGLTexGeniProc> fTexGeni;
     GLPtr<GrGLTexImage2DProc> fTexImage2D;
     GLPtr<GrGLTexParameteriProc> fTexParameteri;
     GLPtr<GrGLTexParameterivProc> fTexParameteriv;
     GLPtr<GrGLTexSubImage2DProc> fTexSubImage2D;
     GLPtr<GrGLTexStorage2DProc> fTexStorage2D;
+    GLPtr<GrGLDiscardFramebufferProc> fDiscardFramebuffer;
     GLPtr<GrGLUniform1fProc> fUniform1f;
     GLPtr<GrGLUniform1iProc> fUniform1i;
     GLPtr<GrGLUniform1fvProc> fUniform1fv;
@@ -252,14 +296,12 @@ public:
     GLPtr<GrGLUseProgramProc> fUseProgram;
     GLPtr<GrGLVertexAttrib4fvProc> fVertexAttrib4fv;
     GLPtr<GrGLVertexAttribPointerProc> fVertexAttribPointer;
+    GLPtr<GrGLVertexPointerProc> fVertexPointer;
     GLPtr<GrGLViewportProc> fViewport;
 
     // Experimental: Functions for GL_NV_path_rendering. These will be
     // alphabetized with the above functions once this is fully supported
     // (and functions we are unlikely to use will possibly be omitted).
-    GLPtr<GrGLMatrixModeProc> fMatrixMode;
-    GLPtr<GrGLLoadIdentityProc> fLoadIdentity;
-    GLPtr<GrGLLoadMatrixfProc> fLoadMatrixf;
     GLPtr<GrGLPathCommandsProc> fPathCommands;
     GLPtr<GrGLPathCoordsProc> fPathCoords;
     GLPtr<GrGLPathSubCommandsProc> fPathSubCommands;

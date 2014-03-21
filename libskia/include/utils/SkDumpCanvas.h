@@ -45,7 +45,11 @@ public:
         kDrawText_Verb,
         kDrawPicture_Verb,
         kDrawVertices_Verb,
-        kDrawData_Verb
+        kDrawData_Verb,
+
+        kBeginCommentGroup_Verb,
+        kAddComment_Verb,
+        kEndCommentGroup_Verb
     };
 
     /** Subclasses of this are installed on the DumpCanvas, and then called for
@@ -95,7 +99,8 @@ public:
     virtual void drawBitmap(const SkBitmap& bitmap, SkScalar left, SkScalar top,
                             const SkPaint* paint) SK_OVERRIDE;
     virtual void drawBitmapRectToRect(const SkBitmap& bitmap, const SkRect* src,
-                                const SkRect& dst, const SkPaint* paint) SK_OVERRIDE;
+                                      const SkRect& dst, const SkPaint* paint,
+                                      DrawBitmapRectFlags flags) SK_OVERRIDE;
     virtual void drawBitmapMatrix(const SkBitmap& bitmap, const SkMatrix& m,
                                   const SkPaint* paint) SK_OVERRIDE;
     virtual void drawSprite(const SkBitmap& bitmap, int left, int top,
@@ -117,6 +122,9 @@ public:
                               const uint16_t indices[], int indexCount,
                               const SkPaint& paint) SK_OVERRIDE;
     virtual void drawData(const void*, size_t) SK_OVERRIDE;
+    virtual void beginCommentGroup(const char* description) SK_OVERRIDE;
+    virtual void addComment(const char* kywd, const char* value) SK_OVERRIDE;
+    virtual void endCommentGroup() SK_OVERRIDE;
 
 private:
     Dumper* fDumper;

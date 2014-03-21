@@ -13,11 +13,16 @@
 #include "SkAdvancedTypefaceMetrics.h"
 #include "SkWeakRefCnt.h"
 
+class SkDescriptor;
+class SkFontDescriptor;
+class SkScalerContext;
+struct SkScalerContextRec;
 class SkStream;
 class SkAdvancedTypefaceMetrics;
 class SkWStream;
 
 typedef uint32_t SkFontID;
+/** Machine endian. */
 typedef uint32_t SkFontTableTag;
 
 /** \class SkTypeface
@@ -56,9 +61,10 @@ public:
     */
     bool isItalic() const { return (fStyle & kItalic) != 0; }
 
-    /** Returns true if the typeface is fixed-width
+    /** Returns true if the typeface claims to be fixed-pitch.
+     *  This is a style bit, advance widths may vary even if this returns true.
      */
-    bool isFixedWidth() const { return fIsFixedWidth; }
+    bool isFixedPitch() const { return fIsFixedPitch; }
 
     /** Return a 32bit value for this typeface, unique for the underlying font
         data. Will never return 0.
@@ -75,6 +81,12 @@ public:
         handling either being null (treating null as the default font)
      */
     static bool Equal(const SkTypeface* facea, const SkTypeface* faceb);
+
+    /**
+     *  Returns a ref() to the default typeface. The caller must call unref()
+     *  when they are done referencing the object. Never returns NULL.
+     */
+    static SkTypeface* RefDefault(Style style = SkTypeface::kNormal);
 
     /** Return a new reference to the typeface that most closely matches the
         requested familyName and style. Pass null as the familyName to return
@@ -137,6 +149,36 @@ public:
             const uint32_t* glyphIDs = NULL,
             uint32_t glyphIDsCount = 0) const;
 
+    enum Encoding {
+        kUTF8_Encoding,
+        kUTF16_Encoding,
+        kUTF32_Encoding
+    };
+
+    /**
+     *  Given an array of character codes, of the specified encoding,
+     *  optionally return their corresponding glyph IDs (if glyphs is not NULL).
+     *
+     *  @param chars pointer to the array of character codes
+     *  @param encoding how the characters are encoded
+     *  @param glyphs (optional) returns the corresponding glyph IDs for each
+     *          character code, up to glyphCount values. If a character code is
+     *          not found in the typeface, the corresponding glyph ID will be 0.
+     *  @param glyphCount number of code points in 'chars' to process. If glyphs
+     *          is not NULL, then it must point sufficient memory to write
+     *          glyphCount values into it.
+     *  @return the number of number of continuous non-zero glyph IDs computed
+     *          from the beginning of chars. This value is valid, even if the
+     *          glyphs parameter is NULL.
+     */
+    int charsToGlyphs(const void* chars, Encoding encoding, uint16_t glyphs[],
+                      int glyphCount) const;
+
+    /**
+     *  Return the number of glyphs in the typeface.
+     */
+    int countGlyphs() const;
+
     // Table getters -- may fail if the underlying font format is not organized
     // as 4-byte tables.
 
@@ -183,19 +225,123 @@ public:
      */
     int getUnitsPerEm() const;
 
+    /**
+     *  Given a run of glyphs, return the associated horizontal adjustments.
+     *  Adjustments are in "design units", which are integers relative to the
+     *  typeface's units per em (see getUnitsPerEm).
+     *
+     *  Some typefaces are known to never support kerning. Calling this method
+     *  with all zeros (e.g. getKerningPairAdustments(NULL, 0, NULL)) returns
+     *  a boolean indicating if the typeface might support kerning. If it
+     *  returns false, then it will always return false (no kerning) for all
+     *  possible glyph runs. If it returns true, then it *may* return true for
+     *  somne glyph runs.
+     *
+     *  If count is non-zero, then the glyphs parameter must point to at least
+     *  [count] valid glyph IDs, and the adjustments parameter must be
+     *  sized to at least [count - 1] entries. If the method returns true, then
+     *  [count-1] entries in the adjustments array will be set. If the method
+     *  returns false, then no kerning should be applied, and the adjustments
+     *  array will be in an undefined state (possibly some values may have been
+     *  written, but none of them should be interpreted as valid values).
+     */
+    bool getKerningPairAdjustments(const uint16_t glyphs[], int count,
+                                   int32_t adjustments[]) const;
+
+    struct LocalizedString {
+        SkString fString;
+        SkString fLanguage;
+    };
+    class LocalizedStrings : ::SkNoncopyable {
+    public:
+        virtual ~LocalizedStrings() { }
+        virtual bool next(LocalizedString* localizedString) = 0;
+        void unref() { SkDELETE(this); }
+    };
+    /**
+     *  Returns an iterator which will attempt to enumerate all of the
+     *  family names specified by the font.
+     *  It is the caller's responsibility to unref() the returned pointer.
+     */
+    LocalizedStrings* createFamilyNameIterator() const;
+
+    /**
+     *  Return the family name for this typeface. It will always be returned
+     *  encoded as UTF8, but the language of the name is whatever the host
+     *  platform chooses.
+     */
+    void getFamilyName(SkString* name) const;
+
+    /**
+     *  Return a stream for the contents of the font data, or NULL on failure.
+     *  If ttcIndex is not null, it is set to the TrueTypeCollection index
+     *  of this typeface within the stream, or 0 if the stream is not a
+     *  collection.
+     */
+    SkStream* openStream(int* ttcIndex) const;
+
+    /**
+     *  Return a scalercontext for the given descriptor. If this fails, then
+     *  if allowFailure is true, this returns NULL, else it returns a
+     *  dummy scalercontext that will not crash, but will draw nothing.
+     */
+    SkScalerContext* createScalerContext(const SkDescriptor*,
+                                         bool allowFailure = false) const;
+
+    // PRIVATE / EXPERIMENTAL -- do not call
+    void filterRec(SkScalerContextRec* rec) const {
+        this->onFilterRec(rec);
+    }
+    // PRIVATE / EXPERIMENTAL -- do not call
+    void getFontDescriptor(SkFontDescriptor* desc, bool* isLocal) const {
+        this->onGetFontDescriptor(desc, isLocal);
+    }
+
 protected:
-    /** uniqueID must be unique (please!) and non-zero
+    /** uniqueID must be unique and non-zero
     */
-    SkTypeface(Style style, SkFontID uniqueID, bool isFixedWidth = false);
+    SkTypeface(Style style, SkFontID uniqueID, bool isFixedPitch = false);
     virtual ~SkTypeface();
 
+    /** Sets the fixedPitch bit. If used, must be called in the constructor. */
+    void setIsFixedPitch(bool isFixedPitch) { fIsFixedPitch = isFixedPitch; }
+
     friend class SkScalerContext;
-    static SkTypeface* GetDefaultTypeface();
+    static SkTypeface* GetDefaultTypeface(Style style = SkTypeface::kNormal);
+
+    virtual SkScalerContext* onCreateScalerContext(const SkDescriptor*) const = 0;
+    virtual void onFilterRec(SkScalerContextRec*) const = 0;
+    virtual SkAdvancedTypefaceMetrics* onGetAdvancedTypefaceMetrics(
+                        SkAdvancedTypefaceMetrics::PerGlyphInfo perGlyphInfo,
+                        const uint32_t* glyphIDs,
+                        uint32_t glyphIDsCount) const = 0;
+
+    virtual SkStream* onOpenStream(int* ttcIndex) const = 0;
+    virtual void onGetFontDescriptor(SkFontDescriptor*, bool* isLocal) const = 0;
+
+    virtual int onCharsToGlyphs(const void* chars, Encoding, uint16_t glyphs[],
+                                int glyphCount) const = 0;
+    virtual int onCountGlyphs() const = 0;
+
+    virtual int onGetUPEM() const = 0;
+    virtual bool onGetKerningPairAdjustments(const uint16_t glyphs[], int count,
+                                             int32_t adjustments[]) const;
+
+    virtual LocalizedStrings* onCreateFamilyNameIterator() const = 0;
+
+    virtual int onGetTableTags(SkFontTableTag tags[]) const = 0;
+    virtual size_t onGetTableData(SkFontTableTag, size_t offset,
+                                  size_t length, void* data) const = 0;
 
 private:
     SkFontID    fUniqueID;
     Style       fStyle;
-    bool        fIsFixedWidth;
+    bool        fIsFixedPitch;
+
+    friend class SkPaint;
+    friend class SkGlyphCache;  // GetDefaultTypeface
+    // just so deprecated fonthost can call protected methods
+    friend class SkFontHost;
 
     typedef SkWeakRefCnt INHERITED;
 };

@@ -27,10 +27,17 @@ class SkPDFFormXObject;
 
 */
 class SkPDFGraphicState : public SkPDFDict {
+    SK_DECLARE_INST_COUNT(SkPDFGraphicState)
 public:
+    enum SkPDFSMaskMode {
+        kAlpha_SMaskMode,
+        kLuminosity_SMaskMode
+    };
+
     virtual ~SkPDFGraphicState();
 
-    virtual void getResources(SkTDArray<SkPDFObject*>* resourceList);
+    virtual void getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                              SkTSet<SkPDFObject*>* newResourceObjects);
 
     // Override emitObject and getOutputSize so that we can populate
     // the dictionary on demand.
@@ -50,11 +57,13 @@ public:
     /** Make a graphic state that only sets the passed soft mask. The
      *  reference count of the object is incremented and it is the caller's
      *  responsibility to unreference it when done.
-     *  @param sMask  The form xobject to use as a soft mask.
-     *  @param invert Indicates if the alpha of the sMask should be inverted.
+     *  @param sMask     The form xobject to use as a soft mask.
+     *  @param invert    Indicates if the alpha of the sMask should be inverted.
+     *  @param sMaskMode Whether to use alpha or luminosity for the sMask.
      */
     static SkPDFGraphicState* GetSMaskGraphicState(SkPDFFormXObject* sMask,
-                                                   bool invert);
+                                                   bool invert,
+                                                   SkPDFSMaskMode sMaskMode);
 
     /** Get a graphic state that only unsets the soft mask. The reference
      *  count of the object is incremented and it is the caller's responsibility
@@ -96,6 +105,7 @@ private:
     static SkPDFObject* GetInvertFunction();
 
     static int Find(const SkPaint& paint);
+    typedef SkPDFDict INHERITED;
 };
 
 #endif

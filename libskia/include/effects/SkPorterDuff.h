@@ -13,8 +13,6 @@
 
 class SkXfermode;
 
-/** DEPRECATED - use SkXfermode::Mode instead
- */
 class SK_API SkPorterDuff {
 public:
     /** List of predefined xfermodes. In general, the algebra for the modes
@@ -40,7 +38,7 @@ public:
         kXor_Mode,      //!< [Sa + Da - 2 * Sa * Da, Sc * (1 - Da) + (1 - Sa) * Dc]
         kDarken_Mode,   //!< [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + min(Sc, Dc)]
         kLighten_Mode,  //!< [Sa + Da - Sa*Da, Sc*(1 - Da) + Dc*(1 - Sa) + max(Sc, Dc)]
-        kMultiply_Mode, //!< [Sa * Da, Sc * Dc]
+        kModulate_Mode, //!< [Sa * Da, Sc * Dc] multiplies all components
         kScreen_Mode,   //!< [Sa + Da - Sa * Da, Sc + Dc - Sc * Dc]
         kAdd_Mode,      //!< Saturate(S + D)
 #ifdef SK_BUILD_FOR_ANDROID
@@ -76,6 +74,6 @@ public:
     /** Return the corersponding SkXfermode::Mode
      */
     static SkXfermode::Mode ToXfermodeMode(Mode);
-};
+} SK_ATTR_DEPRECATED("use SkXfermode::Mode");
 
 #endif

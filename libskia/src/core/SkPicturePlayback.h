@@ -21,7 +21,6 @@
 #include "SkRegion.h"
 #include "SkRRect.h"
 #include "SkPictureFlat.h"
-#include "SkSerializationHelpers.h"
 
 #ifdef SK_BUILD_FOR_ANDROID
 #include "SkThread.h"
@@ -63,25 +62,31 @@ public:
     SkPicturePlayback();
     SkPicturePlayback(const SkPicturePlayback& src, SkPictCopyInfo* deepCopyInfo = NULL);
     explicit SkPicturePlayback(const SkPictureRecord& record, bool deepCopy = false);
-    SkPicturePlayback(SkStream*, const SkPictInfo&, bool* isValid,
-                      SkSerializationHelpers::DecodeBitmap decoder);
+    static SkPicturePlayback* CreateFromStream(SkStream*, const SkPictInfo&,
+                                               SkPicture::InstallPixelRefProc);
 
     virtual ~SkPicturePlayback();
 
-    void draw(SkCanvas& canvas);
+    void draw(SkCanvas& canvas, SkDrawPictureCallback*);
 
-    void serialize(SkWStream*, SkSerializationHelpers::EncodeBitmap) const;
+    void serialize(SkWStream*, SkPicture::EncodeBitmap) const;
 
     void dumpSize() const;
 
+    bool containsBitmaps() const;
+
+#ifdef SK_BUILD_FOR_ANDROID
     // Can be called in the middle of playback (the draw() call). WIll abort the
     // drawing and return from draw() after the "current" op code is done
-    void abort();
+    void abort() { fAbortCurrentPlayback = true; }
+#endif
 
 protected:
+    bool parseStream(SkStream*, const SkPictInfo&,
+                     SkPicture::InstallPixelRefProc);
 #ifdef SK_DEVELOPER
-    virtual size_t preDraw(size_t offset, int type);
-    virtual void postDraw(size_t offset);
+    virtual bool preDraw(int opIndex, int type);
+    virtual void postDraw(int opIndex);
 #endif
 
 private:
@@ -96,7 +101,9 @@ private:
     const SkBitmap& getBitmap(SkReader32& reader) {
         const int index = reader.readInt();
         if (SkBitmapHeap::INVALID_SLOT == index) {
+#ifdef SK_DEBUG
             SkDebugf("An invalid bitmap was recorded!\n");
+#endif
             return fBadBitmap;
         }
         return (*fBitmaps)[index];
@@ -190,7 +197,7 @@ public:
 
 private:    // these help us with reading/writing
     bool parseStreamTag(SkStream*, const SkPictInfo&, uint32_t tag, size_t size,
-                        SkSerializationHelpers::DecodeBitmap decoder);
+                        SkPicture::InstallPixelRefProc);
     bool parseBufferTag(SkOrderedReadBuffer&, uint32_t tag, size_t size);
     void flattenToBuffer(SkOrderedWriteBuffer&) const;
 
@@ -219,6 +226,7 @@ private:
     SkFactoryPlayback* fFactoryPlayback;
 #ifdef SK_BUILD_FOR_ANDROID
     SkMutex fDrawMutex;
+    bool fAbortCurrentPlayback;
 #endif
 };
 

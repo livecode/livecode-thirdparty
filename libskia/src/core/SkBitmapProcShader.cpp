@@ -5,10 +5,16 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "SkBitmapProcShader.h"
 #include "SkColorPriv.h"
 #include "SkFlattenableBuffers.h"
 #include "SkPixelRef.h"
+#include "SkErrorInternals.h"
+#include "SkBitmapProcShader.h"
+
+#if SK_SUPPORT_GPU
+#include "effects/GrSimpleTextureEffect.h"
+#include "effects/GrBicubicEffect.h"
+#endif
 
 bool SkBitmapProcShader::CanDo(const SkBitmap& bm, TileMode tx, TileMode ty) {
     switch (bm.config()) {
@@ -74,24 +80,37 @@ bool SkBitmapProcShader::isOpaque() const {
     return fRawBitmap.isOpaque();
 }
 
+static bool valid_for_drawing(const SkBitmap& bm) {
+    if (0 == bm.width() || 0 == bm.height()) {
+        return false;   // nothing to draw
+    }
+    if (NULL == bm.pixelRef()) {
+        return false;   // no pixels to read
+    }
+    if (SkBitmap::kIndex8_Config == bm.config()) {
+        // ugh, I have to lock-pixels to inspect the colortable
+        SkAutoLockPixels alp(bm);
+        if (!bm.getColorTable()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool SkBitmapProcShader::setContext(const SkBitmap& device,
                                     const SkPaint& paint,
                                     const SkMatrix& matrix) {
+    if (!fRawBitmap.getTexture() && !valid_for_drawing(fRawBitmap)) {
+        return false;
+    }
+
     // do this first, so we have a correct inverse matrix
     if (!this->INHERITED::setContext(device, paint, matrix)) {
         return false;
     }
 
     fState.fOrigBitmap = fRawBitmap;
-    fState.fOrigBitmap.lockPixels();
-    if (!fState.fOrigBitmap.getTexture() && !fState.fOrigBitmap.readyToDraw()) {
-        fState.fOrigBitmap.unlockPixels();
-        this->INHERITED::endContext();
-        return false;
-    }
-
     if (!fState.chooseProcs(this->getTotalInverse(), paint)) {
-        fState.fOrigBitmap.unlockPixels();
         this->INHERITED::endContext();
         return false;
     }
@@ -141,7 +160,7 @@ bool SkBitmapProcShader::setContext(const SkBitmap& device,
 }
 
 void SkBitmapProcShader::endContext() {
-    fState.fOrigBitmap.unlockPixels();
+    fState.endContext();
     this->INHERITED::endContext();
 }
 
@@ -335,33 +354,92 @@ void SkBitmapProcShader::toString(SkString* str) const {
 #include "effects/GrSimpleTextureEffect.h"
 #include "SkGr.h"
 
+// Note that this will return -1 if either matrix is perspective.
+static SkScalar get_combined_min_stretch(const SkMatrix& viewMatrix, const SkMatrix& localMatrix) {
+    if (localMatrix.isIdentity()) {
+        return viewMatrix.getMinStretch();
+    } else {
+        SkMatrix combined;
+        combined.setConcat(viewMatrix, localMatrix);
+        return combined.getMinStretch();
+    }
+}
+
 GrEffectRef* SkBitmapProcShader::asNewEffect(GrContext* context, const SkPaint& paint) const {
     SkMatrix matrix;
     matrix.setIDiv(fRawBitmap.width(), fRawBitmap.height());
 
-    if (this->hasLocalMatrix()) {
-        SkMatrix inverse;
-        if (!this->getLocalMatrix().invert(&inverse)) {
-            return NULL;
-        }
-        matrix.preConcat(inverse);
+    SkMatrix lmInverse;
+    if (!this->getLocalMatrix().invert(&lmInverse)) {
+        return NULL;
     }
+    matrix.preConcat(lmInverse);
+
     SkShader::TileMode tm[] = {
         (TileMode)fState.fTileModeX,
         (TileMode)fState.fTileModeY,
     };
 
-    // Must set wrap and filter on the sampler before requesting a texture.
-    GrTextureParams params(tm, paint.isFilterBitmap());
-    GrTexture* texture = GrLockCachedBitmapTexture(context, fRawBitmap, &params);
+    // Must set wrap and filter on the sampler before requesting a texture. In two places below
+    // we check the matrix scale factors to determine how to interpret the filter quality setting.
+    // This completely ignores the complexity of the drawVertices case where explicit local coords
+    // are provided by the caller.
+    SkPaint::FilterLevel paintFilterLevel = paint.getFilterLevel();
+    GrTextureParams::FilterMode textureFilterMode;
+    switch(paintFilterLevel) {
+        case SkPaint::kNone_FilterLevel:
+            textureFilterMode = GrTextureParams::kNone_FilterMode;
+            break;
+        case SkPaint::kLow_FilterLevel:
+            textureFilterMode = GrTextureParams::kBilerp_FilterMode;
+            break;
+        case SkPaint::kMedium_FilterLevel:
+            if (get_combined_min_stretch(context->getMatrix(), this->getLocalMatrix()) <
+                SK_Scalar1) {
+                textureFilterMode = GrTextureParams::kMipMap_FilterMode;
+            } else {
+                // Don't trigger MIP level generation unnecessarily.
+                textureFilterMode = GrTextureParams::kBilerp_FilterMode;
+            }
+            break;
+        case SkPaint::kHigh_FilterLevel:
+            // Minification can look bad with bicubic filtering.
+            if (get_combined_min_stretch(context->getMatrix(), this->getLocalMatrix()) >=
+                SK_Scalar1) {
+                // fall back to no filtering here; we will install another shader that will do the
+                // HQ filtering.
+                textureFilterMode = GrTextureParams::kNone_FilterMode;
+            } else {
+                // Fall back to MIP-mapping.
+                paintFilterLevel = SkPaint::kMedium_FilterLevel;
+                textureFilterMode = GrTextureParams::kMipMap_FilterMode;
+            }
+            break;
+        default:
+            SkErrorInternals::SetError( kInvalidPaint_SkError,
+                                        "Sorry, I don't understand the filtering "
+                                        "mode you asked for.  Falling back to "
+                                        "MIPMaps.");
+            textureFilterMode = GrTextureParams::kMipMap_FilterMode;
+            break;
+
+    }
+    GrTextureParams params(tm, textureFilterMode);
+    GrTexture* texture = GrLockAndRefCachedBitmapTexture(context, fRawBitmap, &params);
 
     if (NULL == texture) {
-        SkDebugf("Couldn't convert bitmap to texture.\n");
+        SkErrorInternals::SetError( kInternalError_SkError,
+                                    "Couldn't convert bitmap to texture.");
         return NULL;
     }
 
-    GrEffectRef* effect = GrSimpleTextureEffect::Create(texture, matrix, params);
-    GrUnlockCachedBitmapTexture(texture);
+    GrEffectRef* effect = NULL;
+    if (paintFilterLevel == SkPaint::kHigh_FilterLevel) {
+        effect = GrBicubicEffect::Create(texture, matrix, tm);
+    } else {
+        effect = GrSimpleTextureEffect::Create(texture, matrix, params);
+    }
+    GrUnlockAndUnrefCachedBitmapTexture(texture);
     return effect;
 }
 #endif

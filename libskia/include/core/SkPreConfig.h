@@ -14,9 +14,16 @@
     #include "config.h"
 #endif
 
+// Allows embedders that want to disable macros that take arguments to just
+// define that symbol to be one of these
+//
+#define SK_NOTHING_ARG1(arg1)
+#define SK_NOTHING_ARG2(arg1, arg2)
+#define SK_NOTHING_ARG3(arg1, arg2, arg3)
+
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(SK_BUILD_FOR_ANDROID) && !defined(SK_BUILD_FOR_ANDROID_NDK) && !defined(SK_BUILD_FOR_IOS) && !defined(SK_BUILD_FOR_PALM) && !defined(SK_BUILD_FOR_WINCE) && !defined(SK_BUILD_FOR_WIN32) && !defined(SK_BUILD_FOR_UNIX) && !defined(SK_BUILD_FOR_MAC) && !defined(SK_BUILD_FOR_SDL) && !defined(SK_BUILD_FOR_BREW) && !defined(SK_BUILD_FOR_NACL)
+#if !defined(SK_BUILD_FOR_ANDROID) && !defined(SK_BUILD_FOR_IOS) && !defined(SK_BUILD_FOR_PALM) && !defined(SK_BUILD_FOR_WINCE) && !defined(SK_BUILD_FOR_WIN32) && !defined(SK_BUILD_FOR_UNIX) && !defined(SK_BUILD_FOR_MAC) && !defined(SK_BUILD_FOR_SDL) && !defined(SK_BUILD_FOR_BREW) && !defined(SK_BUILD_FOR_NACL)
 
     #ifdef __APPLE__
         #include "TargetConditionals.h"
@@ -30,8 +37,6 @@
         #define SK_BUILD_FOR_WIN32
     #elif defined(__SYMBIAN32__)
         #define SK_BUILD_FOR_WIN32
-    #elif defined(ANDROID_NDK)
-        #define SK_BUILD_FOR_ANDROID_NDK
     #elif defined(ANDROID)
         #define SK_BUILD_FOR_ANDROID
     #elif defined(linux) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
@@ -46,19 +51,13 @@
 
 #endif
 
-/* Even if the user only defined the NDK variant we still need to build
- * the default Android code. Therefore, when attempting to include/exclude
- * something from the NDK variant check first that we are building for
- * Android then check the status of the NDK define.
+/* Even if the user only defined the framework variant we still need to build
+ * the default (NDK-compliant) Android code. Therefore, when attempting to
+ * include/exclude something from the framework variant check first that we are
+ * building for Android then check the status of the framework define.
  */
-#if defined(SK_BUILD_FOR_ANDROID_NDK) && !defined(SK_BUILD_FOR_ANDROID)
+#if defined(SK_BUILD_FOR_ANDROID_FRAMEWORK) && !defined(SK_BUILD_FOR_ANDROID)
     #define SK_BUILD_FOR_ANDROID
-#endif
-
-// USE_CHROMIUM_SKIA is defined when building Skia for the Chromium
-// browser.
-#if defined(USE_CHROMIUM_SKIA)
-    #define SK_BUILD_FOR_CHROMIUM
 #endif
 
 //////////////////////////////////////////////////////////////////////
@@ -73,15 +72,11 @@
 
 #ifdef SK_BUILD_FOR_WIN32
     #if !defined(SK_RESTRICT)
-// MM-2013-08-16: [[ RefactorGraphics ]] Define SK_RESTRICT to empty. Causes compilation issues otherwise.
-        #define SK_RESTRICT 
-//__restrict
+        #define SK_RESTRICT __restrict
     #endif
     #if !defined(SK_WARN_UNUSED_RESULT)
         #define SK_WARN_UNUSED_RESULT
     #endif
-    #include "sk_stdint.h"
-	#define SK_IGNORE_STDINT_DOT_H
 #endif
 
 //////////////////////////////////////////////////////////////////////
@@ -96,14 +91,9 @@
 
 //////////////////////////////////////////////////////////////////////
 
-#if !defined(SK_SCALAR_IS_FLOAT) && !defined(SK_SCALAR_IS_FIXED)
-    #define SK_SCALAR_IS_FLOAT
-#endif
-
-//////////////////////////////////////////////////////////////////////
-
 #if !defined(SK_CPU_BENDIAN) && !defined(SK_CPU_LENDIAN)
-    #if defined (__ppc__) || defined(__ppc64__)
+    #if defined (__ppc__) || defined(__PPC__) || defined(__ppc64__) \
+        || defined(__PPC64__)
         #define SK_CPU_BENDIAN
     #else
         #define SK_CPU_LENDIAN
@@ -184,16 +174,6 @@
             #define SK_ARM_HAS_EDSP
         #endif
     #endif
-#endif
-
-//////////////////////////////////////////////////////////////////////
-
-/**
- *  THUMB is the only known config where we avoid small branches in
- *  favor of more complex math.
- */
-#if !(defined(__arm__) && defined(__thumb__))
-    #define SK_CPU_HAS_CONDITIONAL_INSTR
 #endif
 
 //////////////////////////////////////////////////////////////////////

@@ -17,16 +17,6 @@
     #define SNPRINTF    snprintf
 #endif
 
-SK_DEFINE_INST_COUNT(SkPDFArray)
-SK_DEFINE_INST_COUNT(SkPDFBool)
-SK_DEFINE_INST_COUNT(SkPDFDict)
-SK_DEFINE_INST_COUNT(SkPDFInt)
-SK_DEFINE_INST_COUNT(SkPDFName)
-SK_DEFINE_INST_COUNT(SkPDFObject)
-SK_DEFINE_INST_COUNT(SkPDFObjRef)
-SK_DEFINE_INST_COUNT(SkPDFScalar)
-SK_DEFINE_INST_COUNT(SkPDFString)
-
 ///////////////////////////////////////////////////////////////////////////////
 
 void SkPDFObject::emit(SkWStream* stream, SkPDFCatalog* catalog,
@@ -41,7 +31,8 @@ size_t SkPDFObject::getOutputSize(SkPDFCatalog* catalog, bool indirect) {
     return buffer.getOffset();
 }
 
-void SkPDFObject::getResources(SkTDArray<SkPDFObject*>* resourceList) {}
+void SkPDFObject::getResources(const SkTSet<SkPDFObject*>& knownResourceObjects,
+                               SkTSet<SkPDFObject*>* newResourceObjects) {}
 
 void SkPDFObject::emitIndirectObject(SkWStream* stream, SkPDFCatalog* catalog) {
     catalog->emitObjectNumber(stream, this);
@@ -61,14 +52,21 @@ void SkPDFObject::AddResourceHelper(SkPDFObject* resource,
     resource->ref();
 }
 
-void SkPDFObject::GetResourcesHelper(SkTDArray<SkPDFObject*>* resources,
-                                     SkTDArray<SkPDFObject*>* result) {
+void SkPDFObject::GetResourcesHelper(
+        const SkTDArray<SkPDFObject*>* resources,
+        const SkTSet<SkPDFObject*>& knownResourceObjects,
+        SkTSet<SkPDFObject*>* newResourceObjects) {
     if (resources->count()) {
-        result->setReserve(result->count() + resources->count());
+        newResourceObjects->setReserve(
+            newResourceObjects->count() + resources->count());
         for (int i = 0; i < resources->count(); i++) {
-            result->push((*resources)[i]);
-            (*resources)[i]->ref();
-            (*resources)[i]->getResources(result);
+            if (!knownResourceObjects.contains((*resources)[i]) &&
+                    !newResourceObjects->contains((*resources)[i])) {
+                newResourceObjects->add((*resources)[i]);
+                (*resources)[i]->ref();
+                (*resources)[i]->getResources(knownResourceObjects,
+                                              newResourceObjects);
+            }
         }
     }
 }
@@ -142,15 +140,9 @@ void SkPDFScalar::Append(SkScalar value, SkWStream* stream) {
     // When using floats that are outside the whole value range, we can use
     // integers instead.
 
-
-#if defined(SK_SCALAR_IS_FIXED)
-    stream->writeScalarAsText(value);
-    return;
-#endif  // SK_SCALAR_IS_FIXED
-
 #if !defined(SK_ALLOW_LARGE_PDF_SCALARS)
     if (value > 32767 || value < -32767) {
-        stream->writeDecAsText(SkScalarRound(value));
+        stream->writeDecAsText(SkScalarRoundToInt(value));
         return;
     }
 
@@ -160,7 +152,7 @@ void SkPDFScalar::Append(SkScalar value, SkWStream* stream) {
     return;
 #endif  // !SK_ALLOW_LARGE_PDF_SCALARS
 
-#if defined(SK_SCALAR_IS_FLOAT) && defined(SK_ALLOW_LARGE_PDF_SCALARS)
+#if defined(SK_ALLOW_LARGE_PDF_SCALARS)
     // Floats have 24bits of significance, so anything outside that range is
     // no more precise than an int. (Plus PDF doesn't support scientific
     // notation, so this clamps to SK_Max/MinS32).
@@ -187,7 +179,7 @@ void SkPDFScalar::Append(SkScalar value, SkWStream* stream) {
     }
     stream->writeText(buffer);
     return;
-#endif  // SK_SCALAR_IS_FLOAT && SK_ALLOW_LARGE_PDF_SCALARS
+#endif  // SK_ALLOW_LARGE_PDF_SCALARS
 }
 
 SkPDFString::SkPDFString(const char value[])
@@ -483,7 +475,7 @@ SkPDFDict::Iter::Iter(const SkPDFDict& dict)
 
 SkPDFName* SkPDFDict::Iter::next(SkPDFObject** value) {
     if (fIter != fStop) {
-        Rec* cur = fIter;
+        const Rec* cur = fIter;
         fIter++;
         *value = cur->value;
         return cur->key;

@@ -40,4 +40,15 @@ static inline bool SkTreatAsSpriteFilter(const SkMatrix& matrix,
     return SkTreatAsSprite(matrix, width, height, kSkSubPixelBitsForBilerp);
 }
 
+/** Decomposes the upper-left 2x2 of the matrix into a rotation (represented by
+    the cosine and sine of the rotation angle), followed by a non-uniform scale,
+    followed by another rotation. If there is a reflection, one of the scale
+    factors will be negative.
+    Returns true if successful. Returns false if the matrix is degenerate.
+    */
+bool SkDecomposeUpper2x2(const SkMatrix& matrix,
+                         SkPoint* rotation1,
+                         SkPoint* scale,
+                         SkPoint* rotation2);
+
 #endif

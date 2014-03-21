@@ -44,7 +44,7 @@ SkStrokeRec::SkStrokeRec(const SkPaint& paint) {
             }
             break;
         default:
-            SkASSERT(!"unknown paint style");
+            SkDEBUGFAIL("unknown paint style");
             // fall back on just fill
             fWidth = kStrokeRec_FillStyleWidth;
             fStrokeAndFill = false;
@@ -103,4 +103,3 @@ bool SkStrokeRec::applyToPath(SkPath* dst, const SkPath& src) const {
     stroker.strokePath(src, dst);
     return true;
 }
-

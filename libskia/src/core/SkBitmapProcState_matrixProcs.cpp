@@ -9,13 +9,7 @@
 #include "SkShader.h"
 #include "SkUtils.h"
 #include "SkUtilsArm.h"
-
-// Helper to ensure that when we shift down, we do it w/o sign-extension
-// so the caller doesn't have to manually mask off the top 16 bits
-//
-static unsigned SK_USHIFT16(unsigned x) {
-    return x >> 16;
-}
+#include "SkBitmapProcState_utils.h"
 
 /*  returns 0...(n-1) given any x (positive or negative).
 
@@ -34,35 +28,6 @@ static inline int sk_int_mod(int x, int n) {
         }
     }
     return x;
-}
-
-/*
- *  The decal_ functions require that
- *  1. dx > 0
- *  2. [fx, fx+dx, fx+2dx, fx+3dx, ... fx+(count-1)dx] are all <= maxX
- *
- *  In addition, we use SkFractionalInt to keep more fractional precision than
- *  just SkFixed, so we will abort the decal_ call if dx is very small, since
- *  the decal_ function just operates on SkFixed. If that were changed, we could
- *  skip the very_small test here.
- */
-static inline bool can_truncate_to_fixed_for_decal(SkFractionalInt frX,
-                                                   SkFractionalInt frDx,
-                                                   int count, unsigned max) {
-    SkFixed dx = SkFractionalIntToFixed(frDx);
-
-    // if decal_ kept SkFractionalInt precision, this would just be dx <= 0
-    // I just made up the 1/256. Just don't want to perceive accumulated error
-    // if we truncate frDx and lose its low bits.
-    if (dx <= SK_Fixed1 / 256) {
-        return false;
-    }
-
-    // We cast to unsigned so we don't have to check for negative values, which
-    // will now appear as very large positive values, and thus fail our test!
-    SkFixed fx = SkFractionalIntToFixed(frX);
-    return (unsigned)SkFixedFloorToInt(fx) <= max &&
-           (unsigned)SkFixedFloorToInt(fx + dx * (count - 1)) < max;
 }
 
 void decal_nofilter_scale(uint32_t dst[], SkFixed fx, SkFixed dx, int count);
@@ -112,24 +77,12 @@ extern const SkBitmapProcState::MatrixProc RepeatX_RepeatY_Procs_neon[];
 
 static inline U16CPU fixed_clamp(SkFixed x)
 {
-#ifdef SK_CPU_HAS_CONDITIONAL_INSTR
-    if (x < 0)
+    if (x < 0) {
         x = 0;
-    if (x >> 16)
-        x = 0xFFFF;
-#else
-    if (x >> 16)
-    {
-#if 0   // is this faster?
-        x = (~x >> 31) & 0xFFFF;
-#else
-        if (x < 0)
-            x = 0;
-        else
-            x = 0xFFFF;
-#endif
     }
-#endif
+    if (x >> 16) {
+        x = 0xFFFF;
+    }
     return x;
 }
 
@@ -185,20 +138,12 @@ static SkBitmapProcState::FixedTileLowBitsProc choose_tile_lowbits_proc(unsigned
 }
 
 static inline U16CPU int_clamp(int x, int n) {
-#ifdef SK_CPU_HAS_CONDITIONAL_INSTR
-    if (x >= n)
+    if (x >= n) {
         x = n - 1;
-    if (x < 0)
-        x = 0;
-#else
-    if ((unsigned)x >= (unsigned)n) {
-        if (x < 0) {
-            x = 0;
-        } else {
-            x = n - 1;
-        }
     }
-#endif
+    if (x < 0) {
+        x = 0;
+    }
     return x;
 }
 
@@ -311,7 +256,7 @@ static void fill_sequential(uint16_t xptr[], int start, int count) {
 static int nofilter_trans_preamble(const SkBitmapProcState& s, uint32_t** xy,
                                    int x, int y) {
     SkPoint pt;
-    s.fInvProc(*s.fInvMatrix, SkIntToScalar(x) + SK_ScalarHalf,
+    s.fInvProc(s.fInvMatrix, SkIntToScalar(x) + SK_ScalarHalf,
                SkIntToScalar(y) + SK_ScalarHalf, &pt);
     **xy = s.fIntTileProcY(SkScalarToFixed(pt.fY) >> 16,
                            s.fBitmap->height());
@@ -472,7 +417,7 @@ SkBitmapProcState::chooseMatrixProc(bool trivial_matrix) {
 //    test_int_tileprocs();
     // check for our special case when there is no scale/affine/perspective
     if (trivial_matrix) {
-        SkASSERT(!fDoFilter);
+        SkASSERT(SkPaint::kNone_FilterLevel == fFilterLevel);
         fIntTileProcY = choose_int_tile_proc(fTileModeY);
         switch (fTileModeX) {
             case SkShader::kClamp_TileMode:
@@ -485,7 +430,7 @@ SkBitmapProcState::chooseMatrixProc(bool trivial_matrix) {
     }
 
     int index = 0;
-    if (fDoFilter) {
+    if (fFilterLevel != SkPaint::kNone_FilterLevel) {
         index = 1;
     }
     if (fInvType & SkMatrix::kPerspective_Mask) {
@@ -519,4 +464,3 @@ SkBitmapProcState::chooseMatrixProc(bool trivial_matrix) {
     fTileLowBitsProcY = choose_tile_lowbits_proc(fTileModeY);
     return GeneralXY_Procs[index];
 }
-

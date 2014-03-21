@@ -12,9 +12,6 @@
 #include "SkFlattenableBuffers.h"
 #include "SkTSearch.h"
 
-SK_DEFINE_INST_COUNT(SkBitmapHeapReader)
-SK_DEFINE_INST_COUNT(SkBitmapHeap::ExternalStorage)
-
 SkBitmapHeapEntry::SkBitmapHeapEntry()
     : fSlot(-1)
     , fRefCount(0)
@@ -38,26 +35,24 @@ void SkBitmapHeapEntry::addReferences(int count) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int SkBitmapHeap::LookupEntry::Compare(const SkBitmapHeap::LookupEntry *a,
-                                       const SkBitmapHeap::LookupEntry *b) {
-    if (a->fGenerationId < b->fGenerationId) {
-        return -1;
-    } else if (a->fGenerationId > b->fGenerationId) {
-        return 1;
-    } else if (a->fPixelOffset < b->fPixelOffset) {
-        return -1;
-    } else if (a->fPixelOffset > b->fPixelOffset) {
-        return 1;
-    } else if (a->fWidth < b->fWidth) {
-        return -1;
-    } else if (a->fWidth > b->fWidth) {
-        return 1;
-    } else if (a->fHeight < b->fHeight) {
-        return -1;
-    } else if (a->fHeight > b->fHeight) {
-        return 1;
+bool SkBitmapHeap::LookupEntry::Less(const SkBitmapHeap::LookupEntry& a,
+                                     const SkBitmapHeap::LookupEntry& b) {
+    if (a.fGenerationId < b.fGenerationId) {
+        return true;
+    } else if (a.fGenerationId > b.fGenerationId) {
+        return false;
+    } else if (a.fPixelOffset < b.fPixelOffset) {
+        return true;
+    } else if (a.fPixelOffset > b.fPixelOffset) {
+        return false;
+    } else if (a.fWidth < b.fWidth) {
+        return true;
+    } else if (a.fWidth > b.fWidth) {
+        return false;
+    } else if (a.fHeight < b.fHeight) {
+        return true;
     }
-    return 0;
+    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -231,9 +226,10 @@ size_t SkBitmapHeap::freeMemoryIfPossible(size_t bytesToFree) {
 }
 
 int SkBitmapHeap::findInLookupTable(const LookupEntry& indexEntry, SkBitmapHeapEntry** entry) {
-    int index = SkTSearch<const LookupEntry>((const LookupEntry**)fLookupTable.begin(),
+    int index = SkTSearch<const LookupEntry, LookupEntry::Less>(
+                                             (const LookupEntry**)fLookupTable.begin(),
                                              fLookupTable.count(),
-                                             &indexEntry, sizeof(void*), LookupEntry::Compare);
+                                             &indexEntry, sizeof(void*));
 
     if (index < 0) {
         // insert ourselves into the bitmapIndex
@@ -260,7 +256,7 @@ bool SkBitmapHeap::copyBitmap(const SkBitmap& originalBitmap, SkBitmap& copiedBi
 //        copiedBitmap.setPixelRef(sharedPixelRef, originalBitmap.pixelRefOffset());
     } else if (originalBitmap.empty()) {
         copiedBitmap.reset();
-    } else if (!originalBitmap.deepCopyTo(&copiedBitmap, originalBitmap.getConfig())) {
+    } else if (!originalBitmap.deepCopyTo(&copiedBitmap, originalBitmap.config())) {
         return false;
     }
     copiedBitmap.setImmutable();

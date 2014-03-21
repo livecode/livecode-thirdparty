@@ -14,7 +14,7 @@
 #include "SkRefCnt.h"
 #include "SkBitmapHeap.h"
 #include "SkPath.h"
-#include "SkSerializationHelpers.h"
+#include "SkPicture.h"
 #include "SkWriter32.h"
 
 class SkBitmap;
@@ -26,18 +26,25 @@ class SkRefCntSet;
 class SkOrderedWriteBuffer : public SkFlattenableWriteBuffer {
 public:
     SkOrderedWriteBuffer(size_t minSize);
-    SkOrderedWriteBuffer(size_t minSize, void* initialStorage,
-                         size_t storageSize);
+    SkOrderedWriteBuffer(size_t minSize, void* initialStorage, size_t storageSize);
     virtual ~SkOrderedWriteBuffer();
 
     virtual bool isOrderedBinaryBuffer() SK_OVERRIDE { return true; }
     virtual SkOrderedWriteBuffer* getOrderedBinaryBuffer() SK_OVERRIDE { return this; }
 
     SkWriter32* getWriter32() { return &fWriter; }
+    void reset(void* storage, size_t storageSize) { fWriter.reset(storage, storageSize); }
+
+    // Returns true if we've written only into the storage passed into constructor or reset.
+    // (You may be able to use this to avoid a call to writeToMemory.)
+    bool wroteOnlyToStorage() const { return fWriter.wroteOnlyToStorage(); }
 
     void writeToMemory(void* dst) { fWriter.flatten(dst); }
     uint32_t* reserve(size_t size) { return fWriter.reserve(size); }
-    uint32_t size() { return fWriter.size(); }
+
+    size_t bytesWritten() const { return fWriter.bytesWritten(); }
+    // Deprecated.  Please call bytesWritten instead.  TODO(mtklein): clean up
+    size_t size() const { return this->bytesWritten(); }
 
     virtual void writeByteArray(const void* data, size_t size) SK_OVERRIDE;
     virtual void writeBool(bool value) SK_OVERRIDE;
@@ -52,7 +59,7 @@ public:
     virtual void writeEncodedString(const void* value, size_t byteLength,
                                     SkPaint::TextEncoding encoding) SK_OVERRIDE;
 
-    virtual void writeFlattenable(SkFlattenable* flattenable) SK_OVERRIDE;
+    virtual void writeFlattenable(const SkFlattenable* flattenable) SK_OVERRIDE;
     virtual void writeColor(const SkColor& color) SK_OVERRIDE;
     virtual void writeColorArray(const SkColor* color, uint32_t count) SK_OVERRIDE;
     virtual void writePoint(const SkPoint& point) SK_OVERRIDE;
@@ -84,14 +91,15 @@ public:
     void setBitmapHeap(SkBitmapHeap*);
 
     /**
-     * Provide a function to encode an SkBitmap to an SkStream. writeBitmap will attempt to use
+     * Provide a function to encode an SkBitmap to an SkData. writeBitmap will attempt to use
      * bitmapEncoder to store the SkBitmap. If the reader does not provide a function to decode, it
      * will not be able to restore SkBitmaps, but will still be able to read the rest of the stream.
+     * bitmapEncoder will never be called with a NULL pixelRefOffset.
      *
      * Incompatible with the SkBitmapHeap. If an encoder is set fBitmapHeap will be set to NULL in
      * release and crash in debug.
      */
-    void setBitmapEncoder(SkSerializationHelpers::EncodeBitmap);
+    void setBitmapEncoder(SkPicture::EncodeBitmap bitmapEncoder);
 
 private:
     SkFactorySet* fFactorySet;
@@ -101,7 +109,7 @@ private:
     SkBitmapHeap* fBitmapHeap;
     SkRefCntSet* fTFSet;
 
-    SkSerializationHelpers::EncodeBitmap fBitmapEncoder;
+    SkPicture::EncodeBitmap fBitmapEncoder;
 
     typedef SkFlattenableWriteBuffer INHERITED;
 };

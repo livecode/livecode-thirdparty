@@ -14180,6 +14180,56 @@ xmlSAXParseFileWithData(xmlSAXHandlerPtr sax, const char *filename,
     return(ret);
 }
 
+xmlDocPtr
+xmlSAXParseFileWithDataAndOptions(xmlSAXHandlerPtr sax, const char *filename,
+                        int options, void *data) {
+    xmlDocPtr ret;
+    xmlParserCtxtPtr ctxt;
+
+    xmlInitParser();
+
+    ctxt = xmlCreateFileParserCtxt(filename);
+    if (ctxt == NULL) {
+	return(NULL);
+    }
+    if (sax != NULL) {
+	if (ctxt->sax != NULL)
+	    xmlFree(ctxt->sax);
+        ctxt->sax = sax;
+    }
+    xmlDetectSAX2(ctxt);
+    if (data!=NULL) {
+	ctxt->_private = data;
+    }
+
+    if (ctxt->directory == NULL)
+        ctxt->directory = xmlParserGetDirectory(filename);
+
+    xmlCtxtUseOptionsInternal(ctxt, options, NULL);
+
+    xmlParseDocument(ctxt);
+
+    if ((ctxt->wellFormed) || (ctxt -> options & XML_PARSE_RECOVER) != 0) {
+        ret = ctxt->myDoc;
+	if (ret != NULL) {
+	    if (ctxt->input->buf->compressed > 0)
+		ret->compression = 9;
+	    else
+		ret->compression = ctxt->input->buf->compressed;
+	}
+    }
+    else {
+       ret = NULL;
+       xmlFreeDoc(ctxt->myDoc);
+       ctxt->myDoc = NULL;
+    }
+    if (sax != NULL)
+        ctxt->sax = NULL;
+    xmlFreeParserCtxt(ctxt);
+
+    return(ret);
+}
+
 /**
  * xmlSAXParseFile:
  * @sax:  the SAX handler block
@@ -14432,6 +14482,43 @@ xmlSAXParseMemoryWithData(xmlSAXHandlerPtr sax, const char *buffer,
     xmlParseDocument(ctxt);
 
     if ((ctxt->wellFormed) || recovery) ret = ctxt->myDoc;
+    else {
+       ret = NULL;
+       xmlFreeDoc(ctxt->myDoc);
+       ctxt->myDoc = NULL;
+    }
+    if (sax != NULL)
+	ctxt->sax = NULL;
+    xmlFreeParserCtxt(ctxt);
+
+    return(ret);
+}
+
+xmlDocPtr
+xmlSAXParseMemoryWithDataAndOptions(xmlSAXHandlerPtr sax, const char *buffer,
+	          int size, int options, void *data) {
+    xmlDocPtr ret;
+    xmlParserCtxtPtr ctxt;
+
+    xmlInitParser();
+
+    ctxt = xmlCreateMemoryParserCtxt(buffer, size);
+    if (ctxt == NULL) return(NULL);
+    if (sax != NULL) {
+	if (ctxt->sax != NULL)
+	    xmlFree(ctxt->sax);
+        ctxt->sax = sax;
+    }
+    xmlDetectSAX2(ctxt);
+    if (data!=NULL) {
+	ctxt->_private=data;
+    }
+	
+	xmlCtxtUseOptionsInternal(ctxt, options, NULL);
+
+    xmlParseDocument(ctxt);
+
+    if ((ctxt->wellFormed) || (ctxt->options & XML_PARSE_RECOVER) != 0) ret = ctxt->myDoc;
     else {
        ret = NULL;
        xmlFreeDoc(ctxt->myDoc);

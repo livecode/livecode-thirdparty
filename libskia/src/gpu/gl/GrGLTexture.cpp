@@ -8,8 +8,6 @@
 #include "GrGLTexture.h"
 #include "GrGpuGL.h"
 
-SK_DEFINE_INST_COUNT(GrGLTexID)
-
 #define GPUGL static_cast<GrGpuGL*>(getGpu())
 
 #define GL_CALL(X) GR_GL_CALL(GPUGL->glInterface(), X)
@@ -18,60 +16,53 @@ void GrGLTexture::init(GrGpuGL* gpu,
                        const Desc& textureDesc,
                        const GrGLRenderTarget::Desc* rtDesc) {
 
-    GrAssert(0 != textureDesc.fTextureID);
+    SkASSERT(0 != textureDesc.fTextureID);
 
     fTexParams.invalidate();
     fTexParamsTimestamp = GrGpu::kExpiredTimestamp;
-    fTexIDObj           = SkNEW_ARGS(GrGLTexID,
-                                     (GPUGL->glInterface(),
-                                      textureDesc.fTextureID,
-                                      textureDesc.fOwnsID));
+    fTexIDObj.reset(SkNEW_ARGS(GrGLTexID, (GPUGL->glInterface(),
+                                           textureDesc.fTextureID,
+                                           textureDesc.fIsWrapped)));
 
     if (NULL != rtDesc) {
-        GrAssert(kBottomLeft_Origin == textureDesc.fOrigin);
         GrGLIRect vp;
         vp.fLeft   = 0;
         vp.fWidth  = textureDesc.fWidth;
         vp.fBottom = 0;
         vp.fHeight = textureDesc.fHeight;
 
-        fRenderTarget = SkNEW_ARGS(GrGLRenderTarget,
-                                   (gpu, *rtDesc, vp, fTexIDObj, this));
+        fRenderTarget.reset(SkNEW_ARGS(GrGLRenderTarget, (gpu, *rtDesc, vp, fTexIDObj, this)));
     }
 }
 
 GrGLTexture::GrGLTexture(GrGpuGL* gpu,
                          const Desc& textureDesc)
-    : INHERITED(gpu, textureDesc, textureDesc.fOrigin) {
+    : INHERITED(gpu, textureDesc.fIsWrapped, textureDesc) {
     this->init(gpu, textureDesc, NULL);
 }
 
 GrGLTexture::GrGLTexture(GrGpuGL* gpu,
                          const Desc& textureDesc,
                          const GrGLRenderTarget::Desc& rtDesc)
-    : INHERITED(gpu, textureDesc, textureDesc.fOrigin) {
+    : INHERITED(gpu, textureDesc.fIsWrapped, textureDesc) {
     this->init(gpu, textureDesc, &rtDesc);
 }
 
 void GrGLTexture::onRelease() {
     GPUGL->notifyTextureDelete(this);
-    if (NULL != fTexIDObj) {
-        fTexIDObj->unref();
-        fTexIDObj = NULL;
-    }
-
+    fTexIDObj.reset(NULL);
     INHERITED::onRelease();
 }
 
 void GrGLTexture::onAbandon() {
-    if (NULL != fTexIDObj) {
+    if (NULL != fTexIDObj.get()) {
         fTexIDObj->abandon();
+        fTexIDObj.reset(NULL);
     }
 
     INHERITED::onAbandon();
 }
 
 GrBackendObject GrGLTexture::getTextureHandle() const {
-    return fTexIDObj->id();
+    return static_cast<GrBackendObject>(this->textureID());
 }
-

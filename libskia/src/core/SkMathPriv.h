@@ -33,29 +33,11 @@ static inline int32_t SkCopySign32(int32_t x, int32_t y) {
  @return max if value >= max, else value
  */
 static inline unsigned SkClampUMax(unsigned value, unsigned max) {
-#ifdef SK_CPU_HAS_CONDITIONAL_INSTR
     if (value > max) {
         value = max;
     }
     return value;
-#else
-    int diff = max - value;
-    // clear diff if diff is positive
-    diff &= diff >> 31;
-
-    return value + diff;
-#endif
 }
-
-/** Computes the 64bit product of a * b, and then shifts the answer down by
- shift bits, returning the low 32bits. shift must be [0..63]
- e.g. to perform a fixedmul, call SkMulShift(a, b, 16)
- */
-int32_t SkMulShift(int32_t a, int32_t b, unsigned shift);
-
-/** Return the integer cube root of value, with a bias of bitBias
- */
-int32_t SkCubeRootBits(int32_t value, int bitBias);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -87,4 +69,3 @@ static inline unsigned SkDiv255Round(unsigned prod) {
 }
 
 #endif
-

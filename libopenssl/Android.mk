@@ -15,8 +15,9 @@ LOCAL_SRC_FILES := src/sslstubs.android.cpp
 
 SSLSTUBS := $(LOCAL_PATH)/src/sslstubs.android.cpp
 
-$(SSLSTUBS):
-	$(SRCROOT)/prebuilt/bin/Revolution.osx $(SRCROOT)/tools/weak_stub_maker.lc < $(OPENSSL_PATH)/ssl.stubs > $(SSLSTUBS)
+$(SSLSTUBS): $(SRCROOT)/util/weak_stub_maker.pl $(OPENSSL_PATH)/ssl.stubs
+#	$(SRCROOT)/prebuilt/bin/Revolution.osx $(SRCROOT)/tools/weak_stub_maker.lc < $(OPENSSL_PATH)/ssl.stubs > $(SSLSTUBS)
+	$(SRCROOT)/util/weak_stub_maker.pl < $(OPENSSL_PATH)/ssl.stubs > $(SSLSTUBS)
 .PHONY: $(SSLSTUBS)
 
 include $(BUILD_STATIC_LIBRARY)

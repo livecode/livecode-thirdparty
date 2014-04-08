@@ -2,7 +2,7 @@ NAME=revsecurity
 
 include ../../rules/environment.linux.makefile
 
-FILES=$(PREBUILT_LIB_DIR)/libcrypto.a $(PREBUILT_LIB_DIR)/libssl.a
+FILES=$(PREBUILT_LIB_DIR)/libcustomcrypto.a $(PREBUILT_LIB_DIR)/libcustomssl.a
 
 $(BUILD_DIR)/revsecurity.so:
 	$(CC) -shared -Xlinker -no-undefined -Xlinker --export-dynamic -static-libgcc -o$(BUILD_DIR)/revsecurity.so -Wl,--whole-archive $(FILES) -Wl,-no-whole-archive -ldl -Wl,-soname,revsecurity.so

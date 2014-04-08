@@ -178,7 +178,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.ios.cpp\"\n";
+			shellScript = "#\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.ios.cpp\"\n\"$SOLUTION_DIR/util/weak_stub_maker.pl\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.ios.cpp\"";
 		};
 		4DBF5ACA1802C462009CAB2E /* List Stubs And LibInfo */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -195,7 +195,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/list_stub_symbols.lc\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.ios.symlist\"\n\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/build_libinfo.lc\" \"revsecurity\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/libinfo.ios.cpp\"\n";
+			shellScript = "#\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/list_stub_symbols.lc\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.ios.symlist\"\n#\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/build_libinfo.lc\" \"revsecurity\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/libinfo.ios.cpp\"\n\"$SOLUTION_DIR/util/list_stub_symbols.pl\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.ios.symlist\"\n\"$SOLUTION_DIR/util/build_libinfo.pl\" \"revsecurity\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/libinfo.ios.cpp\"\n";
 			showEnvVarsInLog = 0;
 		};
 		4DBF5ADA1802C567009CAB2E /* Build Extension */ = {

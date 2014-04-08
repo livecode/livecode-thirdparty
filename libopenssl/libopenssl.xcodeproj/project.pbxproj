@@ -197,7 +197,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.mac.cpp\"\n";
+			shellScript = "#\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.mac.cpp\"\n\"$SOLUTION_DIR/util/weak_stub_maker.pl\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/src/sslstubs.mac.cpp\"\n";
 			showEnvVarsInLog = 0;
 		};
 		4DBF59081802AD73009CAB2E /* List Stubs */ = {
@@ -214,7 +214,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/list_stub_symbols.lc\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.mac.symlist\"\n";
+			shellScript = "#\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/list_stub_symbols.lc\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.mac.symlist\"\n\"$SOLUTION_DIR/util/list_stub_symbols.pl\" \"_\" < \"$SRCROOT/ssl.stubs\" > \"$SRCROOT/sslstubs.mac.symlist\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

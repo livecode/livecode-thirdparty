@@ -5,7 +5,7 @@ include ../../rules/environment.linux.makefile
 FILES=$(PREBUILT_LIB_DIR)/libcustomcrypto.a $(PREBUILT_LIB_DIR)/libcustomssl.a
 
 $(BUILD_DIR)/revsecurity.so:
-	$(CC) -shared -Xlinker -no-undefined -Xlinker --export-dynamic -static-libgcc -o$(BUILD_DIR)/revsecurity.so -Wl,--whole-archive $(FILES) -Wl,-no-whole-archive -ldl -Wl,-soname,revsecurity.so
+	$(CC) $(CCFLAGS_$(ARCH)) -shared -Xlinker -no-undefined -Xlinker --export-dynamic -static-libgcc -o$(BUILD_DIR)/revsecurity.so -Wl,--whole-archive $(FILES) -Wl,-no-whole-archive -ldl -Wl,-soname,revsecurity.so
 	cd $(BUILD_DIR) && \
 		objcopy --only-keep-debug "$(NAME).so" "$(NAME).so.dbg" && \
 		strip --strip-debug --strip-unneeded "$(NAME).so" && \

@@ -407,7 +407,7 @@ bool SkBitmapProcState::chooseProcs(const SkMatrix& inv, const SkPaint& paint) {
                       SkShader::kClamp_TileMode == fTileModeY;
 
     if (!(clampClamp || trivialMatrix)) {
-        fInvMatrix.postIDiv(fOrigBitmap.width(), fOrigBitmap.height());
+        fInvMatrix.postIDiv(fBitmap->width(), fBitmap->height());
     }
 
     // Now that all possible changes to the matrix have taken place, check

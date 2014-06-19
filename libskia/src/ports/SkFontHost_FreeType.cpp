@@ -751,6 +751,12 @@ void SkTypeface_FreeType::onFilterRec(SkScalerContextRec* rec) const {
 #endif
 }
 
+void *SkTypeface_FreeType::getFace()
+{
+    AutoFTAccess fta(this);
+    return fta . face();
+}
+
 int SkTypeface_FreeType::onGetUPEM() const {
     AutoFTAccess fta(this);
     FT_Face face = fta.face();

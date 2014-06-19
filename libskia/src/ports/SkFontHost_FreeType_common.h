@@ -69,6 +69,8 @@ protected:
     virtual int onGetTableTags(SkFontTableTag tags[]) const SK_OVERRIDE;
     virtual size_t onGetTableData(SkFontTableTag, size_t offset,
                                   size_t length, void* data) const SK_OVERRIDE;
+    
+    void *getFace();
 
 private:
     mutable int fGlyphCount;

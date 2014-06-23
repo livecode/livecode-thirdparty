@@ -26,7 +26,6 @@ HARFBUZZ_SRC_FILES = \
 	src/hb-fallback-shape.cc \
 	src/hb-face.cc \
 	src/hb-font.cc \
-	src/hb-ft.cc \
 	src/hb-icu.cc \
 	src/hb-ot-tag.cc \
 	src/hb-set.cc \

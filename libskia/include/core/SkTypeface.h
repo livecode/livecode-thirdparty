@@ -296,8 +296,6 @@ public:
     void getFontDescriptor(SkFontDescriptor* desc, bool* isLocal) const {
         this->onGetFontDescriptor(desc, isLocal);
     }
-    
-    virtual void *getFace() { return NULL; };
 
 protected:
     /** uniqueID must be unique and non-zero

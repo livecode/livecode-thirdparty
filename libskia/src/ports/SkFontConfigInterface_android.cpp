@@ -776,6 +776,12 @@ SkTypeface* SkGetTypefaceForGlyphID(uint16_t glyphID, const SkTypeface* origType
                                              lowerBounds, upperBounds);
 }
 
+SkTypeface *SkCreateFallbackTypefaceForChar(SkUnichar uni, SkTypeface::Style style)
+{
+    SkFontConfigInterfaceAndroid* fontConfig = getSingletonInterface();
+    return fontConfig->getTypefaceForChar(uni, style, SkPaintOptionsAndroid::kDefault_Variant);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK

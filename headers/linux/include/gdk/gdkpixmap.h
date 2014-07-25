@@ -114,6 +114,8 @@ GdkPixmap*    gdk_pixmap_foreign_new_for_screen  (GdkScreen       *screen,
                                                   gint             height,
                                                   gint             depth);
 
+void gdk_pixmap_get_size(GdkPixmap*, gint*, gint*);
+
 #ifndef GDK_DISABLE_DEPRECATED
 #define gdk_bitmap_ref                 gdk_drawable_ref
 #define gdk_bitmap_unref               gdk_drawable_unref

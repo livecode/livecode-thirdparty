@@ -182,6 +182,9 @@ void        gdk_x11_register_standard_event_type (GdkDisplay *display,
 						  gint        event_base,
 						  gint        n_events);
 
+GdkWindow* gdk_x11_window_foreign_new_for_display(GdkDisplay*, Window);
+GdkWindow* gdk_x11_window_lookup_for_display(GdkDisplay*, Window);
+
 #if !defined(GDK_DISABLE_DEPRECATED) || defined(GDK_COMPILATION)
 
 gpointer             gdk_x11_font_get_xfont    (GdkFont *font);

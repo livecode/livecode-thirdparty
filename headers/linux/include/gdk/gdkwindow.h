@@ -617,11 +617,16 @@ void gdk_window_get_internal_paint_info (GdkWindow    *window,
 void gdk_window_enable_synchronized_configure (GdkWindow *window);
 void gdk_window_configure_finished            (GdkWindow *window);
 
+int gdk_window_get_width(GdkWindow*);
+int gdk_window_get_height(GdkWindow*);
+
 #ifndef GDK_MULTIHEAD_SAFE
 GdkPointerHooks *gdk_set_pointer_hooks (const GdkPointerHooks *new_hooks);   
 #endif /* GDK_MULTIHEAD_SAFE */
 
 GdkWindow *gdk_get_default_root_window (void);
+
+void gdk_window_set_opacity(GdkWindow*, gdouble);
 
 #ifndef GDK_DISABLE_DEPRECATED
 #define GDK_ROOT_PARENT()             (gdk_get_default_root_window ())

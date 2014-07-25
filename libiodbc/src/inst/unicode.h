@@ -129,6 +129,8 @@ int dm_StrCopyOut2_W2A (SQLWCHAR * inStr, SQLCHAR * outStr, SQLSMALLINT size,
 #define HAVE_TOWLOWER
 #endif
 
+#define HAVE_WCSNCASECMP
+
 /*
  *  Replacement functions
  */

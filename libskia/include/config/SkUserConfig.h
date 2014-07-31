@@ -215,9 +215,9 @@
     #define SK_A32_SHIFT    24
 #endif
 
-// MM-2014-01-09: [[ RefactorGraphics ]] SkAtomics_synch.h doesn't appear to compile on Linux.
+// MM-2014-01-09: [[ RefactorGraphics ]] SkAtomics_sync.h doesn't appear to compile on Linux.
 #if defined(SK_BUILD_FOR_UNIX)
-   #define SK_ATOMICS_PLATFORM_H "../../src/ports/SkAtomics_none.h"
+   #define SK_ATOMICS_PLATFORM_H "../../src/ports/SkAtomics_sync.h"
 #endif
 
 // MM-2014-01-14: [[ RefactorGraphics ]] SK_FONTHOST_DOES_NOT_USE_FONTMGR is required for fonr support on Android.

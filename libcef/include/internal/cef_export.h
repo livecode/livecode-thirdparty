@@ -32,15 +32,12 @@
 #define CEF_INCLUDE_INTERNAL_CEF_EXPORT_H_
 #pragma once
 
-#include "include/internal/cef_build.h"
+#include "include/base/cef_build.h"
 
 #if defined(COMPILER_MSVC)
 
 #ifdef BUILDING_CEF_SHARED
 #define CEF_EXPORT __declspec(dllexport)
-#elif USING_CEF_STATIC
-// IM-2014-03-18: [[ revBrowserCEF ]] don't use dllimport when using libcef (or shim) as static lib
-#define CEF_EXPORT
 #elif USING_CEF_SHARED
 #define CEF_EXPORT __declspec(dllimport)
 #else

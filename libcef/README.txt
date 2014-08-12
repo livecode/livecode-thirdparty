@@ -1,16 +1,18 @@
-Chromium Embedded Framework (CEF) Standard Binary Distribution for Windows
+Chromium Embedded Framework (CEF) Standard Binary Distribution for Mac OS-X
 -------------------------------------------------------------------------------
 
-Date:             January 13, 2014
+Date:             August 09, 2014
 
-CEF Version:      3.1650.1562
-CEF URL:          http://chromiumembedded.googlecode.com/svn/branches/1650/cef3@1562
+CEF Version:      3.2062.1803
+CEF URL:          https://chromiumembedded@bitbucket.org/chromiumembedded/branches-2062-cef3.git
+                  @1803
 
-Chromium Verison: 31.0.1650.57
-Chromium URL:     http://src.chromium.org/svn/branches/1650/src@235101
+Chromium Verison: 37.0.2062.58
+Chromium URL:     https://chromium.googlesource.com/chromium/src.git
+                  @6b85028c51023467c86966cc197787893d5f275b
 
 This distribution contains all components necessary to build and distribute an
-application using CEF on the Windows platform. Please see the LICENSING
+application using CEF on the Mac OS-X platform. Please see the LICENSING
 section of this document for licensing terms and conditions.
 
 

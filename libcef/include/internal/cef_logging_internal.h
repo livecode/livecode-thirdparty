@@ -1,4 +1,4 @@
-// Copyright (c) 2009 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -27,69 +27,40 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-#ifndef CEF_INCLUDE_INTERNAL_CEF_TYPES_WIN_H_
-#define CEF_INCLUDE_INTERNAL_CEF_TYPES_WIN_H_
+#ifndef CEF_INCLUDE_INTERNAL_CEF_LOGGING_INTERNAL_H_
+#define CEF_INCLUDE_INTERNAL_CEF_LOGGING_INTERNAL_H_
 #pragma once
 
-#include "include/internal/cef_build.h"
-
-#if defined(OS_WIN)
-#include <windows.h>
-#include "include/internal/cef_string.h"
+#include "include/internal/cef_export.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Handle types.
-#define cef_cursor_handle_t HCURSOR
-#define cef_event_handle_t MSG*
-#define cef_window_handle_t HWND
-#define cef_text_input_context_t void*
+// See include/base/cef_logging.h for macros and intended usage.
 
 ///
-// Structure representing CefExecuteProcess arguments.
+// Gets the current log level.
 ///
-typedef struct _cef_main_args_t {
-  HINSTANCE instance;
-} cef_main_args_t;
+CEF_EXPORT int cef_get_min_log_level();
 
 ///
-// Structure representing window information.
+// Gets the current vlog level for the given file (usually taken from
+// __FILE__). Note that |N| is the size *with* the null terminator.
 ///
-typedef struct _cef_window_info_t {
-  // Standard parameters required by CreateWindowEx()
-  DWORD ex_style;
-  cef_string_t window_name;
-  DWORD style;
-  int x;
-  int y;
-  int width;
-  int height;
-  cef_window_handle_t parent_window;
-  HMENU menu;
+CEF_EXPORT int cef_get_vlog_level(const char* file_start, size_t N);
 
-  // If window rendering is disabled no browser window will be created. Set
-  // |parent_window| to be used for identifying monitor info
-  // (MonitorFromWindow). If |parent_window| is not provided the main screen
-  // monitor will be used.
-  BOOL window_rendering_disabled;
-
-  // Set to true to enable transparent painting.
-  // If window rendering is disabled and |transparent_painting| is set to true
-  // WebKit rendering will draw on a transparent background (RGBA=0x00000000).
-  // When this value is false the background will be white and opaque.
-  BOOL transparent_painting;
-
-  // Handle for the new browser window.
-  cef_window_handle_t window;
-} cef_window_info_t;
+///
+// Add a log message. See the LogSeverity defines for supported |severity|
+// values.
+///
+CEF_EXPORT void cef_log(const char* file,
+                        int line,
+                        int severity,
+                        const char* message);
 
 #ifdef __cplusplus
 }
-#endif
+#endif  // __cplusplus
 
-#endif  // OS_WIN
-
-#endif  // CEF_INCLUDE_INTERNAL_CEF_TYPES_WIN_H_
+#endif  // CEF_INCLUDE_INTERNAL_CEF_LOGGING_INTERNAL_H_

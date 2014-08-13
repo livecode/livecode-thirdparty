@@ -31,7 +31,10 @@
 #ifndef CEF_INCLUDE_CAPI_CEF_BASE_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_BASE_CAPI_H_
 
+// IM-2014-08-13: [[ LibCef ]] stdint.h isn't available in VC++2005
+#if !defined(_WIN32)
 #include <stdint.h>
+#endif
 
 #include "include/internal/cef_export.h"
 #include "include/internal/cef_string.h"

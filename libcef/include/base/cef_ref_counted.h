@@ -246,7 +246,10 @@ class RefCountedData
   T data;
 
  private:
+// IM-2014-08-13: [[ LibCef ]] VC++ 2005 chokes on this friend class definition
+#if !defined(_WIN32)
   friend class base::RefCountedThreadSafe<base::RefCountedData<T> >;
+#
   ~RefCountedData() {}
 };
 

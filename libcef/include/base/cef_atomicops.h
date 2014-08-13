@@ -67,7 +67,13 @@
 // If the Chromium implementation diverges the below implementation should be
 // updated to match.
 
+// IM-2014-08-13: [[ LibCef ]] stdint.h isn't available in VC++2005
+#if defined(_WIN32)
+#include "include/base/cef_basictypes.h"
+typedef int32 int32_t;
+#else
 #include <stdint.h>
+#endif
 
 #include "include/base/cef_build.h"
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -125,7 +125,7 @@ CefRefPtr<CefDOMNode> CefDOMEventCToCpp::GetCurrentTarget() {
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefDOMEventCToCpp, CefDOMEvent,
+template<> base::AtomicRefCount CefCToCpp<CefDOMEventCToCpp, CefDOMEvent,
     cef_domevent_t>::DebugObjCt = 0;
 #endif
 

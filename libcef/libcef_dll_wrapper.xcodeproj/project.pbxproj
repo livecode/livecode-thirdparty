@@ -19,7 +19,6 @@
 		1F1B8AB7389BA33837AE07C3 /* request_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 589CBD58B158D7DEC03412F5 /* request_ctocpp.cc */; };
 		1F1D72429E0E46D7912BD97A /* get_geolocation_callback_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = F215F08829A5C606F1B12180 /* get_geolocation_callback_cpptoc.cc */; };
 		2614D2E7BA4E956D2AA8CE3A /* display_handler_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 308A8FA4602A7F3A24C675B0 /* display_handler_cpptoc.cc */; };
-		2B6B832C06D76C76A5C3E780 /* trace_client_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 620A2749D4E87344DBB1154D /* trace_client_cpptoc.cc */; };
 		2E76AB1676C9AFABB0641504 /* browser_host_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3F62B9D1EC4FBCE80EA56EF0 /* browser_host_ctocpp.cc */; };
 		3147BC78B7CED29BECBB4F24 /* libcef_dll_wrapper.cc in Sources */ = {isa = PBXBuildFile; fileRef = 98FC6892DEBCDF4C7A3D48D4 /* libcef_dll_wrapper.cc */; };
 		3175ECBB02A07A3CAC828589 /* domevent_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = DEB4E62AD93E4733EB21D735 /* domevent_ctocpp.cc */; };
@@ -39,7 +38,6 @@
 		4D764F531F274E5644D2777E /* download_item_callback_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 4FBED7CE4F34262F11F171D5 /* download_item_callback_ctocpp.cc */; };
 		4E73F4EC94B8EAD084A77BFD /* cookie_manager_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8B3BC99AE8F6C94ECA8FF6D4 /* cookie_manager_ctocpp.cc */; };
 		4ED54ACFF90ACE8119D26A9A /* read_handler_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = DCEFB82C247377FD4550FC22 /* read_handler_cpptoc.cc */; };
-		5057B7421C5387D008AF2EAA /* completion_handler_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8D0A38A71D021C899D1A3AC8 /* completion_handler_cpptoc.cc */; };
 		537C01BF672D39880E16652C /* client_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 94416A48A8A205F4EF806B6C /* client_cpptoc.cc */; };
 		546A106A3AC7AAADFDDDC714 /* v8handler_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = B1583394BAFA361D948C399F /* v8handler_cpptoc.cc */; };
 		5591CA28F1665E99E388DBBB /* scheme_handler_factory_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E13D2FF5A086DEF87977DB8A /* scheme_handler_factory_cpptoc.cc */; };
@@ -86,6 +84,26 @@
 		E4B658020DCCED89F594216C /* v8exception_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 468ECAB6532CF48FA751A0C9 /* v8exception_ctocpp.cc */; };
 		E552D07BC9B517D579E8858F /* allow_certificate_error_callback_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8F1837501F4A6DAFB61D1D5D /* allow_certificate_error_callback_ctocpp.cc */; };
 		E6271AFA4230777A9A8B2020 /* browser_process_handler_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = 529E03E28D6B86413CC7D0BA /* browser_process_handler_cpptoc.cc */; };
+		E8C3697A199902CE005241FB /* completion_callback_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C36974199902CE005241FB /* completion_callback_cpptoc.cc */; };
+		E8C3697B199902CE005241FB /* end_tracing_callback_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C36976199902CE005241FB /* end_tracing_callback_cpptoc.cc */; };
+		E8C3697C199902CE005241FB /* print_handler_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C36978199902CE005241FB /* print_handler_cpptoc.cc */; };
+		E8C36983199902F6005241FB /* print_dialog_callback_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C3697D199902F6005241FB /* print_dialog_callback_ctocpp.cc */; };
+		E8C36984199902F6005241FB /* print_job_callback_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C3697F199902F6005241FB /* print_job_callback_ctocpp.cc */; };
+		E8C36985199902F6005241FB /* print_settings_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C36981199902F6005241FB /* print_settings_ctocpp.cc */; };
+		E8C369891999030E005241FB /* cef_closure_task.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369871999030E005241FB /* cef_closure_task.cc */; };
+		E8C3698A1999030E005241FB /* cef_message_router.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369881999030E005241FB /* cef_message_router.cc */; };
+		E8C369BB1999066D005241FB /* cef_atomicops_x86_gcc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369AF1999066D005241FB /* cef_atomicops_x86_gcc.cc */; };
+		E8C369BC1999066D005241FB /* cef_bind_helpers.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B01999066D005241FB /* cef_bind_helpers.cc */; };
+		E8C369BD1999066D005241FB /* cef_callback_helpers.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B11999066D005241FB /* cef_callback_helpers.cc */; };
+		E8C369BE1999066D005241FB /* cef_callback_internal.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B21999066D005241FB /* cef_callback_internal.cc */; };
+		E8C369BF1999066D005241FB /* cef_lock.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B31999066D005241FB /* cef_lock.cc */; };
+		E8C369C01999066D005241FB /* cef_lock_impl.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B41999066D005241FB /* cef_lock_impl.cc */; };
+		E8C369C11999066D005241FB /* cef_logging.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B51999066D005241FB /* cef_logging.cc */; };
+		E8C369C21999066D005241FB /* cef_ref_counted.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B61999066D005241FB /* cef_ref_counted.cc */; };
+		E8C369C31999066D005241FB /* cef_string16.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B71999066D005241FB /* cef_string16.cc */; };
+		E8C369C41999066D005241FB /* cef_thread_checker_impl.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B81999066D005241FB /* cef_thread_checker_impl.cc */; };
+		E8C369C51999066D005241FB /* cef_thread_collision_warner.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369B91999066D005241FB /* cef_thread_collision_warner.cc */; };
+		E8C369C61999066D005241FB /* cef_weak_ptr.cc in Sources */ = {isa = PBXBuildFile; fileRef = E8C369BA1999066D005241FB /* cef_weak_ptr.cc */; };
 		EB243886D44B429B83B4E337 /* quota_callback_ctocpp.cc in Sources */ = {isa = PBXBuildFile; fileRef = 0355242A18E623F44FEE12C7 /* quota_callback_ctocpp.cc */; };
 		ED732BE07898B14EDD714D0E /* domevent_listener_cpptoc.cc in Sources */ = {isa = PBXBuildFile; fileRef = ED7DA8E7BE98EB9E02A3ABD8 /* domevent_listener_cpptoc.cc */; };
 		EFD26BDE37B32997B398DE04 /* libcef_dll_wrapper2.cc in Sources */ = {isa = PBXBuildFile; fileRef = D2CDB702FAC6D94127B53441 /* libcef_dll_wrapper2.cc */; };
@@ -118,7 +136,6 @@
 		121B908C828A4BB4AA8F85EE /* string_visitor_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = string_visitor_cpptoc.h; sourceTree = "<group>"; };
 		123D52B2774A35A25F6F7C25 /* allow_certificate_error_callback_ctocpp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = allow_certificate_error_callback_ctocpp.h; sourceTree = "<group>"; };
 		1367D53FAF7EB5C0C5E7EF34 /* v8value_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = v8value_ctocpp.cc; sourceTree = "<group>"; };
-		14406D47A4C6D625CD0C0D36 /* trace_client_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = trace_client_cpptoc.h; sourceTree = "<group>"; };
 		148EAEEAC60F574E1257E554 /* cef_request_handler_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_request_handler_capi.h; sourceTree = "<group>"; };
 		14C34EF9D0336618E9919E08 /* cef_drag_handler_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_drag_handler_capi.h; sourceTree = "<group>"; };
 		1565366FC1A5AF0341A1AFC2 /* write_handler_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = write_handler_cpptoc.h; sourceTree = "<group>"; };
@@ -134,7 +151,6 @@
 		218A885FDCB6794D7C5ADE32 /* cef_request_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_request_capi.h; sourceTree = "<group>"; };
 		23A9C798B7FEAA39A8E2C9B8 /* cef_download_item.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_download_item.h; sourceTree = "<group>"; };
 		24618E69D48E27E5EF222532 /* v8context_ctocpp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = v8context_ctocpp.h; sourceTree = "<group>"; };
-		255DD3DE40A670F3D6F13048 /* cef_logging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_logging.h; sourceTree = "<group>"; };
 		268AE3DA5EB8FBC0A8055681 /* urlrequest_client_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = urlrequest_client_cpptoc.h; sourceTree = "<group>"; };
 		271502F4B525616AD0F133F1 /* cef_string_visitor_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_string_visitor_capi.h; sourceTree = "<group>"; };
 		27845FC7D53D1ADDDB7F93F2 /* cef_request_context.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_request_context.h; sourceTree = "<group>"; };
@@ -197,7 +213,6 @@
 		570B88BDA9C533BC2A8B9B27 /* v8accessor_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = v8accessor_cpptoc.h; sourceTree = "<group>"; };
 		575B8B058160F0E57AA6811C /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		578167DB62BB4B20E093DCDE /* xml_reader_ctocpp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = xml_reader_ctocpp.h; sourceTree = "<group>"; };
-		57D6D450CFC653377A024DA7 /* completion_handler_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = completion_handler_cpptoc.h; sourceTree = "<group>"; };
 		587A444F9B263094C32C3C7B /* cef_stream_resource_handler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_stream_resource_handler.h; sourceTree = "<group>"; };
 		5888ED11273C431D62CA6958 /* drag_data_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = drag_data_ctocpp.cc; sourceTree = "<group>"; };
 		589CBD58B158D7DEC03412F5 /* request_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = request_ctocpp.cc; sourceTree = "<group>"; };
@@ -210,7 +225,6 @@
 		5EF5E6479A2F8AA2F5EF6F3C /* cef_stream_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_stream_capi.h; sourceTree = "<group>"; };
 		60985F2F1E34D1253A604EC6 /* cef_xml_reader_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_xml_reader_capi.h; sourceTree = "<group>"; };
 		61D47F9D5CFAE436BE02B38D /* binary_value_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = binary_value_ctocpp.cc; sourceTree = "<group>"; };
-		620A2749D4E87344DBB1154D /* trace_client_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = trace_client_cpptoc.cc; sourceTree = "<group>"; };
 		63D54504E874D0E5B1CC1739 /* post_data_element_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = post_data_element_ctocpp.cc; sourceTree = "<group>"; };
 		6485709604DD888AABA1C134 /* run_file_dialog_callback_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = run_file_dialog_callback_cpptoc.cc; sourceTree = "<group>"; };
 		6571FF6B3DC881B288DC580A /* web_plugin_info_visitor_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = web_plugin_info_visitor_cpptoc.cc; sourceTree = "<group>"; };
@@ -239,7 +253,6 @@
 		798AC59ED3B6E8BA5E441F83 /* life_span_handler_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = life_span_handler_cpptoc.cc; sourceTree = "<group>"; };
 		798BAB515F385A351FC28153 /* cef_string_wrappers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_string_wrappers.h; sourceTree = "<group>"; };
 		7BC7913405D1E5E3F0F77CCC /* scheme_registrar_ctocpp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = scheme_registrar_ctocpp.h; sourceTree = "<group>"; };
-		7C197C4F835FA0AE52581287 /* cef_tuple.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_tuple.h; sourceTree = "<group>"; };
 		7C5E1675FC2E046E6AF5DC43 /* render_handler_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = render_handler_cpptoc.h; sourceTree = "<group>"; };
 		7CAD0D88FD0F5E01DD2A3184 /* cef_dom_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_dom_capi.h; sourceTree = "<group>"; };
 		7CD41CD4D14930028CC68B25 /* cef_context_menu_handler_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_context_menu_handler_capi.h; sourceTree = "<group>"; };
@@ -256,7 +269,6 @@
 		870DE5002D5E5C6E08021C0D /* cef_types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_types.h; sourceTree = "<group>"; };
 		893F13B65A1324629354A936 /* run_file_dialog_callback_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = run_file_dialog_callback_cpptoc.h; sourceTree = "<group>"; };
 		8B3BC99AE8F6C94ECA8FF6D4 /* cookie_manager_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cookie_manager_ctocpp.cc; sourceTree = "<group>"; };
-		8D0A38A71D021C899D1A3AC8 /* completion_handler_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = completion_handler_cpptoc.cc; sourceTree = "<group>"; };
 		8D50B351B120CC88709C6EEF /* base_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = base_cpptoc.h; sourceTree = "<group>"; };
 		8DA04C6EDEFD2E717CBA4C1F /* cef_string_multimap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_string_multimap.h; sourceTree = "<group>"; };
 		8E0F25AF1FC92F6A32700C1B /* cef_life_span_handler_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_life_span_handler_capi.h; sourceTree = "<group>"; };
@@ -274,7 +286,6 @@
 		94BBBF381E91E352181658F9 /* render_handler_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = render_handler_cpptoc.cc; sourceTree = "<group>"; };
 		9510ECDA83ACC885255A1919 /* quota_callback_ctocpp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = quota_callback_ctocpp.h; sourceTree = "<group>"; };
 		973DD2E13C471245F05F222F /* cef_url_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_url_capi.h; sourceTree = "<group>"; };
-		977E73AA359B0405D341D37B /* cef_build.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_build.h; sourceTree = "<group>"; };
 		9836E0465BDF7400DF25785F /* cookie_visitor_cpptoc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cookie_visitor_cpptoc.h; sourceTree = "<group>"; };
 		98FC6892DEBCDF4C7A3D48D4 /* libcef_dll_wrapper.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = libcef_dll_wrapper.cc; sourceTree = "<group>"; };
 		99F0958747A730954FF76756 /* geolocation_callback_ctocpp.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = geolocation_callback_ctocpp.cc; sourceTree = "<group>"; };
@@ -378,6 +389,75 @@
 		E8AA051918C9EDA900AE8663 /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = ../../rules/Debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		E8AA051A18C9EDA900AE8663 /* Global.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Global.xcconfig; path = ../../rules/Global.xcconfig; sourceTree = SOURCE_ROOT; };
 		E8AA051B18C9EDA900AE8663 /* Release.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = ../../rules/Release.xcconfig; sourceTree = SOURCE_ROOT; };
+		E8C3696A1999024D005241FB /* cef_print_handler_capi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_print_handler_capi.h; sourceTree = "<group>"; };
+		E8C3696B1999024D005241FB /* cef_print_settings_capi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_print_settings_capi.h; sourceTree = "<group>"; };
+		E8C3696C19990262005241FB /* cef_logging_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_logging_internal.h; sourceTree = "<group>"; };
+		E8C3696D19990262005241FB /* cef_thread_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_thread_internal.h; sourceTree = "<group>"; };
+		E8C3696E19990262005241FB /* cef_trace_event_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_trace_event_internal.h; sourceTree = "<group>"; };
+		E8C3696F19990289005241FB /* cef_closure_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_closure_task.h; sourceTree = "<group>"; };
+		E8C3697019990289005241FB /* cef_helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_helpers.h; sourceTree = "<group>"; };
+		E8C3697119990289005241FB /* cef_message_router.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_message_router.h; sourceTree = "<group>"; };
+		E8C36972199902A2005241FB /* cef_print_handler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_print_handler.h; sourceTree = "<group>"; };
+		E8C36973199902A2005241FB /* cef_print_settings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_print_settings.h; sourceTree = "<group>"; };
+		E8C36974199902CE005241FB /* completion_callback_cpptoc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = completion_callback_cpptoc.cc; sourceTree = "<group>"; };
+		E8C36975199902CE005241FB /* completion_callback_cpptoc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = completion_callback_cpptoc.h; sourceTree = "<group>"; };
+		E8C36976199902CE005241FB /* end_tracing_callback_cpptoc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = end_tracing_callback_cpptoc.cc; sourceTree = "<group>"; };
+		E8C36977199902CE005241FB /* end_tracing_callback_cpptoc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = end_tracing_callback_cpptoc.h; sourceTree = "<group>"; };
+		E8C36978199902CE005241FB /* print_handler_cpptoc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = print_handler_cpptoc.cc; sourceTree = "<group>"; };
+		E8C36979199902CE005241FB /* print_handler_cpptoc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = print_handler_cpptoc.h; sourceTree = "<group>"; };
+		E8C3697D199902F6005241FB /* print_dialog_callback_ctocpp.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = print_dialog_callback_ctocpp.cc; sourceTree = "<group>"; };
+		E8C3697E199902F6005241FB /* print_dialog_callback_ctocpp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = print_dialog_callback_ctocpp.h; sourceTree = "<group>"; };
+		E8C3697F199902F6005241FB /* print_job_callback_ctocpp.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = print_job_callback_ctocpp.cc; sourceTree = "<group>"; };
+		E8C36980199902F6005241FB /* print_job_callback_ctocpp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = print_job_callback_ctocpp.h; sourceTree = "<group>"; };
+		E8C36981199902F6005241FB /* print_settings_ctocpp.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = print_settings_ctocpp.cc; sourceTree = "<group>"; };
+		E8C36982199902F6005241FB /* print_settings_ctocpp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = print_settings_ctocpp.h; sourceTree = "<group>"; };
+		E8C369861999030E005241FB /* cef_browser_info_map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_browser_info_map.h; sourceTree = "<group>"; };
+		E8C369871999030E005241FB /* cef_closure_task.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_closure_task.cc; sourceTree = "<group>"; };
+		E8C369881999030E005241FB /* cef_message_router.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_message_router.cc; sourceTree = "<group>"; };
+		E8C3698D19990619005241FB /* cef_atomicops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_atomicops.h; sourceTree = "<group>"; };
+		E8C3698F19990619005241FB /* cef_atomicops_atomicword_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_atomicops_atomicword_compat.h; sourceTree = "<group>"; };
+		E8C3699019990619005241FB /* cef_atomicops_mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_atomicops_mac.h; sourceTree = "<group>"; };
+		E8C3699119990619005241FB /* cef_bind_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_bind_internal.h; sourceTree = "<group>"; };
+		E8C3699219990619005241FB /* cef_callback_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_callback_internal.h; sourceTree = "<group>"; };
+		E8C3699319990619005241FB /* cef_lock_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_lock_impl.h; sourceTree = "<group>"; };
+		E8C3699419990619005241FB /* cef_raw_scoped_refptr_mismatch_checker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_raw_scoped_refptr_mismatch_checker.h; sourceTree = "<group>"; };
+		E8C3699519990619005241FB /* cef_thread_checker_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_thread_checker_impl.h; sourceTree = "<group>"; };
+		E8C3699619990619005241FB /* cef_atomic_ref_count.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_atomic_ref_count.h; sourceTree = "<group>"; };
+		E8C3699719990619005241FB /* cef_basictypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_basictypes.h; sourceTree = "<group>"; };
+		E8C3699819990619005241FB /* cef_bind_helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_bind_helpers.h; sourceTree = "<group>"; };
+		E8C3699919990619005241FB /* cef_bind.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_bind.h; sourceTree = "<group>"; };
+		E8C3699A19990619005241FB /* cef_build.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_build.h; sourceTree = "<group>"; };
+		E8C3699B19990619005241FB /* cef_callback_forward.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_callback_forward.h; sourceTree = "<group>"; };
+		E8C3699C19990619005241FB /* cef_callback_helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_callback_helpers.h; sourceTree = "<group>"; };
+		E8C3699D19990619005241FB /* cef_callback_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_callback_list.h; sourceTree = "<group>"; };
+		E8C3699E19990619005241FB /* cef_callback.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_callback.h; sourceTree = "<group>"; };
+		E8C3699F19990619005241FB /* cef_cancelable_callback.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_cancelable_callback.h; sourceTree = "<group>"; };
+		E8C369A019990619005241FB /* cef_lock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_lock.h; sourceTree = "<group>"; };
+		E8C369A119990619005241FB /* cef_logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_logging.h; sourceTree = "<group>"; };
+		E8C369A219990619005241FB /* cef_macros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_macros.h; sourceTree = "<group>"; };
+		E8C369A319990619005241FB /* cef_move.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_move.h; sourceTree = "<group>"; };
+		E8C369A419990619005241FB /* cef_platform_thread.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_platform_thread.h; sourceTree = "<group>"; };
+		E8C369A519990619005241FB /* cef_ref_counted.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_ref_counted.h; sourceTree = "<group>"; };
+		E8C369A619990619005241FB /* cef_scoped_ptr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_scoped_ptr.h; sourceTree = "<group>"; };
+		E8C369A719990619005241FB /* cef_string16.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_string16.h; sourceTree = "<group>"; };
+		E8C369A819990619005241FB /* cef_template_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_template_util.h; sourceTree = "<group>"; };
+		E8C369A919990619005241FB /* cef_thread_checker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_thread_checker.h; sourceTree = "<group>"; };
+		E8C369AA19990619005241FB /* cef_thread_collision_warner.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_thread_collision_warner.h; sourceTree = "<group>"; };
+		E8C369AB19990619005241FB /* cef_trace_event.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_trace_event.h; sourceTree = "<group>"; };
+		E8C369AC19990619005241FB /* cef_tuple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_tuple.h; sourceTree = "<group>"; };
+		E8C369AD19990619005241FB /* cef_weak_ptr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cef_weak_ptr.h; sourceTree = "<group>"; };
+		E8C369AF1999066D005241FB /* cef_atomicops_x86_gcc.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_atomicops_x86_gcc.cc; sourceTree = "<group>"; };
+		E8C369B01999066D005241FB /* cef_bind_helpers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_bind_helpers.cc; sourceTree = "<group>"; };
+		E8C369B11999066D005241FB /* cef_callback_helpers.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_callback_helpers.cc; sourceTree = "<group>"; };
+		E8C369B21999066D005241FB /* cef_callback_internal.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_callback_internal.cc; sourceTree = "<group>"; };
+		E8C369B31999066D005241FB /* cef_lock.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_lock.cc; sourceTree = "<group>"; };
+		E8C369B41999066D005241FB /* cef_lock_impl.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_lock_impl.cc; sourceTree = "<group>"; };
+		E8C369B51999066D005241FB /* cef_logging.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_logging.cc; sourceTree = "<group>"; };
+		E8C369B61999066D005241FB /* cef_ref_counted.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_ref_counted.cc; sourceTree = "<group>"; };
+		E8C369B71999066D005241FB /* cef_string16.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_string16.cc; sourceTree = "<group>"; };
+		E8C369B81999066D005241FB /* cef_thread_checker_impl.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_thread_checker_impl.cc; sourceTree = "<group>"; };
+		E8C369B91999066D005241FB /* cef_thread_collision_warner.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_thread_collision_warner.cc; sourceTree = "<group>"; };
+		E8C369BA1999066D005241FB /* cef_weak_ptr.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cef_weak_ptr.cc; sourceTree = "<group>"; };
 		EACB8ADA2030C90BBF43E933 /* cef_version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_version.h; sourceTree = "<group>"; };
 		EC9222A52F3DBDCE6359DEC2 /* cef_values_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_values_capi.h; sourceTree = "<group>"; };
 		ED7DA8E7BE98EB9E02A3ABD8 /* domevent_listener_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = domevent_listener_cpptoc.cc; sourceTree = "<group>"; };
@@ -397,7 +477,6 @@
 		FAF75E20B7436B3ABE378142 /* render_process_handler_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = render_process_handler_cpptoc.cc; sourceTree = "<group>"; };
 		FB09449FB605E9C974383176 /* cef_url.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_url.h; sourceTree = "<group>"; };
 		FBE68D8DB9C9E249B064499E /* cef_urlrequest_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_urlrequest_capi.h; sourceTree = "<group>"; };
-		FC611EE6FC2BDEAEC03F64D3 /* cef_trace_event.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_trace_event.h; sourceTree = "<group>"; };
 		FDCD93A1CE51721B92C0302E /* cef_xml_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_xml_object.h; sourceTree = "<group>"; };
 		FE3EFE5A9B05898B06F101D6 /* cef_frame_capi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cef_frame_capi.h; sourceTree = "<group>"; };
 		FE510271A528FD11203D2579 /* geolocation_handler_cpptoc.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = geolocation_handler_cpptoc.cc; sourceTree = "<group>"; };
@@ -426,8 +505,8 @@
 				9FE79124A462135F86FC9D37 /* browser_process_handler_cpptoc.h */,
 				94416A48A8A205F4EF806B6C /* client_cpptoc.cc */,
 				0B9416B81CE32E64CBB368C5 /* client_cpptoc.h */,
-				8D0A38A71D021C899D1A3AC8 /* completion_handler_cpptoc.cc */,
-				57D6D450CFC653377A024DA7 /* completion_handler_cpptoc.h */,
+				E8C36974199902CE005241FB /* completion_callback_cpptoc.cc */,
+				E8C36975199902CE005241FB /* completion_callback_cpptoc.h */,
 				B8D63FD13010C69A8AAA11B7 /* context_menu_handler_cpptoc.cc */,
 				9C1521DEC5B376B4F99263FE /* context_menu_handler_cpptoc.h */,
 				B042D0B9C21B2090935D5D3A /* cookie_visitor_cpptoc.cc */,
@@ -445,6 +524,8 @@
 				04D99B5772F3FB9CDB60BD4F /* download_handler_cpptoc.h */,
 				A6472AE15A4FF91905023BFD /* drag_handler_cpptoc.cc */,
 				C9BB0ED7A9D0112BE923DA6B /* drag_handler_cpptoc.h */,
+				E8C36976199902CE005241FB /* end_tracing_callback_cpptoc.cc */,
+				E8C36977199902CE005241FB /* end_tracing_callback_cpptoc.h */,
 				3E83BE2843E3EA374278A29C /* focus_handler_cpptoc.cc */,
 				71F40D97B5588D4752CC12CD /* focus_handler_cpptoc.h */,
 				FE510271A528FD11203D2579 /* geolocation_handler_cpptoc.cc */,
@@ -459,6 +540,8 @@
 				A32A33FCBE4CE4FC4F630ABD /* life_span_handler_cpptoc.h */,
 				B5043E0E7CA84AC043F1F7A7 /* load_handler_cpptoc.cc */,
 				79107516EE44E361E8A1C361 /* load_handler_cpptoc.h */,
+				E8C36978199902CE005241FB /* print_handler_cpptoc.cc */,
+				E8C36979199902CE005241FB /* print_handler_cpptoc.h */,
 				DCEFB82C247377FD4550FC22 /* read_handler_cpptoc.cc */,
 				E75F736D4040C7C017904CA4 /* read_handler_cpptoc.h */,
 				94BBBF381E91E352181658F9 /* render_handler_cpptoc.cc */,
@@ -481,8 +564,6 @@
 				121B908C828A4BB4AA8F85EE /* string_visitor_cpptoc.h */,
 				2FE8D5DF6F62CB6B385281D2 /* task_cpptoc.cc */,
 				7E4E804432B430DAB9B30142 /* task_cpptoc.h */,
-				620A2749D4E87344DBB1154D /* trace_client_cpptoc.cc */,
-				14406D47A4C6D625CD0C0D36 /* trace_client_cpptoc.h */,
 				C287E9B4A1A46020FF9CCDF0 /* urlrequest_client_cpptoc.cc */,
 				268AE3DA5EB8FBC0A8055681 /* urlrequest_client_cpptoc.h */,
 				50345489979DE96A02BA7B05 /* v8accessor_cpptoc.cc */,
@@ -519,8 +600,8 @@
 		688D8C906E39BDBB2F108373 /* internal */ = {
 			isa = PBXGroup;
 			children = (
-				977E73AA359B0405D341D37B /* cef_build.h */,
 				BD2963D89C04FBC8BFEB7040 /* cef_export.h */,
+				E8C3696C19990262005241FB /* cef_logging_internal.h */,
 				E82C4F4D4DA82499F8D959AF /* cef_mac.h */,
 				5A6FC2C2447DAB3F17FF2F72 /* cef_ptr.h */,
 				0E91F7ED6D31C5BEA70B4A02 /* cef_string.h */,
@@ -529,8 +610,9 @@
 				8DA04C6EDEFD2E717CBA4C1F /* cef_string_multimap.h */,
 				92C4EECC7AF50D3964DEB8C7 /* cef_string_types.h */,
 				798BAB515F385A351FC28153 /* cef_string_wrappers.h */,
+				E8C3696D19990262005241FB /* cef_thread_internal.h */,
 				6DF742F6570B27F8BB467F9E /* cef_time.h */,
-				7C197C4F835FA0AE52581287 /* cef_tuple.h */,
+				E8C3696E19990262005241FB /* cef_trace_event_internal.h */,
 				870DE5002D5E5C6E08021C0D /* cef_types.h */,
 				02EC892952094A790B013E64 /* cef_types_mac.h */,
 				CBE5DE140C15BF3CA689219B /* cef_types_wrappers.h */,
@@ -541,7 +623,10 @@
 		727AEDB48CE494BEA4E2049D /* wrapper */ = {
 			isa = PBXGroup;
 			children = (
+				E8C369861999030E005241FB /* cef_browser_info_map.h */,
 				AC92161A74C43E04C8B6146F /* cef_byte_read_handler.cc */,
+				E8C369871999030E005241FB /* cef_closure_task.cc */,
+				E8C369881999030E005241FB /* cef_message_router.cc */,
 				C4FB0E61C8B5A953EB740B39 /* cef_stream_resource_handler.cc */,
 				8E702C41F84D7F9AB18FAAAF /* cef_xml_object.cc */,
 				6883BB9AD787F0B5A7AF8A50 /* cef_zip_archive.cc */,
@@ -582,6 +667,8 @@
 				1E8DDE9B9B058DBD7B8A8456 /* cef_menu_model_capi.h */,
 				3A25A88F7D0B9DD5E1D8D4E9 /* cef_origin_whitelist_capi.h */,
 				A384503AB640CDE1C8D4D385 /* cef_path_util_capi.h */,
+				E8C3696A1999024D005241FB /* cef_print_handler_capi.h */,
+				E8C3696B1999024D005241FB /* cef_print_settings_capi.h */,
 				5A82663C9D26BAAAC6346EE0 /* cef_process_message_capi.h */,
 				DCC77B6C06DDD5024DDB4781 /* cef_process_util_capi.h */,
 				6FA3DD414CD026633AA585BE /* cef_render_handler_capi.h */,
@@ -621,6 +708,7 @@
 		965B46D3D3C23C859D542432 /* include */ = {
 			isa = PBXGroup;
 			children = (
+				E8C3698C199905F8005241FB /* base */,
 				8EFFC88BFA2DECC8E8AECE9C /* capi */,
 				688D8C906E39BDBB2F108373 /* internal */,
 				974CB36B9CBAC327ADF5C7A1 /* wrapper */,
@@ -655,6 +743,8 @@
 				1060A64A7128B657BF1B50CD /* cef_pack_resources.h */,
 				E3132BC7E92EBE71254092D3 /* cef_pack_strings.h */,
 				DAEC965E23A63B7F6370871A /* cef_path_util.h */,
+				E8C36972199902A2005241FB /* cef_print_handler.h */,
+				E8C36973199902A2005241FB /* cef_print_settings.h */,
 				56E113B99DCF7F60DB4C3644 /* cef_process_message.h */,
 				BD1EB93E16A8939431B50036 /* cef_process_util.h */,
 				7EE955569B2A10E12A12B79A /* cef_render_handler.h */,
@@ -672,7 +762,6 @@
 				A1EB035C0F52E486E2324025 /* cef_string_visitor.h */,
 				A6A0B40D041F3363BB84C087 /* cef_task.h */,
 				CFC72DF80262AB2C94D23B7F /* cef_trace.h */,
-				FC611EE6FC2BDEAEC03F64D3 /* cef_trace_event.h */,
 				FB09449FB605E9C974383176 /* cef_url.h */,
 				A48CE71711CE4448039F3BDE /* cef_urlrequest.h */,
 				C8E0AB60646B1006469AE0C0 /* cef_v8.h */,
@@ -689,6 +778,9 @@
 			isa = PBXGroup;
 			children = (
 				A810F51995A9E9FA43665350 /* cef_byte_read_handler.h */,
+				E8C3696F19990289005241FB /* cef_closure_task.h */,
+				E8C3697019990289005241FB /* cef_helpers.h */,
+				E8C3697119990289005241FB /* cef_message_router.h */,
 				587A444F9B263094C32C3C7B /* cef_stream_resource_handler.h */,
 				FDCD93A1CE51721B92C0302E /* cef_xml_object.h */,
 				C3240C0FE8C77FCBA0CEA92F /* cef_zip_archive.h */,
@@ -699,10 +791,10 @@
 		9F93524802C10C22CD830156 /* libcef_dll */ = {
 			isa = PBXGroup;
 			children = (
+				E8C369AE1999066D005241FB /* base */,
 				31851261677E4ECD2B0F7031 /* cpptoc */,
 				E52D849B2AA47A2D1472C736 /* ctocpp */,
 				727AEDB48CE494BEA4E2049D /* wrapper */,
-				255DD3DE40A670F3D6F13048 /* cef_logging.h */,
 				53F9B8E65A0F4D7D858D488B /* transfer_util.cpp */,
 				43FB919A2B7E8BFFB6AD2A78 /* transfer_util.h */,
 			);
@@ -774,6 +866,12 @@
 				EEEFD38CF535C24F947446E4 /* post_data_ctocpp.h */,
 				63D54504E874D0E5B1CC1739 /* post_data_element_ctocpp.cc */,
 				CA197E2F0624D0C8D37A61E7 /* post_data_element_ctocpp.h */,
+				E8C3697D199902F6005241FB /* print_dialog_callback_ctocpp.cc */,
+				E8C3697E199902F6005241FB /* print_dialog_callback_ctocpp.h */,
+				E8C3697F199902F6005241FB /* print_job_callback_ctocpp.cc */,
+				E8C36980199902F6005241FB /* print_job_callback_ctocpp.h */,
+				E8C36981199902F6005241FB /* print_settings_ctocpp.cc */,
+				E8C36982199902F6005241FB /* print_settings_ctocpp.h */,
 				500A7158C55DF38215C0B32D /* process_message_ctocpp.cc */,
 				47BEDE5E34AC3DC15C329C98 /* process_message_ctocpp.h */,
 				0355242A18E623F44FEE12C7 /* quota_callback_ctocpp.cc */,
@@ -822,6 +920,72 @@
 				E8AA051B18C9EDA900AE8663 /* Release.xcconfig */,
 			);
 			name = Configurations;
+			sourceTree = "<group>";
+		};
+		E8C3698C199905F8005241FB /* base */ = {
+			isa = PBXGroup;
+			children = (
+				E8C3698D19990619005241FB /* cef_atomicops.h */,
+				E8C3698E19990619005241FB /* internal */,
+				E8C3699619990619005241FB /* cef_atomic_ref_count.h */,
+				E8C3699719990619005241FB /* cef_basictypes.h */,
+				E8C3699819990619005241FB /* cef_bind_helpers.h */,
+				E8C3699919990619005241FB /* cef_bind.h */,
+				E8C3699A19990619005241FB /* cef_build.h */,
+				E8C3699B19990619005241FB /* cef_callback_forward.h */,
+				E8C3699C19990619005241FB /* cef_callback_helpers.h */,
+				E8C3699D19990619005241FB /* cef_callback_list.h */,
+				E8C3699E19990619005241FB /* cef_callback.h */,
+				E8C3699F19990619005241FB /* cef_cancelable_callback.h */,
+				E8C369A019990619005241FB /* cef_lock.h */,
+				E8C369A119990619005241FB /* cef_logging.h */,
+				E8C369A219990619005241FB /* cef_macros.h */,
+				E8C369A319990619005241FB /* cef_move.h */,
+				E8C369A419990619005241FB /* cef_platform_thread.h */,
+				E8C369A519990619005241FB /* cef_ref_counted.h */,
+				E8C369A619990619005241FB /* cef_scoped_ptr.h */,
+				E8C369A719990619005241FB /* cef_string16.h */,
+				E8C369A819990619005241FB /* cef_template_util.h */,
+				E8C369A919990619005241FB /* cef_thread_checker.h */,
+				E8C369AA19990619005241FB /* cef_thread_collision_warner.h */,
+				E8C369AB19990619005241FB /* cef_trace_event.h */,
+				E8C369AC19990619005241FB /* cef_tuple.h */,
+				E8C369AD19990619005241FB /* cef_weak_ptr.h */,
+			);
+			path = base;
+			sourceTree = "<group>";
+		};
+		E8C3698E19990619005241FB /* internal */ = {
+			isa = PBXGroup;
+			children = (
+				E8C3698F19990619005241FB /* cef_atomicops_atomicword_compat.h */,
+				E8C3699019990619005241FB /* cef_atomicops_mac.h */,
+				E8C3699119990619005241FB /* cef_bind_internal.h */,
+				E8C3699219990619005241FB /* cef_callback_internal.h */,
+				E8C3699319990619005241FB /* cef_lock_impl.h */,
+				E8C3699419990619005241FB /* cef_raw_scoped_refptr_mismatch_checker.h */,
+				E8C3699519990619005241FB /* cef_thread_checker_impl.h */,
+			);
+			path = internal;
+			sourceTree = "<group>";
+		};
+		E8C369AE1999066D005241FB /* base */ = {
+			isa = PBXGroup;
+			children = (
+				E8C369AF1999066D005241FB /* cef_atomicops_x86_gcc.cc */,
+				E8C369B01999066D005241FB /* cef_bind_helpers.cc */,
+				E8C369B11999066D005241FB /* cef_callback_helpers.cc */,
+				E8C369B21999066D005241FB /* cef_callback_internal.cc */,
+				E8C369B31999066D005241FB /* cef_lock.cc */,
+				E8C369B41999066D005241FB /* cef_lock_impl.cc */,
+				E8C369B51999066D005241FB /* cef_logging.cc */,
+				E8C369B61999066D005241FB /* cef_ref_counted.cc */,
+				E8C369B71999066D005241FB /* cef_string16.cc */,
+				E8C369B81999066D005241FB /* cef_thread_checker_impl.cc */,
+				E8C369B91999066D005241FB /* cef_thread_collision_warner.cc */,
+				E8C369BA1999066D005241FB /* cef_weak_ptr.cc */,
+			);
+			path = base;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -930,28 +1094,33 @@
 			files = (
 				DE29F1F7B7A9A0BE7AFDBF0C /* transfer_util.cpp in Sources */,
 				D03423E7A4AC9704ECC1E9EE /* cef_byte_read_handler.cc in Sources */,
+				E8C36983199902F6005241FB /* print_dialog_callback_ctocpp.cc in Sources */,
 				37A99F87AF84F242881E4046 /* cef_stream_resource_handler.cc in Sources */,
 				B45B4E2DCB6CD07989F7CED4 /* cef_xml_object.cc in Sources */,
 				0E0993A6E164ED9A05FB2FE7 /* cef_zip_archive.cc in Sources */,
 				3147BC78B7CED29BECBB4F24 /* libcef_dll_wrapper.cc in Sources */,
 				EFD26BDE37B32997B398DE04 /* libcef_dll_wrapper2.cc in Sources */,
+				E8C369C51999066D005241FB /* cef_thread_collision_warner.cc in Sources */,
 				E552D07BC9B517D579E8858F /* allow_certificate_error_callback_ctocpp.cc in Sources */,
 				CF8EEF29EF1F7164DDE0394A /* app_cpptoc.cc in Sources */,
 				57310D4B52CF82E906CD8091 /* auth_callback_ctocpp.cc in Sources */,
 				4862DE3486E1D63EF99B0484 /* before_download_callback_ctocpp.cc in Sources */,
 				3E5082A84CAA93344EA263F6 /* binary_value_ctocpp.cc in Sources */,
 				63089F25901D54E8009915E0 /* browser_ctocpp.cc in Sources */,
+				E8C3697C199902CE005241FB /* print_handler_cpptoc.cc in Sources */,
 				2E76AB1676C9AFABB0641504 /* browser_host_ctocpp.cc in Sources */,
+				E8C369C61999066D005241FB /* cef_weak_ptr.cc in Sources */,
 				E6271AFA4230777A9A8B2020 /* browser_process_handler_cpptoc.cc in Sources */,
 				C62D4C49EC4B0B16DF8D66DA /* callback_ctocpp.cc in Sources */,
 				537C01BF672D39880E16652C /* client_cpptoc.cc in Sources */,
 				EFD306F13EA088D381DBDD7A /* command_line_ctocpp.cc in Sources */,
-				5057B7421C5387D008AF2EAA /* completion_handler_cpptoc.cc in Sources */,
+				E8C369C01999066D005241FB /* cef_lock_impl.cc in Sources */,
 				DAEE49C8496F5DC02D4AB649 /* context_menu_handler_cpptoc.cc in Sources */,
 				65E398A13D47680CB4BC9080 /* context_menu_params_ctocpp.cc in Sources */,
 				4E73F4EC94B8EAD084A77BFD /* cookie_manager_ctocpp.cc in Sources */,
 				C4AC4C838A40ACCE09444035 /* cookie_visitor_cpptoc.cc in Sources */,
 				B083B38D69173A1F2FF64B46 /* domdocument_ctocpp.cc in Sources */,
+				E8C3697B199902CE005241FB /* end_tracing_callback_cpptoc.cc in Sources */,
 				3175ECBB02A07A3CAC828589 /* domevent_ctocpp.cc in Sources */,
 				ED732BE07898B14EDD714D0E /* domevent_listener_cpptoc.cc in Sources */,
 				1CEC19E75C09B65806BFA8DE /* domnode_ctocpp.cc in Sources */,
@@ -960,7 +1129,9 @@
 				8B15B1CDF68F2546A0DEF086 /* dictionary_value_ctocpp.cc in Sources */,
 				2614D2E7BA4E956D2AA8CE3A /* display_handler_cpptoc.cc in Sources */,
 				7663C753070029DBA8FE9355 /* download_handler_cpptoc.cc in Sources */,
+				E8C369BE1999066D005241FB /* cef_callback_internal.cc in Sources */,
 				338542C2F95346791EA855CF /* download_item_ctocpp.cc in Sources */,
+				E8C369BB1999066D005241FB /* cef_atomicops_x86_gcc.cc in Sources */,
 				4D764F531F274E5644D2777E /* download_item_callback_ctocpp.cc in Sources */,
 				BCDB5785B96BC5AC485E4BF8 /* drag_data_ctocpp.cc in Sources */,
 				CE89A78310774CAC1901876B /* drag_handler_cpptoc.cc in Sources */,
@@ -977,33 +1148,41 @@
 				CBB7D4418F211D93A25D1D4D /* list_value_ctocpp.cc in Sources */,
 				6E4CCD9FB00A41F222CA5F9F /* load_handler_cpptoc.cc in Sources */,
 				F3D5AD98EEF4F08C3B357A31 /* menu_model_ctocpp.cc in Sources */,
+				E8C36984199902F6005241FB /* print_job_callback_ctocpp.cc in Sources */,
 				3C3AB093AAF76AE116B7700D /* post_data_ctocpp.cc in Sources */,
 				07808297754BCDC6AE7B5161 /* post_data_element_ctocpp.cc in Sources */,
+				E8C369BD1999066D005241FB /* cef_callback_helpers.cc in Sources */,
 				F2F424980A78E7B755E782B1 /* process_message_ctocpp.cc in Sources */,
 				EB243886D44B429B83B4E337 /* quota_callback_ctocpp.cc in Sources */,
 				4ED54ACFF90ACE8119D26A9A /* read_handler_cpptoc.cc in Sources */,
 				343B08CE824643BBAD0003C3 /* render_handler_cpptoc.cc in Sources */,
 				1B0BB6C9EA0CFD9F6410E7B4 /* render_process_handler_cpptoc.cc in Sources */,
 				1F1B8AB7389BA33837AE07C3 /* request_ctocpp.cc in Sources */,
+				E8C369C31999066D005241FB /* cef_string16.cc in Sources */,
 				37D350D2457C56691E20708E /* request_context_ctocpp.cc in Sources */,
+				E8C369BC1999066D005241FB /* cef_bind_helpers.cc in Sources */,
+				E8C36985199902F6005241FB /* print_settings_ctocpp.cc in Sources */,
 				8855748E289954B4D437A361 /* request_context_handler_cpptoc.cc in Sources */,
 				AA09AE006DCFE2622ABAAFE7 /* request_handler_cpptoc.cc in Sources */,
 				35AAF8F17825FE020CABA109 /* resource_bundle_handler_cpptoc.cc in Sources */,
 				4281B308C83A84FD54BF0C61 /* resource_handler_cpptoc.cc in Sources */,
 				ADA303E4CD1359E7F112E545 /* response_ctocpp.cc in Sources */,
+				E8C3698A1999030E005241FB /* cef_message_router.cc in Sources */,
+				E8C369C41999066D005241FB /* cef_thread_checker_impl.cc in Sources */,
 				AD235CDEB8367770FD7A10F5 /* run_file_dialog_callback_cpptoc.cc in Sources */,
 				5591CA28F1665E99E388DBBB /* scheme_handler_factory_cpptoc.cc in Sources */,
 				F4BE734F37851D8AA4B300CE /* scheme_registrar_ctocpp.cc in Sources */,
 				865E91A1CD770BEDE58CAFCF /* stream_reader_ctocpp.cc in Sources */,
+				E8C369891999030E005241FB /* cef_closure_task.cc in Sources */,
 				15164198D26D25E6DD17AD69 /* stream_writer_ctocpp.cc in Sources */,
 				F24744BEB01CBBD838FF96A4 /* string_visitor_cpptoc.cc in Sources */,
 				C80D4DEBC0FA901330264148 /* task_cpptoc.cc in Sources */,
 				58AF53FAAC44F36B1CA82168 /* task_runner_ctocpp.cc in Sources */,
-				2B6B832C06D76C76A5C3E780 /* trace_client_cpptoc.cc in Sources */,
 				0E842AABFD1C135A4087C166 /* urlrequest_ctocpp.cc in Sources */,
 				3437B1128646A088D1171B71 /* urlrequest_client_cpptoc.cc in Sources */,
 				C33757B0B1E2943251B6B87D /* v8accessor_cpptoc.cc in Sources */,
 				957BD61F1BD5E0A3D30DBCCF /* v8context_ctocpp.cc in Sources */,
+				E8C369C11999066D005241FB /* cef_logging.cc in Sources */,
 				E4B658020DCCED89F594216C /* v8exception_ctocpp.cc in Sources */,
 				546A106A3AC7AAADFDDDC714 /* v8handler_cpptoc.cc in Sources */,
 				8C72992A41043F604A9C3E2A /* v8stack_frame_ctocpp.cc in Sources */,
@@ -1014,7 +1193,10 @@
 				D25165858A818FBFFD79F799 /* web_plugin_unstable_callback_cpptoc.cc in Sources */,
 				CD2E843FA7EBB9396CFA7DC7 /* write_handler_cpptoc.cc in Sources */,
 				D6AB34DC23507D7739422090 /* xml_reader_ctocpp.cc in Sources */,
+				E8C369BF1999066D005241FB /* cef_lock.cc in Sources */,
+				E8C369C21999066D005241FB /* cef_ref_counted.cc in Sources */,
 				DC4518C19B9063795D7BEE72 /* zip_reader_ctocpp.cc in Sources */,
+				E8C3697A199902CE005241FB /* completion_callback_cpptoc.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

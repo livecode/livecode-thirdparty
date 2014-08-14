@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -10,7 +10,7 @@
 // for more information.
 //
 
-#include "libcef_dll/cpptoc/completion_handler_cpptoc.h"
+#include "libcef_dll/cpptoc/completion_callback_cpptoc.h"
 #include "libcef_dll/cpptoc/cookie_visitor_cpptoc.h"
 #include "libcef_dll/ctocpp/cookie_manager_ctocpp.h"
 #include "libcef_dll/transfer_util.h"
@@ -172,17 +172,20 @@ bool CefCookieManagerCToCpp::SetStoragePath(const CefString& path,
 }
 
 bool CefCookieManagerCToCpp::FlushStore(
-    CefRefPtr<CefCompletionHandler> handler) {
+    CefRefPtr<CefCompletionCallback> callback) {
   if (CEF_MEMBER_MISSING(struct_, flush_store))
     return false;
 
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
-  // Unverified params: handler
+  // Verify param: callback; type: refptr_diff
+  DCHECK(callback.get());
+  if (!callback.get())
+    return false;
 
   // Execute
   int _retval = struct_->flush_store(struct_,
-      CefCompletionHandlerCppToC::Wrap(handler));
+      CefCompletionCallbackCppToC::Wrap(callback));
 
   // Return type: bool
   return _retval?true:false;
@@ -190,7 +193,7 @@ bool CefCookieManagerCToCpp::FlushStore(
 
 
 #ifndef NDEBUG
-template<> long CefCToCpp<CefCookieManagerCToCpp, CefCookieManager,
-    cef_cookie_manager_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCToCpp<CefCookieManagerCToCpp,
+    CefCookieManager, cef_cookie_manager_t>::DebugObjCt = 0;
 #endif
 

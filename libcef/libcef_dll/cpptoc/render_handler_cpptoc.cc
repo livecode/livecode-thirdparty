@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -12,6 +12,7 @@
 
 #include "libcef_dll/cpptoc/render_handler_cpptoc.h"
 #include "libcef_dll/ctocpp/browser_ctocpp.h"
+#include "libcef_dll/ctocpp/drag_data_ctocpp.h"
 
 
 // MEMBER FUNCTIONS - Body may be edited by hand.
@@ -207,7 +208,7 @@ void CEF_CALLBACK render_handler_on_popup_size(
 }
 
 void CEF_CALLBACK render_handler_on_paint(struct _cef_render_handler_t* self,
-    cef_browser_t* browser, enum cef_paint_element_type_t type,
+    cef_browser_t* browser, cef_paint_element_type_t type,
     size_t dirtyRectsCount, cef_rect_t const* dirtyRects, const void* buffer,
     int width, int height) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -265,6 +266,55 @@ void CEF_CALLBACK render_handler_on_cursor_change(
       cursor);
 }
 
+int CEF_CALLBACK render_handler_start_dragging(
+    struct _cef_render_handler_t* self, cef_browser_t* browser,
+    cef_drag_data_t* drag_data, cef_drag_operations_mask_t allowed_ops, int x,
+    int y) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return 0;
+  // Verify param: browser; type: refptr_diff
+  DCHECK(browser);
+  if (!browser)
+    return 0;
+  // Verify param: drag_data; type: refptr_diff
+  DCHECK(drag_data);
+  if (!drag_data)
+    return 0;
+
+  // Execute
+  bool _retval = CefRenderHandlerCppToC::Get(self)->StartDragging(
+      CefBrowserCToCpp::Wrap(browser),
+      CefDragDataCToCpp::Wrap(drag_data),
+      allowed_ops,
+      x,
+      y);
+
+  // Return type: bool
+  return _retval;
+}
+
+void CEF_CALLBACK render_handler_update_drag_cursor(
+    struct _cef_render_handler_t* self, cef_browser_t* browser,
+    cef_drag_operations_mask_t operation) {
+  // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
+
+  DCHECK(self);
+  if (!self)
+    return;
+  // Verify param: browser; type: refptr_diff
+  DCHECK(browser);
+  if (!browser)
+    return;
+
+  // Execute
+  CefRenderHandlerCppToC::Get(self)->UpdateDragCursor(
+      CefBrowserCToCpp::Wrap(browser),
+      operation);
+}
+
 void CEF_CALLBACK render_handler_on_scroll_offset_changed(
     struct _cef_render_handler_t* self, cef_browser_t* browser) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
@@ -296,12 +346,14 @@ CefRenderHandlerCppToC::CefRenderHandlerCppToC(CefRenderHandler* cls)
   struct_.struct_.on_popup_size = render_handler_on_popup_size;
   struct_.struct_.on_paint = render_handler_on_paint;
   struct_.struct_.on_cursor_change = render_handler_on_cursor_change;
+  struct_.struct_.start_dragging = render_handler_start_dragging;
+  struct_.struct_.update_drag_cursor = render_handler_update_drag_cursor;
   struct_.struct_.on_scroll_offset_changed =
       render_handler_on_scroll_offset_changed;
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefRenderHandlerCppToC, CefRenderHandler,
-    cef_render_handler_t>::DebugObjCt = 0;
+template<> base::AtomicRefCount CefCppToC<CefRenderHandlerCppToC,
+    CefRenderHandler, cef_render_handler_t>::DebugObjCt = 0;
 #endif
 

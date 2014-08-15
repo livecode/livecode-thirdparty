@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -38,14 +38,13 @@ class CefBrowserHostCToCpp
 
   // CefBrowserHost methods
   virtual CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
-  virtual void ParentWindowWillClose() OVERRIDE;
   virtual void CloseBrowser(bool force_close) OVERRIDE;
-  virtual void SetFocus(bool enable) OVERRIDE;
+  virtual void SetFocus(bool focus) OVERRIDE;
+  virtual void SetWindowVisibility(bool visible) OVERRIDE;
   virtual CefWindowHandle GetWindowHandle() OVERRIDE;
   virtual CefWindowHandle GetOpenerWindowHandle() OVERRIDE;
   virtual CefRefPtr<CefClient> GetClient() OVERRIDE;
   virtual CefRefPtr<CefRequestContext> GetRequestContext() OVERRIDE;
-  virtual CefString GetDevToolsURL(bool http_scheme) OVERRIDE;
   virtual double GetZoomLevel() OVERRIDE;
   virtual void SetZoomLevel(double zoomLevel) OVERRIDE;
   virtual void RunFileDialog(FileDialogMode mode, const CefString& title,
@@ -57,14 +56,17 @@ class CefBrowserHostCToCpp
   virtual void Find(int identifier, const CefString& searchText, bool forward,
       bool matchCase, bool findNext) OVERRIDE;
   virtual void StopFinding(bool clearSelection) OVERRIDE;
+  virtual void ShowDevTools(const CefWindowInfo& windowInfo,
+      CefRefPtr<CefClient> client,
+      const CefBrowserSettings& settings) OVERRIDE;
+  virtual void CloseDevTools() OVERRIDE;
   virtual void SetMouseCursorChangeDisabled(bool disabled) OVERRIDE;
   virtual bool IsMouseCursorChangeDisabled() OVERRIDE;
   virtual bool IsWindowRenderingDisabled() OVERRIDE;
   virtual void WasResized() OVERRIDE;
   virtual void WasHidden(bool hidden) OVERRIDE;
   virtual void NotifyScreenInfoChanged() OVERRIDE;
-  virtual void Invalidate(const CefRect& dirtyRect,
-      PaintElementType type) OVERRIDE;
+  virtual void Invalidate(PaintElementType type) OVERRIDE;
   virtual void SendKeyEvent(const CefKeyEvent& event) OVERRIDE;
   virtual void SendMouseClickEvent(const CefMouseEvent& event,
       MouseButtonType type, bool mouseUp, int clickCount) OVERRIDE;
@@ -79,6 +81,14 @@ class CefBrowserHostCToCpp
       CefEventHandle keyEvent) OVERRIDE;
   virtual void HandleKeyEventAfterTextInputClient(
       CefEventHandle keyEvent) OVERRIDE;
+  virtual void DragTargetDragEnter(CefRefPtr<CefDragData> drag_data,
+      const CefMouseEvent& event, DragOperationsMask allowed_ops) OVERRIDE;
+  virtual void DragTargetDragOver(const CefMouseEvent& event,
+      DragOperationsMask allowed_ops) OVERRIDE;
+  virtual void DragTargetDragLeave() OVERRIDE;
+  virtual void DragTargetDrop(const CefMouseEvent& event) OVERRIDE;
+  virtual void DragSourceEndedAt(int x, int y, DragOperationsMask op) OVERRIDE;
+  virtual void DragSourceSystemDragEnded() OVERRIDE;
 };
 
 #endif  // USING_CEF_SHARED

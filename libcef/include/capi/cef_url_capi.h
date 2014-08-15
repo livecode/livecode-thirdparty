@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -38,11 +38,11 @@
 #define CEF_INCLUDE_CAPI_CEF_URL_CAPI_H_
 #pragma once
 
+#include "include/capi/cef_base_capi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "include/capi/cef_base_capi.h"
 
 
 ///
@@ -59,6 +59,21 @@ CEF_EXPORT int cef_parse_url(const cef_string_t* url,
 ///
 CEF_EXPORT int cef_create_url(const struct _cef_urlparts_t* parts,
     cef_string_t* url);
+
+///
+// Returns the mime type for the specified file extension or an NULL string if
+// unknown.
+///
+// The resulting string must be freed by calling cef_string_userfree_free().
+CEF_EXPORT cef_string_userfree_t cef_get_mime_type(
+    const cef_string_t* extension);
+
+// Get the extensions associated with the given mime type. This should be passed
+// in lower case. There could be multiple extensions for a given mime type, like
+// "html,htm" for "text/html", or "txt,text,html,..." for "text/*". Any existing
+// elements in the provided vector will not be erased.
+CEF_EXPORT void cef_get_extensions_for_mime_type(const cef_string_t* mime_type,
+    cef_string_list_t extensions);
 
 #ifdef __cplusplus
 }

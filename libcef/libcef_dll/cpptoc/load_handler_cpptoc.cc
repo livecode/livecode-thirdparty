@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -84,7 +84,7 @@ void CEF_CALLBACK load_handler_on_load_end(struct _cef_load_handler_t* self,
 }
 
 void CEF_CALLBACK load_handler_on_load_error(struct _cef_load_handler_t* self,
-    cef_browser_t* browser, cef_frame_t* frame, enum cef_errorcode_t errorCode,
+    cef_browser_t* browser, cef_frame_t* frame, cef_errorcode_t errorCode,
     const cef_string_t* errorText, const cef_string_t* failedUrl) {
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
@@ -127,7 +127,7 @@ CefLoadHandlerCppToC::CefLoadHandlerCppToC(CefLoadHandler* cls)
 }
 
 #ifndef NDEBUG
-template<> long CefCppToC<CefLoadHandlerCppToC, CefLoadHandler,
+template<> base::AtomicRefCount CefCppToC<CefLoadHandlerCppToC, CefLoadHandler,
     cef_load_handler_t>::DebugObjCt = 0;
 #endif
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2014 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -38,11 +38,13 @@
 #define CEF_INCLUDE_CAPI_CEF_RENDER_HANDLER_CAPI_H_
 #pragma once
 
+#include "include/capi/cef_base_capi.h"
+#include "include/capi/cef_browser_capi.h"
+#include "include/capi/cef_drag_data_capi.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "include/capi/cef_base_capi.h"
 
 
 ///
@@ -111,7 +113,7 @@ typedef struct _cef_render_handler_t {
   // size and represents a BGRA image with an upper-left origin.
   ///
   void (CEF_CALLBACK *on_paint)(struct _cef_render_handler_t* self,
-      struct _cef_browser_t* browser, enum cef_paint_element_type_t type,
+      struct _cef_browser_t* browser, cef_paint_element_type_t type,
       size_t dirtyRectsCount, cef_rect_t const* dirtyRects, const void* buffer,
       int width, int height);
 
@@ -120,6 +122,31 @@ typedef struct _cef_render_handler_t {
   ///
   void (CEF_CALLBACK *on_cursor_change)(struct _cef_render_handler_t* self,
       struct _cef_browser_t* browser, cef_cursor_handle_t cursor);
+
+  ///
+  // Called when the user starts dragging content in the web view. Contextual
+  // information about the dragged content is supplied by |drag_data|. OS APIs
+  // that run a system message loop may be used within the StartDragging call.
+  //
+  // Return false (0) to abort the drag operation. Don't call any of
+  // cef_browser_host_t::DragSource*Ended* functions after returning false (0).
+  //
+  // Return true (1) to handle the drag operation. Call
+  // cef_browser_host_t::DragSourceEndedAt and DragSourceSystemDragEnded either
+  // synchronously or asynchronously to inform the web view that the drag
+  // operation has ended.
+  ///
+  int (CEF_CALLBACK *start_dragging)(struct _cef_render_handler_t* self,
+      struct _cef_browser_t* browser, struct _cef_drag_data_t* drag_data,
+      cef_drag_operations_mask_t allowed_ops, int x, int y);
+
+  ///
+  // Called when the web view wants to update the mouse cursor during a drag &
+  // drop operation. |operation| describes the allowed operation (none, move,
+  // copy, link).
+  ///
+  void (CEF_CALLBACK *update_drag_cursor)(struct _cef_render_handler_t* self,
+      struct _cef_browser_t* browser, cef_drag_operations_mask_t operation);
 
   ///
   // Called when the scroll offset has changed.

@@ -91,7 +91,10 @@ CUSTOM_INCLUDES=./src \
 		./src/opts \
 		/usr/include/freetype2
 
-CUSTOM_CCFLAGS=-fno-exceptions -fno-rtti -march=i486
+CUSTOM_CCFLAGS=-fno-exceptions -fno-rtti
 
+ifeq ($(ARCH),i386)
+        CUSTOM_CCFLAGS:=$(CUSTOM_CCFLAGS) -march=i486
+endif
 
 include ../../rules/archive.linux.makefile

@@ -98,7 +98,7 @@
 #define HAVE_WCSLEN 1
 
 /* Define to 1 if you have the `wcsncasecmp' function. */
-/* #undef HAVE_WCSNCASECMP */
+#define HAVE_WCSNCASECMP 1
 
 /* Define to 1 if you have the `wcsncpy' function. */
 #define HAVE_WCSNCPY 1

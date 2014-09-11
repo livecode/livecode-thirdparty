@@ -294,7 +294,7 @@
 
 #define DEFAULT_CHARSET_HOME "/usr/local"
 
-/* #define HAVE_OPENSSL 1 */
+#define HAVE_OPENSSL 1
 
 typedef unsigned short	ushort;
 

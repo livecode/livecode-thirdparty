@@ -294,7 +294,7 @@
 
 #define DEFAULT_CHARSET_HOME "/usr/local"
 
-#undef HAVE_OPENSSL
+#define HAVE_OPENSSL
 
 #define HAVE_BROKEN_NETINET_INCLUDES
 #define	TCP_NODELAY             0x01    /* don't delay send to coalesce packets */

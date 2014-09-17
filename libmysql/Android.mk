@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/src \
-	$(LOCAL_PATH)/include
+	$(LOCAL_PATH)/include \
+	$(LOCAL_PATH)/../libopenssl/include
 
 include $(BUILD_STATIC_LIBRARY)

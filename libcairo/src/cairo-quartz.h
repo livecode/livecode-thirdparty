@@ -46,6 +46,8 @@
 #include <CoreGraphics/CoreGraphics.h>
 #endif
 
+#include <CoreText/CoreText.h>
+
 CAIRO_BEGIN_DECLS
 
 cairo_public cairo_surface_t *

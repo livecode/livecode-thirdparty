@@ -73,13 +73,15 @@ enum SkColorType {
 
     kLastEnum_SkColorType = kIndex_8_SkColorType,
 
-#if SK_PMCOLOR_BYTE_ORDER(B,G,R,A)
+// FG-2014-09-26: [[ Bugfix 11968 ]] Disabled this check as it breaks PowerPC yet
+// doesn't seem to accomplish anything useful.
+//#if SK_PMCOLOR_BYTE_ORDER(B,G,R,A)
     kPMColor_SkColorType = kBGRA_8888_SkColorType
-#elif SK_PMCOLOR_BYTE_ORDER(R,G,B,A)
-    kPMColor_SkColorType = kRGBA_8888_SkColorType
-#else
-#error "SK_*32_SHFIT values must correspond to BGRA or RGBA byte order"
-#endif
+//#elif SK_PMCOLOR_BYTE_ORDER(R,G,B,A)
+//    kPMColor_SkColorType = kRGBA_8888_SkColorType
+//#else
+//#error "SK_*32_SHFIT values must correspond to BGRA or RGBA byte order"
+//#endif
 };
 
 static int SkColorTypeBytesPerPixel(SkColorType ct) {

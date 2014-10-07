@@ -44,9 +44,9 @@
 #include <ApplicationServices/ApplicationServices.h>
 #else
 #include <CoreGraphics/CoreGraphics.h>
+#include <Coretext/CoreText.h>
 #endif
 
-#include <CoreText/CoreText.h>
 
 CAIRO_BEGIN_DECLS
 

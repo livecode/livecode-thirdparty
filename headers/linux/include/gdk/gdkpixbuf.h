@@ -106,6 +106,8 @@ GdkPixbuf *gdk_pixbuf_get_from_image    (GdkPixbuf   *dest,
                                          int          width,
                                          int          height);
 
+gint gdk_pixbuf_get_byte_length(GdkPixbuf*);
+
 G_END_DECLS
 
 #endif /* __GDK_PIXBUF_H__ */

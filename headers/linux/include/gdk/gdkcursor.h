@@ -116,7 +116,8 @@ typedef enum
   GDK_WATCH 		  = 150,
   GDK_XTERM 		  = 152,
   GDK_LAST_CURSOR,
-  GDK_CURSOR_IS_PIXMAP 	= -1
+  GDK_CURSOR_IS_PIXMAP 	= -1,
+  GDK_BLANK_CURSOR = -2
 } GdkCursorType;
 
 struct _GdkCursor

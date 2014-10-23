@@ -45,6 +45,8 @@ SK_API bool SkGetFallbackFamilyNameForChar(SkUnichar uni, SkString* name);
  */
 SK_API bool SkGetFallbackFamilyNameForChar(SkUnichar uni, const char* lang, SkString* name);
 
+SK_API SkTypeface *SkCreateFallbackTypefaceForChar(SkUnichar uni, SkTypeface::Style style);
+
 /**
  *  For test only.
  *  Load font config from given xml files, instead of those from Android system.

@@ -98,6 +98,8 @@
 /* Begin PBXProject section */
 		E832B0F818D8AC9700083DF8 /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+			};
 			buildConfigurationList = E832B0FB18D8AC9700083DF8 /* Build configuration list for PBXProject "libcef" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
@@ -133,7 +135,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"$SOLUTION_DIR/prebuilt/bin/Revolution.osx\" \"$SOLUTION_DIR/tools/weak_stub_maker.lc\" < \"$SRCROOT/libcef.stubs\" > \"$SRCROOT/libcefstubs_osx.cpp\"";
+			shellScript = "\"$SOLUTION_DIR/util/weak_stub_maker.pl\" < \"$SRCROOT/libcef.stubs\" > \"$SRCROOT/libcefstubs_osx.cpp\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 

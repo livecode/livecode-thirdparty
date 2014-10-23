@@ -39,7 +39,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="_DEBUG;_LIB"
+				PreprocessorDefinitions="_DEBUG;_LIB;WIN32;HAVE_CONFIG_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				UsePrecompiledHeader="0"
@@ -139,6 +139,94 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\src\pcre16_byte_order.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_chartables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_compile.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_config.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_dfa_exec.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_exec.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_fullinfo.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_get.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_globals.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_jit_compile.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_maketables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_newline.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_ord2utf16.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_refcount.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_string_utils.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_study.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_tables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_ucd.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_utf16_utils.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_valid_utf16.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_version.c"
+				>
+			</File>
+			<File
+				RelativePath=".\src\pcre16_xclass.c"
+				>
+			</File>
 			<File
 				RelativePath=".\src\pcre_byte_order.c"
 				>

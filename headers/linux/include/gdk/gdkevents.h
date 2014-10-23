@@ -146,7 +146,8 @@ typedef enum
   GDK_WINDOW_STATE      = 32,
   GDK_SETTING           = 33,
   GDK_OWNER_CHANGE      = 34,
-  GDK_GRAB_BROKEN       = 35
+  GDK_GRAB_BROKEN       = 35,
+  GDK_DAMAGE		= 36
 } GdkEventType;
 
 /* Event masks. (Used to select what types of events a window
@@ -539,6 +540,8 @@ GdkScreen *gdk_event_get_screen (GdkEvent  *event);
 
 void	  gdk_set_show_events		(gboolean	 show_events);
 gboolean  gdk_get_show_events		(void);
+
+void gdk_event_request_motions(const GdkEventMotion*);
 
 #ifndef GDK_MULTIHEAD_SAFE
 void gdk_add_client_message_filter (GdkAtom       message_type,

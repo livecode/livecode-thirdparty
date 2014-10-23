@@ -175,12 +175,12 @@
 
 /*  Change the ordering to work in X windows.
  */
-#ifdef SK_SAMPLES_FOR_X
+/*#ifdef SK_SAMPLES_FOR_X
         #define SK_R32_SHIFT    16
         #define SK_G32_SHIFT    8
         #define SK_B32_SHIFT    0
         #define SK_A32_SHIFT    24
-#endif
+#endif*/
 
 
 /* Determines whether to build code that supports the GPU backend. Some classes
@@ -203,14 +203,15 @@
 
 // FG-2014-09-26: [[ Bugfix 11968 ]] PowerPC uses the same build order as x86
 // Mac platforms (just with the bytes reversed).
-#if defined(SK_BUILD_FOR_UNIX) || defined(SK_BUILD_FOR_MAC)
+#if defined(SK_BUILD_FOR_MAC)
     // MM-2014-02-05: [[ RefactorGraphics ]] Fiddled with byte order.
     #define SK_R32_SHIFT    16
     #define SK_G32_SHIFT    8
     #define SK_B32_SHIFT    0
     #define SK_A32_SHIFT    24
-#elif defined(SK_BUILD_FOR_IOS)
+#elif defined(SK_BUILD_FOR_IOS) || defined(SK_BUILD_FOR_UNIX)
     // IM-2013-08-21: [[ RefactorGraphics ]] Use GL byte order for iOS
+    // FG-2014-07-17: [[ LinuxGDK ]] Use GDK byte order
     #define SK_R32_SHIFT    0
     #define SK_G32_SHIFT    8
     #define SK_B32_SHIFT    16

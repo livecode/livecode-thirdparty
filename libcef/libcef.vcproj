@@ -154,8 +154,8 @@
 				<Tool
 					Name="VCCustomBuildTool"
 					Description="Generating stubs"
-					CommandLine="&quot;$(SolutionDir)prebuilt\bin\Revolution.exe&quot; &quot;$(SolutionDir)tools\weak_stub_maker.lc&quot; &lt;&quot;$(InputPath)&quot; &gt;&quot;$(InputDir)stubs.cpp&quot;"
-					AdditionalDependencies="$(SolutionDir)tools\weak_stub_maker.lc"
+					CommandLine="&quot;perl&quot; &quot;$(SolutionDir)util\weak_stub_maker.pl&quot; &lt;&quot;$(InputPath)&quot; &gt;&quot;$(InputDir)stubs.cpp&quot;&#x0D;&#x0A;"
+					AdditionalDependencies="$(SolutionDir)util\weak_stub_maker.pl"
 					Outputs="$(InputDir)stubs.cpp"
 				/>
 			</FileConfiguration>
@@ -165,9 +165,9 @@
 				<Tool
 					Name="VCCustomBuildTool"
 					Description="Generating stubs"
-					CommandLine="&quot;$(SolutionDir)prebuilt\bin\Revolution.exe&quot; &quot;$(SolutionDir)tools\weak_stub_maker.lc&quot; &lt;&quot;$(InputPath)&quot; &gt;&quot;$(InputDir)stubs.cpp&quot;"
-					AdditionalDependencies="$(SolutionDir)tools\weak_stub_maker.lc"
-					Outputs="$(InputDir)cefstubs.cpp"
+					CommandLine="&quot;perl&quot; &quot;$(SolutionDir)util\weak_stub_maker.pl&quot; &lt;&quot;$(InputPath)&quot; &gt;&quot;$(InputDir)stubs.cpp&quot;&#x0D;&#x0A;"
+					AdditionalDependencies="$(SolutionDir)util\weak_stub_maker.pl"
+					Outputs="$(InputDir)stubs.cpp"
 				/>
 			</FileConfiguration>
 		</File>

@@ -45,6 +45,7 @@
 #define GDK_Scroll_Lock 0xff14
 #define GDK_Sys_Req 0xff15
 #define GDK_Escape 0xff1b
+#define GDK_KEY_Escape 0xff1b
 #define GDK_Delete 0xffff
 #define GDK_Multi_key 0xff20
 #define GDK_Codeinput 0xff37

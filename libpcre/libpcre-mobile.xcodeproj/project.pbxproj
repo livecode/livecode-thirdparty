@@ -29,6 +29,28 @@
 		4D582E0418056CA0006DE6A2 /* pcre_valid_utf8.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D582DEE18056CA0006DE6A2 /* pcre_valid_utf8.c */; };
 		4D582E0518056CA0006DE6A2 /* pcre_version.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D582DEF18056CA0006DE6A2 /* pcre_version.c */; };
 		4D582E0618056CA0006DE6A2 /* pcre_xclass.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D582DF018056CA0006DE6A2 /* pcre_xclass.c */; };
+		BE8544841886CC8500308B92 /* pcre16_byte_order.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85446E1886CC8500308B92 /* pcre16_byte_order.c */; };
+		BE8544851886CC8500308B92 /* pcre16_chartables.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85446F1886CC8500308B92 /* pcre16_chartables.c */; };
+		BE8544861886CC8500308B92 /* pcre16_compile.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544701886CC8500308B92 /* pcre16_compile.c */; };
+		BE8544871886CC8500308B92 /* pcre16_config.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544711886CC8500308B92 /* pcre16_config.c */; };
+		BE8544881886CC8500308B92 /* pcre16_dfa_exec.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544721886CC8500308B92 /* pcre16_dfa_exec.c */; };
+		BE8544891886CC8500308B92 /* pcre16_exec.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544731886CC8500308B92 /* pcre16_exec.c */; };
+		BE85448A1886CC8500308B92 /* pcre16_fullinfo.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544741886CC8500308B92 /* pcre16_fullinfo.c */; };
+		BE85448B1886CC8500308B92 /* pcre16_get.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544751886CC8500308B92 /* pcre16_get.c */; };
+		BE85448C1886CC8500308B92 /* pcre16_globals.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544761886CC8500308B92 /* pcre16_globals.c */; };
+		BE85448D1886CC8500308B92 /* pcre16_jit_compile.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544771886CC8500308B92 /* pcre16_jit_compile.c */; };
+		BE85448E1886CC8500308B92 /* pcre16_maketables.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544781886CC8500308B92 /* pcre16_maketables.c */; };
+		BE85448F1886CC8500308B92 /* pcre16_newline.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544791886CC8500308B92 /* pcre16_newline.c */; };
+		BE8544901886CC8500308B92 /* pcre16_ord2utf16.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85447A1886CC8500308B92 /* pcre16_ord2utf16.c */; };
+		BE8544911886CC8500308B92 /* pcre16_refcount.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85447B1886CC8500308B92 /* pcre16_refcount.c */; };
+		BE8544921886CC8500308B92 /* pcre16_string_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85447C1886CC8500308B92 /* pcre16_string_utils.c */; };
+		BE8544931886CC8500308B92 /* pcre16_study.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85447D1886CC8500308B92 /* pcre16_study.c */; };
+		BE8544941886CC8500308B92 /* pcre16_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85447E1886CC8500308B92 /* pcre16_tables.c */; };
+		BE8544951886CC8500308B92 /* pcre16_ucd.c in Sources */ = {isa = PBXBuildFile; fileRef = BE85447F1886CC8500308B92 /* pcre16_ucd.c */; };
+		BE8544961886CC8500308B92 /* pcre16_utf16_utils.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544801886CC8500308B92 /* pcre16_utf16_utils.c */; };
+		BE8544971886CC8500308B92 /* pcre16_valid_utf16.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544811886CC8500308B92 /* pcre16_valid_utf16.c */; };
+		BE8544981886CC8500308B92 /* pcre16_version.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544821886CC8500308B92 /* pcre16_version.c */; };
+		BE8544991886CC8500308B92 /* pcre16_xclass.c in Sources */ = {isa = PBXBuildFile; fileRef = BE8544831886CC8500308B92 /* pcre16_xclass.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +85,28 @@
 		4DD3DF461040B04D00CAC7EF /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../../rules/Debug Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4DD3DF4A1040B13E00CAC7EF /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../../rules/Release Mobile.xcconfig"; sourceTree = SOURCE_ROOT; };
 		4DD3E0F91040BCE300CAC7EF /* libpcremobile.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libpcremobile.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE85446E1886CC8500308B92 /* pcre16_byte_order.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_byte_order.c; path = src/pcre16_byte_order.c; sourceTree = "<group>"; };
+		BE85446F1886CC8500308B92 /* pcre16_chartables.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_chartables.c; path = src/pcre16_chartables.c; sourceTree = "<group>"; };
+		BE8544701886CC8500308B92 /* pcre16_compile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_compile.c; path = src/pcre16_compile.c; sourceTree = "<group>"; };
+		BE8544711886CC8500308B92 /* pcre16_config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_config.c; path = src/pcre16_config.c; sourceTree = "<group>"; };
+		BE8544721886CC8500308B92 /* pcre16_dfa_exec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_dfa_exec.c; path = src/pcre16_dfa_exec.c; sourceTree = "<group>"; };
+		BE8544731886CC8500308B92 /* pcre16_exec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_exec.c; path = src/pcre16_exec.c; sourceTree = "<group>"; };
+		BE8544741886CC8500308B92 /* pcre16_fullinfo.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_fullinfo.c; path = src/pcre16_fullinfo.c; sourceTree = "<group>"; };
+		BE8544751886CC8500308B92 /* pcre16_get.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_get.c; path = src/pcre16_get.c; sourceTree = "<group>"; };
+		BE8544761886CC8500308B92 /* pcre16_globals.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_globals.c; path = src/pcre16_globals.c; sourceTree = "<group>"; };
+		BE8544771886CC8500308B92 /* pcre16_jit_compile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_jit_compile.c; path = src/pcre16_jit_compile.c; sourceTree = "<group>"; };
+		BE8544781886CC8500308B92 /* pcre16_maketables.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_maketables.c; path = src/pcre16_maketables.c; sourceTree = "<group>"; };
+		BE8544791886CC8500308B92 /* pcre16_newline.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_newline.c; path = src/pcre16_newline.c; sourceTree = "<group>"; };
+		BE85447A1886CC8500308B92 /* pcre16_ord2utf16.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_ord2utf16.c; path = src/pcre16_ord2utf16.c; sourceTree = "<group>"; };
+		BE85447B1886CC8500308B92 /* pcre16_refcount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_refcount.c; path = src/pcre16_refcount.c; sourceTree = "<group>"; };
+		BE85447C1886CC8500308B92 /* pcre16_string_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_string_utils.c; path = src/pcre16_string_utils.c; sourceTree = "<group>"; };
+		BE85447D1886CC8500308B92 /* pcre16_study.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_study.c; path = src/pcre16_study.c; sourceTree = "<group>"; };
+		BE85447E1886CC8500308B92 /* pcre16_tables.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_tables.c; path = src/pcre16_tables.c; sourceTree = "<group>"; };
+		BE85447F1886CC8500308B92 /* pcre16_ucd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_ucd.c; path = src/pcre16_ucd.c; sourceTree = "<group>"; };
+		BE8544801886CC8500308B92 /* pcre16_utf16_utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_utf16_utils.c; path = src/pcre16_utf16_utils.c; sourceTree = "<group>"; };
+		BE8544811886CC8500308B92 /* pcre16_valid_utf16.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_valid_utf16.c; path = src/pcre16_valid_utf16.c; sourceTree = "<group>"; };
+		BE8544821886CC8500308B92 /* pcre16_version.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_version.c; path = src/pcre16_version.c; sourceTree = "<group>"; };
+		BE8544831886CC8500308B92 /* pcre16_xclass.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = pcre16_xclass.c; path = src/pcre16_xclass.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +150,28 @@
 		4DD3DDAC1040ABB000CAC7EF /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				BE85446E1886CC8500308B92 /* pcre16_byte_order.c */,
+				BE85446F1886CC8500308B92 /* pcre16_chartables.c */,
+				BE8544701886CC8500308B92 /* pcre16_compile.c */,
+				BE8544711886CC8500308B92 /* pcre16_config.c */,
+				BE8544721886CC8500308B92 /* pcre16_dfa_exec.c */,
+				BE8544731886CC8500308B92 /* pcre16_exec.c */,
+				BE8544741886CC8500308B92 /* pcre16_fullinfo.c */,
+				BE8544751886CC8500308B92 /* pcre16_get.c */,
+				BE8544761886CC8500308B92 /* pcre16_globals.c */,
+				BE8544771886CC8500308B92 /* pcre16_jit_compile.c */,
+				BE8544781886CC8500308B92 /* pcre16_maketables.c */,
+				BE8544791886CC8500308B92 /* pcre16_newline.c */,
+				BE85447A1886CC8500308B92 /* pcre16_ord2utf16.c */,
+				BE85447B1886CC8500308B92 /* pcre16_refcount.c */,
+				BE85447C1886CC8500308B92 /* pcre16_string_utils.c */,
+				BE85447D1886CC8500308B92 /* pcre16_study.c */,
+				BE85447E1886CC8500308B92 /* pcre16_tables.c */,
+				BE85447F1886CC8500308B92 /* pcre16_ucd.c */,
+				BE8544801886CC8500308B92 /* pcre16_utf16_utils.c */,
+				BE8544811886CC8500308B92 /* pcre16_valid_utf16.c */,
+				BE8544821886CC8500308B92 /* pcre16_version.c */,
+				BE8544831886CC8500308B92 /* pcre16_xclass.c */,
 				4D582E0718056CAC006DE6A2 /* config.h */,
 				4D582E0818056CAC006DE6A2 /* pcre_internal.h */,
 				4D582E0918056CAC006DE6A2 /* ucp.h */,
@@ -227,6 +293,28 @@
 				4D582E0418056CA0006DE6A2 /* pcre_valid_utf8.c in Sources */,
 				4D582E0518056CA0006DE6A2 /* pcre_version.c in Sources */,
 				4D582E0618056CA0006DE6A2 /* pcre_xclass.c in Sources */,
+				BE8544841886CC8500308B92 /* pcre16_byte_order.c in Sources */,
+				BE8544851886CC8500308B92 /* pcre16_chartables.c in Sources */,
+				BE8544861886CC8500308B92 /* pcre16_compile.c in Sources */,
+				BE8544871886CC8500308B92 /* pcre16_config.c in Sources */,
+				BE8544881886CC8500308B92 /* pcre16_dfa_exec.c in Sources */,
+				BE8544891886CC8500308B92 /* pcre16_exec.c in Sources */,
+				BE85448A1886CC8500308B92 /* pcre16_fullinfo.c in Sources */,
+				BE85448B1886CC8500308B92 /* pcre16_get.c in Sources */,
+				BE85448C1886CC8500308B92 /* pcre16_globals.c in Sources */,
+				BE85448D1886CC8500308B92 /* pcre16_jit_compile.c in Sources */,
+				BE85448E1886CC8500308B92 /* pcre16_maketables.c in Sources */,
+				BE85448F1886CC8500308B92 /* pcre16_newline.c in Sources */,
+				BE8544901886CC8500308B92 /* pcre16_ord2utf16.c in Sources */,
+				BE8544911886CC8500308B92 /* pcre16_refcount.c in Sources */,
+				BE8544921886CC8500308B92 /* pcre16_string_utils.c in Sources */,
+				BE8544931886CC8500308B92 /* pcre16_study.c in Sources */,
+				BE8544941886CC8500308B92 /* pcre16_tables.c in Sources */,
+				BE8544951886CC8500308B92 /* pcre16_ucd.c in Sources */,
+				BE8544961886CC8500308B92 /* pcre16_utf16_utils.c in Sources */,
+				BE8544971886CC8500308B92 /* pcre16_valid_utf16.c in Sources */,
+				BE8544981886CC8500308B92 /* pcre16_version.c in Sources */,
+				BE8544991886CC8500308B92 /* pcre16_xclass.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,6 +325,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DD3DF4A1040B13E00CAC7EF /* Release Mobile.xcconfig */;
 			buildSettings = {
+				GLOBAL_GCC_PREPROCESSOR_DEFINITIONS = "_MOBILE TARGET_PLATFORM_MOBILE TARGET_SUBPLATFORM_IPHONE HAVE_CONFIG_H";
 				OWNER = ..;
 			};
 			name = Release;
@@ -252,6 +341,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DD3DF4A1040B13E00CAC7EF /* Release Mobile.xcconfig */;
 			buildSettings = {
+				GLOBAL_GCC_PREPROCESSOR_DEFINITIONS = "_MOBILE TARGET_PLATFORM_MOBILE TARGET_SUBPLATFORM_IPHONE HAVE_CONFIG_H";
 				OWNER = ..;
 			};
 			name = ReleaseDeviceForShark;
@@ -267,6 +357,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4DD3DF461040B04D00CAC7EF /* Debug Mobile.xcconfig */;
 			buildSettings = {
+				GLOBAL_GCC_PREPROCESSOR_DEFINITIONS = "_MOBILE TARGET_PLATFORM_MOBILE TARGET_SUBPLATFORM_IPHONE HAVE_CONFIG_H";
 				OWNER = ..;
 			};
 			name = Debug;

@@ -115,6 +115,13 @@ GList* gdk_list_visuals (void);
 
 GdkScreen *gdk_visual_get_screen (GdkVisual *visual);
 
+GdkVisualType gdk_visual_get_visual_type(GdkVisual*);
+void gdk_visual_get_red_pixel_details(GdkVisual*, guint32*, gint*, gint*);
+void gdk_visual_get_blue_pixel_details(GdkVisual*, guint32*, gint*, gint*);
+void gdk_visual_get_green_pixel_details(GdkVisual*, guint32*, gint*, gint*);
+gint gdk_visual_get_colormap_size(GdkVisual*);
+gint gdk_visual_get_depth(GdkVisual*);
+
 #ifndef GDK_DISABLE_DEPRECATED
 #define gdk_visual_ref(v) g_object_ref(v)
 #define gdk_visual_unref(v) g_object_unref(v)

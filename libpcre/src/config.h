@@ -312,8 +312,9 @@ sure both macros are undefined; an emulation function will then be used. */
    able to handle .gz files. */
 /* #undef SUPPORT_LIBZ */
 
+// SN-2014-01-14: [[ libpcre update ]] now handles unicode-encoded input
 /* Define to any value to enable the 16 bit PCRE library. */
-/* #undef SUPPORT_PCRE16 */
+#define SUPPORT_PCRE16 1
 
 /* Define to any value to enable the 32 bit PCRE library. */
 /* #undef SUPPORT_PCRE32 */

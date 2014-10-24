@@ -161,6 +161,10 @@ void            gdk_drag_abort       (GdkDragContext *context,
 				      guint32         time_);
 gboolean        gdk_drag_drop_succeeded (GdkDragContext *context);
 
+GdkWindow* gdk_drag_context_get_source_window(GdkDragContext*);
+GList* gdk_drag_context_list_targets(GdkDragContext*);
+GdkDragAction gdk_drag_context_get_selected_action(GdkDragContext*);
+
 G_END_DECLS
 
 #endif /* __GDK_DND_H__ */

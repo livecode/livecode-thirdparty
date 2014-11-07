@@ -448,6 +448,10 @@ bool SkBitmapProcState::chooseProcs(const SkMatrix& inv, const SkPaint& paint) {
     // changed it!
 
     trivialMatrix = (fInvMatrix.getType() & ~SkMatrix::kTranslate_Mask) == 0;
+	
+	// IM-2014-10-31: [[ Bug 13882 ]] Force no filtering for trivial matrices to prevent rendering errors and assert failures.
+	if (trivialMatrix && fFilterLevel != SkPaint::kNone_FilterLevel)
+		fFilterLevel = SkPaint::kNone_FilterLevel;
 
     if (SkPaint::kHigh_FilterLevel == fFilterLevel) {
         // If this is still set, that means we wanted HQ sampling

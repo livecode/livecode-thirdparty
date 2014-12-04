@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		4D44E4A91A233B6F0073FFA2 /* closures.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D44E4A21A233B6F0073FFA2 /* closures.c */; };
 		4D44E4AA1A233B6F0073FFA2 /* debug.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D44E4A31A233B6F0073FFA2 /* debug.c */; };
-		4D44E4AB1A233B6F0073FFA2 /* dlmalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D44E4A41A233B6F0073FFA2 /* dlmalloc.c */; };
 		4D44E4AC1A233B6F0073FFA2 /* java_raw_api.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D44E4A51A233B6F0073FFA2 /* java_raw_api.c */; };
 		4D44E4AD1A233B6F0073FFA2 /* prep_cif.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D44E4A61A233B6F0073FFA2 /* prep_cif.c */; };
 		4D44E4AE1A233B6F0073FFA2 /* raw_api.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D44E4A71A233B6F0073FFA2 /* raw_api.c */; };
@@ -23,7 +22,6 @@
 /* Begin PBXFileReference section */
 		4D44E4A21A233B6F0073FFA2 /* closures.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = closures.c; path = darwin/src/closures.c; sourceTree = "<group>"; };
 		4D44E4A31A233B6F0073FFA2 /* debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = debug.c; path = darwin/src/debug.c; sourceTree = "<group>"; };
-		4D44E4A41A233B6F0073FFA2 /* dlmalloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dlmalloc.c; path = darwin/src/dlmalloc.c; sourceTree = "<group>"; };
 		4D44E4A51A233B6F0073FFA2 /* java_raw_api.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = java_raw_api.c; path = darwin/src/java_raw_api.c; sourceTree = "<group>"; };
 		4D44E4A61A233B6F0073FFA2 /* prep_cif.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = prep_cif.c; path = darwin/src/prep_cif.c; sourceTree = "<group>"; };
 		4D44E4A71A233B6F0073FFA2 /* raw_api.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_api.c; path = darwin/src/raw_api.c; sourceTree = "<group>"; };
@@ -73,7 +71,6 @@
 			children = (
 				4D44E4A21A233B6F0073FFA2 /* closures.c */,
 				4D44E4A31A233B6F0073FFA2 /* debug.c */,
-				4D44E4A41A233B6F0073FFA2 /* dlmalloc.c */,
 				4D44E4A51A233B6F0073FFA2 /* java_raw_api.c */,
 				4D44E4A61A233B6F0073FFA2 /* prep_cif.c */,
 				4D44E4A71A233B6F0073FFA2 /* raw_api.c */,
@@ -184,7 +181,6 @@
 				4D44E4B71A233C020073FFA2 /* win32_i386.S in Sources */,
 				4D44E4B41A233C020073FFA2 /* darwin_i386.S in Sources */,
 				4D44E4AD1A233B6F0073FFA2 /* prep_cif.c in Sources */,
-				4D44E4AB1A233B6F0073FFA2 /* dlmalloc.c in Sources */,
 				4D44E4AC1A233B6F0073FFA2 /* java_raw_api.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -19,9 +19,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
+			InheritedPropertySheets="$(SolutionDir)rules/Debug.vsprops;$(SolutionDir)rules/Global.vsprops"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -75,9 +74,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="4"
+			InheritedPropertySheets="$(SolutionDir)rules\Global.vsprops;$(SolutionDir)rules\Release.vsprops"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -171,13 +169,6 @@
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
-					>
-					<Tool
-						Name="MASM"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
 					>
 					<Tool
 						Name="MASM"

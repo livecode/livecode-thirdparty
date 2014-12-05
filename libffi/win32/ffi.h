@@ -174,8 +174,9 @@ typedef struct _ffi_type
 /* of the library, but don't worry about that.  Besides,  */
 /* as a workaround, they can define FFI_BUILDING if they  */
 /* *know* they are going to link with the static library. */
+#define FFI_BUILDING
 #if defined _MSC_VER && !defined FFI_BUILDING
-#define FFI_EXTERN extern __declspec(dllimport)
+#define FFI_EXTERN extern __declspec(dllexport)
 #else
 #define FFI_EXTERN extern
 #endif

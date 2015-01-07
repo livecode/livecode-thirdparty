@@ -1,6 +1,10 @@
 #ifndef sk_stdint_DEFINED
 #define sk_stdint_DEFINED
 
+#ifndef WIN32
+#include <stdint.h>
+#else
+
 typedef signed char int8_t;
 typedef unsigned char   uint8_t;
 typedef short  int16_t;
@@ -37,6 +41,7 @@ typedef uint64_t  uintmax_t;
     #else
         typedef int32_t intptr_t;
     #endif
+#endif
 #endif
 
 #endif

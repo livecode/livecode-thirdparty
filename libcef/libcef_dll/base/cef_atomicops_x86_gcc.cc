@@ -5,6 +5,9 @@
 // This module gets enough CPU information to optimize the
 // atomicops module on x86.
 
+#include <stdint.h>
+#include <string.h>
+
 #include "include/base/cef_atomicops.h"
 
 // This file only makes sense with atomicops_internals_x86_gcc.h -- it
@@ -12,9 +15,6 @@
 // doesn't sub-include that file, then we aren't needed, and shouldn't
 // try to do anything.
 #ifdef CEF_INCLUDE_BASE_INTERNAL_CEF_ATOMICOPS_X86_GCC_H_
-
-#include <stdint.h>
-#include <string.h>
 
 // Inline cpuid instruction.  In PIC compilations, %ebx contains the address
 // of the global offset table.  To avoid breaking such executables, this code

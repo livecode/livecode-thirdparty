@@ -65,6 +65,8 @@
 # define TRIO_PLATFORM_UNIX
 #elif defined(AMIGA) && defined(TRIO_COMPILER_GCC)
 # define TRIO_PLATFORM_UNIX
+#elif defined(__APPLE__)
+# define TRIO_PLATFORM_UNIX
 #elif defined(TRIO_COMPILER_MSVC) || defined(WIN32) || defined(_WIN32)
 # define TRIO_PLATFORM_WIN32
 #elif defined(mpeix) || defined(__mpexl)

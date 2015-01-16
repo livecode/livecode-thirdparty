@@ -39,9 +39,6 @@
 
 /* Begin PBXFileReference section */
 		720165461A4208A0002B53F9 /* libffi.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libffi.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		720165AE1A420D29002B53F9 /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../../rules/Debug Mobile.xcconfig"; sourceTree = "<group>"; };
-		720165AF1A420D29002B53F9 /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../../rules/Release Mobile.xcconfig"; sourceTree = "<group>"; };
-		720165B01A420D29002B53F9 /* Global Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Global Mobile.xcconfig"; path = "../../rules/Global Mobile.xcconfig"; sourceTree = "<group>"; };
 		720165B11A420D4D002B53F9 /* closures.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = closures.c; path = darwin/src/closures.c; sourceTree = "<group>"; };
 		720165B21A420D4D002B53F9 /* debug.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = debug.c; path = darwin/src/debug.c; sourceTree = "<group>"; };
 		720165B31A420D4D002B53F9 /* java_raw_api.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = java_raw_api.c; path = darwin/src/java_raw_api.c; sourceTree = "<group>"; };
@@ -74,6 +71,9 @@
 		720165DE1A420D80002B53F9 /* ffitarget_i386.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffitarget_i386.h; path = darwin/include/ffitarget_i386.h; sourceTree = "<group>"; };
 		720165DF1A420D80002B53F9 /* ffitarget_x86_64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffitarget_x86_64.h; path = darwin/include/ffitarget_x86_64.h; sourceTree = "<group>"; };
 		720165E01A420D80002B53F9 /* ffitarget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffitarget.h; path = darwin/include/ffitarget.h; sourceTree = "<group>"; };
+		724459FA1A6954FC00D22C2C /* Debug Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug Mobile.xcconfig"; path = "../livecode-8/rules/Debug Mobile.xcconfig"; sourceTree = "<group>"; };
+		724459FB1A6954FC00D22C2C /* Global Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Global Mobile.xcconfig"; path = "../livecode-8/rules/Global Mobile.xcconfig"; sourceTree = "<group>"; };
+		724459FC1A6954FC00D22C2C /* Release Mobile.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release Mobile.xcconfig"; path = "../livecode-8/rules/Release Mobile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,9 +108,9 @@
 		720165611A42095D002B53F9 /* Configurations */ = {
 			isa = PBXGroup;
 			children = (
-				720165AE1A420D29002B53F9 /* Debug Mobile.xcconfig */,
-				720165AF1A420D29002B53F9 /* Release Mobile.xcconfig */,
-				720165B01A420D29002B53F9 /* Global Mobile.xcconfig */,
+				724459FA1A6954FC00D22C2C /* Debug Mobile.xcconfig */,
+				724459FB1A6954FC00D22C2C /* Global Mobile.xcconfig */,
+				724459FC1A6954FC00D22C2C /* Release Mobile.xcconfig */,
 			);
 			name = Configurations;
 			path = ../../../libfoundation;
@@ -265,19 +265,11 @@
 /* Begin XCBuildConfiguration section */
 		7201653D1A42086A002B53F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 720165AE1A420D29002B53F9 /* Debug Mobile.xcconfig */;
+			baseConfigurationReference = 724459FA1A6954FC00D22C2C /* Debug Mobile.xcconfig */;
 			buildSettings = {
 				OWNER = ..;
 			};
 			name = Debug;
-		};
-		7201653E1A42086A002B53F9 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 720165AF1A420D29002B53F9 /* Release Mobile.xcconfig */;
-			buildSettings = {
-				OWNER = ..;
-			};
-			name = Release;
 		};
 		720165591A4208A0002B53F9 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -345,7 +337,15 @@
 			};
 			name = Debug;
 		};
-		7201655A1A4208A0002B53F9 /* Release */ = {
+		724459F81A6954B400D22C2C /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 724459FC1A6954FC00D22C2C /* Release Mobile.xcconfig */;
+			buildSettings = {
+				OWNER = ..;
+			};
+			name = Release;
+		};
+		724459F91A6954B400D22C2C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
@@ -362,10 +362,16 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = YES;
-				ENABLE_NS_ASSERTIONS = NO;
+				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
@@ -398,11 +404,10 @@
 					"$(SOLUTION_DIR)/thirdparty/libffi/darwin/include",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 8.1;
-				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_ENABLE_DEBUG_INFO = YES;
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = ffi;
 				SKIP_INSTALL = YES;
-				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -413,19 +418,19 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7201653D1A42086A002B53F9 /* Debug */,
-				7201653E1A42086A002B53F9 /* Release */,
+				724459F81A6954B400D22C2C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		720165581A4208A0002B53F9 /* Build configuration list for PBXNativeTarget "libffi" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				720165591A4208A0002B53F9 /* Debug */,
-				7201655A1A4208A0002B53F9 /* Release */,
+				724459F91A6954B400D22C2C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

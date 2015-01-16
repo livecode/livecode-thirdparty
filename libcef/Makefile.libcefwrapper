@@ -26,7 +26,6 @@ SRC_CPPTOC=\
 	cookie_visitor_cpptoc.cc \
 	dialog_handler_cpptoc.cc \
 	display_handler_cpptoc.cc \
-	domevent_listener_cpptoc.cc \
 	domvisitor_cpptoc.cc \
 	download_handler_cpptoc.cc \
 	drag_handler_cpptoc.cc \
@@ -38,6 +37,7 @@ SRC_CPPTOC=\
 	keyboard_handler_cpptoc.cc \
 	life_span_handler_cpptoc.cc \
 	load_handler_cpptoc.cc \
+	navigation_entry_visitor_cpptoc.cc \
 	print_handler_cpptoc.cc \
 	read_handler_cpptoc.cc \
 	render_handler_cpptoc.cc \
@@ -70,7 +70,6 @@ SRC_CTOCPP=\
 	cookie_manager_ctocpp.cc \
 	dictionary_value_ctocpp.cc \
 	domdocument_ctocpp.cc \
-	domevent_ctocpp.cc \
 	domnode_ctocpp.cc \
 	download_item_callback_ctocpp.cc \
 	download_item_ctocpp.cc \
@@ -81,6 +80,7 @@ SRC_CTOCPP=\
 	jsdialog_callback_ctocpp.cc \
 	list_value_ctocpp.cc \
 	menu_model_ctocpp.cc \
+	navigation_entry_ctocpp.cc \
 	post_data_ctocpp.cc \
 	post_data_element_ctocpp.cc \
 	print_dialog_callback_ctocpp.cc \

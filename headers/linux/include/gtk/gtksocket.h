@@ -92,6 +92,8 @@ void           gtk_socket_steal    (GtkSocket      *socket_,
 				    GdkNativeWindow wid);
 #endif /* GTK_DISABLE_DEPRECATED */
 
+GdkWindow* gtk_socket_get_plug_window(GtkSocket*);
+
 G_END_DECLS
 
 #endif /* __GTK_SOCKET_H__ */

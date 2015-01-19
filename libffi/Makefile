@@ -5,12 +5,13 @@ include ../../rules/environment.linux.makefile
 
 # TODO: support for non-x86 architectures
 
-SOURCES=closures.c debug.c java_raw_api.c prep_cif.c raw_api.c types.c \
-	x86/ffi.c x86/ffi64.c x86/sysv.S x86/win32.S
-
-CUSTOM_DEFINES=
-CUSTOM_INCLUDES=./src ./linux/i686-pc-linux-gnu
-CUSTOM_CCFLAGS=
+ifeq ($(ARCH),i386)
+  include linux/i686-pc-linux-gnu/Makefile
+else ifeq ($(ARCH),x86_64)
+  include linux/x86_64-unknown-linux-gnu/Makefile
+else
+  error "Unknown architecture for libffi"
+endif
 
 include ../../rules/archive.linux.makefile
 

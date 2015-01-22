@@ -1,0 +1,223 @@
+NAME=libcefwrapper
+TYPE=archive
+
+include ../../rules/environment.linux.makefile
+
+SRC_BASE=\
+	cef_atomicops_x86_gcc.cc \
+	cef_bind_helpers.cc \
+	cef_callback_helpers.cc \
+	cef_callback_internal.cc \
+	cef_lock.cc \
+	cef_lock_impl.cc \
+	cef_logging.cc \
+	cef_ref_counted.cc \
+	cef_string16.cc \
+	cef_thread_checker_impl.cc \
+	cef_thread_collision_warner.cc \
+	cef_weak_ptr.cc
+
+SRC_CPPTOC=\
+	app_cpptoc.cc \
+	browser_process_handler_cpptoc.cc \
+	client_cpptoc.cc \
+	completion_callback_cpptoc.cc \
+	context_menu_handler_cpptoc.cc \
+	cookie_visitor_cpptoc.cc \
+	dialog_handler_cpptoc.cc \
+	display_handler_cpptoc.cc \
+	domvisitor_cpptoc.cc \
+	download_handler_cpptoc.cc \
+	drag_handler_cpptoc.cc \
+	end_tracing_callback_cpptoc.cc \
+	focus_handler_cpptoc.cc \
+	geolocation_handler_cpptoc.cc \
+	get_geolocation_callback_cpptoc.cc \
+	jsdialog_handler_cpptoc.cc \
+	keyboard_handler_cpptoc.cc \
+	life_span_handler_cpptoc.cc \
+	load_handler_cpptoc.cc \
+	navigation_entry_visitor_cpptoc.cc \
+	print_handler_cpptoc.cc \
+	read_handler_cpptoc.cc \
+	render_handler_cpptoc.cc \
+	render_process_handler_cpptoc.cc \
+	request_context_handler_cpptoc.cc \
+	request_handler_cpptoc.cc \
+	resource_bundle_handler_cpptoc.cc \
+	resource_handler_cpptoc.cc \
+	run_file_dialog_callback_cpptoc.cc \
+	scheme_handler_factory_cpptoc.cc \
+	string_visitor_cpptoc.cc \
+	task_cpptoc.cc \
+	urlrequest_client_cpptoc.cc \
+	v8accessor_cpptoc.cc \
+	v8handler_cpptoc.cc \
+	web_plugin_info_visitor_cpptoc.cc \
+	web_plugin_unstable_callback_cpptoc.cc \
+	write_handler_cpptoc.cc \
+
+SRC_CTOCPP=\
+	allow_certificate_error_callback_ctocpp.cc \
+	auth_callback_ctocpp.cc \
+	before_download_callback_ctocpp.cc \
+	binary_value_ctocpp.cc \
+	browser_ctocpp.cc \
+	browser_host_ctocpp.cc \
+	callback_ctocpp.cc \
+	command_line_ctocpp.cc \
+	context_menu_params_ctocpp.cc \
+	cookie_manager_ctocpp.cc \
+	dictionary_value_ctocpp.cc \
+	domdocument_ctocpp.cc \
+	domnode_ctocpp.cc \
+	download_item_callback_ctocpp.cc \
+	download_item_ctocpp.cc \
+	drag_data_ctocpp.cc \
+	file_dialog_callback_ctocpp.cc \
+	frame_ctocpp.cc \
+	geolocation_callback_ctocpp.cc \
+	jsdialog_callback_ctocpp.cc \
+	list_value_ctocpp.cc \
+	menu_model_ctocpp.cc \
+	navigation_entry_ctocpp.cc \
+	post_data_ctocpp.cc \
+	post_data_element_ctocpp.cc \
+	print_dialog_callback_ctocpp.cc \
+	print_job_callback_ctocpp.cc \
+	print_settings_ctocpp.cc \
+	process_message_ctocpp.cc \
+	quota_callback_ctocpp.cc \
+	request_context_ctocpp.cc \
+	request_ctocpp.cc \
+	response_ctocpp.cc \
+	scheme_registrar_ctocpp.cc \
+	stream_reader_ctocpp.cc \
+	stream_writer_ctocpp.cc \
+	task_runner_ctocpp.cc \
+	urlrequest_ctocpp.cc \
+	v8context_ctocpp.cc \
+	v8exception_ctocpp.cc \
+	v8stack_frame_ctocpp.cc \
+	v8stack_trace_ctocpp.cc \
+	v8value_ctocpp.cc \
+	web_plugin_info_ctocpp.cc \
+	xml_reader_ctocpp.cc \
+	zip_reader_ctocpp.cc
+
+SRC_WRAPPER=\
+	cef_byte_read_handler.cc \
+	cef_closure_task.cc \
+	cef_message_router.cc \
+	cef_stream_resource_handler.cc \
+	cef_xml_object.cc \
+	cef_zip_archive.cc \
+	libcef_dll_wrapper2.cc \
+	libcef_dll_wrapper.cc
+
+SOURCES=\
+	$(addprefix ctocpp/,$(SRC_CTOCPP)) \
+	$(addprefix cpptoc/,$(SRC_CPPTOC)) \
+	$(addprefix base/,$(SRC_BASE)) \
+	$(addprefix wrapper/,$(SRC_WRAPPER)) \
+	transfer_util.cpp
+
+SOURCE_DIR=libcef_dll
+
+
+
+DEFS_All := \
+	'V8_DEPRECATION_WARNINGS' \
+	'BLINK_SCALE_FILTERS_AT_RECORD_TIME' \
+	'_FILE_OFFSET_BITS=64' \
+	'CHROMIUM_BUILD' \
+	'TOOLKIT_VIEWS=1' \
+	'UI_COMPOSITOR_IMAGE_TRANSPORT' \
+	'USE_AURA=1' \
+	'USE_ASH=1' \
+	'USE_CAIRO=1' \
+	'USE_GLIB=1' \
+	'USE_DEFAULT_RENDER_THEME=1' \
+	'USE_LIBJPEG_TURBO=1' \
+	'USE_X11=1' \
+	'USE_CLIPBOARD_AURAX11=1' \
+	'ENABLE_ONE_CLICK_SIGNIN' \
+	'ENABLE_PRE_SYNC_BACKUP' \
+	'USE_XI2_MT=2' \
+	'ENABLE_REMOTING=1' \
+	'ENABLE_WEBRTC=1' \
+	'ENABLE_PEPPER_CDMS' \
+	'ENABLE_CONFIGURATION_POLICY' \
+	'ENABLE_NOTIFICATIONS' \
+	'USE_UDEV' \
+	'ENABLE_EGLIMAGE=1' \
+	'ENABLE_TASK_MANAGER=1' \
+	'ENABLE_EXTENSIONS=1' \
+	'ENABLE_PLUGINS=1' \
+	'ENABLE_SESSION_SERVICE=1' \
+	'ENABLE_THEMES=1' \
+	'ENABLE_AUTOFILL_DIALOG=1' \
+	'ENABLE_BACKGROUND=1' \
+	'ENABLE_GOOGLE_NOW=1' \
+	'CLD_VERSION=2' \
+	'ENABLE_FULL_PRINTING=1' \
+	'ENABLE_PRINTING=1' \
+	'ENABLE_SPELLCHECK=1' \
+	'ENABLE_CAPTIVE_PORTAL_DETECTION=1' \
+	'ENABLE_APP_LIST=1' \
+	'ENABLE_SETTINGS_APP=1' \
+	'ENABLE_MANAGED_USERS=1' \
+	'ENABLE_MDNS=1' \
+	'ENABLE_SERVICE_DISCOVERY=1' \
+	'USING_CEF_SHARED' \
+	'USE_NSS=1' \
+	'__STDC_CONSTANT_MACROS' \
+	'__STDC_FORMAT_MACROS'
+
+DEFS_Debug := \
+	'DYNAMIC_ANNOTATIONS_ENABLED=1' \
+	'WTF_USE_DYNAMIC_ANNOTATIONS=1' \
+	'_GLIBCXX_DEBUG=1'
+
+DEFS_Release := \
+	'NVALGRIND' \
+	'DYNAMIC_ANNOTATIONS_ENABLED=0' \
+	'_FORTIFY_SOURCE=2'
+
+
+# Flags passed to all source files.
+CFLAGS_Release= \
+	-fno-ident \
+	-fdata-sections \
+	-ffunction-sections \
+
+
+
+
+CUSTOM_DEFINES=$(DEFS_All)
+
+CUSTOM_INCLUDES=./
+
+CUSTOM_CCFLAGS= \
+	-fno-rtti \
+	-fno-threadsafe-statics \
+	-fvisibility-inlines-hidden \
+	-Wsign-compare \
+	-fstack-protector \
+	--param=ssp-buffer-size=4 \
+	-Werror \
+	-pthread \
+	-fno-exceptions \
+	-fno-strict-aliasing \
+	-Wall \
+	-Wno-unused-parameter \
+	-Wno-missing-field-initializers \
+	-fvisibility=hidden \
+	-pipe \
+	-fPIC \
+	-funwind-tables
+
+
+CUSTOM_LIBS=cef
+
+include ../../rules/archive.linux.makefile

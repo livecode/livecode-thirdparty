@@ -816,10 +816,6 @@
 				Name="base"
 				>
 				<File
-					RelativePath="libcef_dll\base\cef_atomicops_x86_gcc.cc"
-					>
-				</File>
-				<File
 					RelativePath="libcef_dll\base\cef_bind_helpers.cc"
 					>
 				</File>
@@ -972,14 +968,6 @@
 					>
 				</File>
 				<File
-					RelativePath="libcef_dll\ctocpp\domevent_ctocpp.cc"
-					>
-				</File>
-				<File
-					RelativePath="libcef_dll\ctocpp\domevent_ctocpp.h"
-					>
-				</File>
-				<File
 					RelativePath="libcef_dll\ctocpp\domnode_ctocpp.cc"
 					>
 				</File>
@@ -1057,6 +1045,14 @@
 				</File>
 				<File
 					RelativePath="libcef_dll\ctocpp\menu_model_ctocpp.h"
+					>
+				</File>
+				<File
+					RelativePath=".\libcef_dll\ctocpp\navigation_entry_ctocpp.cc"
+					>
+				</File>
+				<File
+					RelativePath=".\libcef_dll\ctocpp\navigation_entry_ctocpp.h"
 					>
 				</File>
 				<File
@@ -1360,14 +1356,6 @@
 					>
 				</File>
 				<File
-					RelativePath="libcef_dll\cpptoc\domevent_listener_cpptoc.cc"
-					>
-				</File>
-				<File
-					RelativePath="libcef_dll\cpptoc\domevent_listener_cpptoc.h"
-					>
-				</File>
-				<File
 					RelativePath="libcef_dll\cpptoc\domvisitor_cpptoc.cc"
 					>
 				</File>
@@ -1453,6 +1441,14 @@
 				</File>
 				<File
 					RelativePath="libcef_dll\cpptoc\load_handler_cpptoc.h"
+					>
+				</File>
+				<File
+					RelativePath=".\libcef_dll\cpptoc\navigation_entry_visitor_cpptoc.cc"
+					>
+				</File>
+				<File
+					RelativePath=".\libcef_dll\cpptoc\navigation_entry_visitor_cpptoc.h"
 					>
 				</File>
 				<File

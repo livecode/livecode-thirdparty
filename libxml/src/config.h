@@ -14,6 +14,11 @@
 #include "win32config.h"
 #else
 
+// SN-2015-02-10: [[ Feature iOS64 ]] libXML was not compiling
+//  on 64-bit mode with this header missing (read() and write()
+//  not declared).
+#include <unistd.h>
+
 /* Define if IPV6 support is there */
 #undef SUPPORT_IP6
 

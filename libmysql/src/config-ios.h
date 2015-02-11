@@ -298,10 +298,3 @@
 
 #define HAVE_BROKEN_NETINET_INCLUDES
 #define	TCP_NODELAY             0x01    /* don't delay send to coalesce packets */
-
-// SN-2015-02-11: [[ iOS 64-bit ]] Set the config so be 64-bit
-//  when compiling for arm64
-#ifdef __aarch64__
-#   define __x86_64__
-#endif
-

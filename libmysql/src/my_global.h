@@ -129,7 +129,8 @@
 #  if defined(__i386__) || defined(__ppc__) || defined(__arm__)
 #    define SIZEOF_CHARP 4
 #    define SIZEOF_LONG 4
-#  elif defined(__x86_64__) || defined(__ppc64__)
+// SN-2015-02-11: [[ ARM64 ]] ARM64 is defined by __aarch64__
+#  elif defined(__x86_64__) || defined(__ppc64__) || defined(__aarch64__)
 #    define SIZEOF_CHARP 8
 #    define SIZEOF_LONG 8
 #  else

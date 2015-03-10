@@ -189,7 +189,9 @@ zip_open(const char *fn, int flags, int *zep)
     else if ((flags & ZIP_EXCL)) {
 	set_error(zep, NULL, ZIP_ER_EXISTS);
 	// SN-2015-03-10: [[ Bug 14413 ]] Free the WCHAR* filename
+#ifdef _WINDOWS
 	free(t_utf16_fn);
+#endif
 	return NULL;
     }
     /* ZIP_CREATE gets ignored if file exists and not ZIP_EXCL,

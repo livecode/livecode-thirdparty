@@ -42,6 +42,11 @@
 
 #ifndef _WINDOWS
 #include <unistd.h>
+#else
+// SN-2015-03-10: [[ Bug 14413 ]] We need few types (WCHAR)
+// and function from the Windows API
+#include <windows.h>
+#include <WinNT.h>
 #endif
 
 #include <sys/types.h>
@@ -71,18 +76,83 @@ zip_open(const char *fn, int flags, int *zep)
     struct zip *za;
     struct zip_cdir *cdir, *cdirnew;
     long len;
+	// SN-2015-03-10: [[ Bug 14413 ]] Windows asks for a specific
+	// stat structure with _wstat, and needs a WCHAR* filename.
+#ifndef _WINDOWS
     struct stat st;
+#else
+	struct _stat64i32 st;
+	WCHAR *t_utf16_fn;
+#endif
     struct zip_error error, err2;
+	
+	// SN-2015-03-09: [[ Bug 14413 ]] Add Windows-specific handling of the UTF-8 input
+	//  string, as fopen does not handle it.
+	//  A libzip update requires to much changes and checking, since callback calls
+	//  have been added and must be kept (and LiveCode 8 will allow us to do it
+	//  in a better way, later on).
 
     if (fn == NULL) {
 	set_error(zep, NULL, ZIP_ER_INVAL);
 	return NULL;
     }
     
+	// SN-2015-03-10: [[ Bug 14413 ]] Create the WCHAR* filename
+#ifdef _WINDOWS
+	{
+		int t_length;
+
+		int t_error, t_allocated;
+
+		t_error = 0;
+		t_allocated = 0;
+
+		if (!t_error)
+		{
+			t_length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, fn, strlen(fn), NULL, 0);
+			t_error = t_length == 0;
+		}
+
+		if (!t_error)
+		{
+			t_utf16_fn = (WCHAR*)calloc(1, (t_length + 1) * sizeof(WCHAR));
+			if (t_utf16_fn == NULL)
+				t_error = 1;
+			else
+				t_allocated = 1;
+		}
+
+		if (!t_error)
+		{
+			t_length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, fn, strlen(fn), t_utf16_fn, (DWORD)t_length);
+			t_error = t_length == 0;
+		}
+
+		if (t_error && t_allocated)
+			free(t_utf16_fn);
+
+		if (t_error)
+		{
+			set_error(zep, NULL, ZIP_ER_OPEN);
+			return NULL;
+		}
+	}
+
+	if (_wstat(t_utf16_fn, &st) != 0) {
+#else
     if (stat(fn, &st) != 0) {
+#endif
 		if (flags & ZIP_CREATE) {
 			FILE *fh;
+
+#ifdef _WINDOWS
+			// SN-2015-03-09: [[ Bug 14413 ]] We call the WCHAR* function on Windows,
+			//  and then we can deallocate the UTF-16 filename
+			fh = _wfopen(t_utf16_fn, L"wb");
+			free(t_utf16_fn);
+#else
 			fh = fopen(fn, "wb");
+#endif
 			if (fh == NULL)
 			{
 				set_error(zep, NULL, ZIP_ER_OPEN);
@@ -118,12 +188,23 @@ zip_open(const char *fn, int flags, int *zep)
     }
     else if ((flags & ZIP_EXCL)) {
 	set_error(zep, NULL, ZIP_ER_EXISTS);
+	// SN-2015-03-10: [[ Bug 14413 ]] Free the WCHAR* filename
+	free(t_utf16_fn);
 	return NULL;
     }
     /* ZIP_CREATE gets ignored if file exists and not ZIP_EXCL,
        just like open() */
     
+#ifdef _WINDOWS
+	// SN-2015-03-09: [[ Bug 14413 ]] Use WCHAR Windows function
+	//  and deallocate the UTF-16 filename
+	fp = _wfopen(t_utf16_fn, L"rb");
+	free(t_utf16_fn);
+	
+	if (fp == NULL) {
+#else
     if ((fp=fopen(fn, "rb")) == NULL) {
+#endif
 	set_error(zep, NULL, ZIP_ER_OPEN);
 	return NULL;
     }

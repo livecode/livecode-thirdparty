@@ -111,38 +111,9 @@ zip_close(struct zip *za)
 		//  to WCHAR* on Windows, simply duplicate on others platforms (to
 		//  avoid to release t_zn inside #ifdef _WINDOWS each time).
 #ifdef _WINDOWS
-		int t_length;
-		int t_error, t_allocated;
+		t_zn = ConvertCStringToLpwstr(za->zn);
 
-		t_error = 0;
-		t_allocated = 0;
-
-		if (!t_error)
-		{
-			t_length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, za->zn, strlen(za->zn), NULL, 0);
-			t_error = t_length == 0;
-		}
-
-		if (!t_error)
-		{
-			// Use calloc to avoid have the terminal NULL byte set
-			t_zn = (WCHAR*)calloc(1, (t_length + 1) * sizeof(WCHAR));
-			if (t_zn == NULL)
-				t_error = 1;
-			else
-				t_allocated = 1;
-		}
-
-		if (!t_error)
-		{
-			t_length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, za->zn, strlen(za->zn), t_zn, (DWORD)t_length);
-			t_error = t_length == 0;
-		}
-
-		if (t_error && t_allocated)
-			free(t_zn);
-
-		if (t_error)
+		if (t_zn == NULL)
 			return -1;
 #else
 		t_zn = strdup(za->zn);

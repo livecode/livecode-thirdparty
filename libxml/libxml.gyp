@@ -16,6 +16,11 @@
 					{
 						'type': 'static_library',
 						
+						'variables':
+						{
+							'library_for_module': 1,
+						},
+						
 						'dependencies':
 						[
 							'../libz/libz.gyp:libz',

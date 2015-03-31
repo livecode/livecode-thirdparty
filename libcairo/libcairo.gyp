@@ -9,6 +9,11 @@
 		{
 			'target_name': 'libcairo',
 			
+			'variables':
+			{
+				'library_for_module': 1,
+			},
+			
 			'conditions':
 			[
 				[

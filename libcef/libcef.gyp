@@ -10,6 +10,11 @@
 			'target_name': 'libcef_library_wrapper',
 			'type': 'static_library',
 			
+			'variables':
+			{
+				'library_for_module': 1,
+			},
+			
 			# Windows and OSX only
 			'conditions':
 			[
@@ -296,6 +301,11 @@
 		{
 			'target_name': 'libcef_stubs',
 			'type': 'static_library',
+			
+			'variables':
+			{
+				'library_for_module': 1,
+			},
 			
 			# Windows and OSX only
 			'conditions':

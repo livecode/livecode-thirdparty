@@ -10,6 +10,11 @@
 			'target_name': 'libopenssl_stubs',
 			'type': 'none',
 			
+			'variables':
+			{
+				'library_for_module': 1,
+			},
+			
 			'sources':
 			[
 				'ssl.stubs',
@@ -43,6 +48,11 @@
 		{
 			'target_name': 'libopenssl',
 			'type': 'static_library',
+			
+			'variables':
+			{
+				'library_for_module': 1,
+			},
 			
 			'dependencies':
 			[

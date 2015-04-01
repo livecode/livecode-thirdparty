@@ -170,5 +170,18 @@
 				],
 			}
 		],
+		[
+			'OS == "ios"',
+			{
+				'targets':
+				[
+					# TODO!
+					{
+						'target_name': 'revsecurity',
+						'type': 'none',
+					},
+				],
+			},
+		],
 	],
 }

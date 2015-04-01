@@ -284,8 +284,8 @@
 						'conditions':
 						[
 							[
-								# Re-add the OSX-specific support
-								'OS == "mac"',
+								# Re-add the OSX- and iOS-specific support
+								'OS == "mac" or OS == "ios"',
 								{
 									'sources/':
 									[

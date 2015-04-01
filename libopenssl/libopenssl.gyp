@@ -175,10 +175,83 @@
 			{
 				'targets':
 				[
-					# TODO!
 					{
 						'target_name': 'revsecurity',
+						'type': 'loadable_module',
+						'product_prefix': '',
+
+						'dependencies':
+						[
+							'../../prebuilt/libopenssl.gyp:libopenssl',
+							'libopenssl_symbol_list',
+						],
+
+						'sources':
+						[
+							'<(SHARED_INTERMEDIATE_DIR)/src/libopenssl-libinfo.ios.cpp',
+						],
+						
+						'xcode_settings':
+						{
+							'EXPORTED_SYMBOLS_FILE': '<(SHARED_INTERMEDIATE_DIR)/src/sslstubs.mac.symlist',
+						},
+						
+						'variables':
+						{
+							'ios_external_symbols': [],
+							'ios_external_symbol_list': '<(SHARED_INTERMEDIATE_DIR)/src/sslstubs.ios.symlist',
+						},
+					},
+					
+					{
+						'target_name': 'libopenssl_symbol_list',
 						'type': 'none',
+						
+						'actions':
+						[
+							{
+								'action_name': 'libopenssl_symbol_list',
+								'inputs':
+								[
+									'../../tools/list_stub_symbols.lc'
+									'ssl.stubs',
+								],
+								'outputs':
+								[
+									'<(SHARED_INTERMEDIATE_DIR)/src/sslstubs.ios.symlist',
+								],
+								
+								'action':
+								[
+									'<(revolution_path)',
+									'../../tools/list_stub_symbols.lc',
+									'_',
+									'ssl.stubs',
+									'<@(_outputs)',
+								],
+							},
+							{
+								'action_name': 'libopenssl_libinfo',
+								'inputs':
+								[
+									'../../tools/build_libinfo.lc',
+									'ssl.stubs',
+								],
+								'outputs':
+								[
+									'<(SHARED_INTERMEDIATE_DIR)/src/libopenssl-libinfo.ios.cpp',
+								],
+								
+								'action':
+								[
+									'<(revolution_path)',
+									'../../tools/build_libinfo.lc',
+									'revsecurity',
+									'ssl.stubs',
+									'<@(_outputs)',
+								],
+							},
+						],
 					},
 				],
 			},

@@ -142,8 +142,11 @@
 				'targets':
 				[
 					{
+						# Setting this as a loadable module instead of a shared library
+						# causes it to get placed next to the built executables rather
+						# than in a library sub-directory.
 						'target_name': 'revsecurity',
-						'type': 'shared_library',
+						'type': 'loadable_module',
 						'product_prefix': '',
 						
 						'dependencies':

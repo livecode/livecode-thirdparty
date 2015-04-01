@@ -56,7 +56,7 @@
 							'src/postgres_fe.h',
 							'src/postgres.h',
 							'src/pqexpbuffer.h',
-							'src/pgsignal.h',
+							'src/pqsignal.h',
 							'src/pthread-win32.h',
 							'src/strdup.h',
 							'src/win32.h',

@@ -16,6 +16,11 @@
 // try to do anything.
 #ifdef CEF_INCLUDE_BASE_INTERNAL_CEF_ATOMICOPS_X86_GCC_H_
 
+// SN-2015-02-27: Only does the include if needed (won't compile
+//  on Windows otherwise)
+#include <stdint.h>
+#include <string.h>
+
 // Inline cpuid instruction.  In PIC compilations, %ebx contains the address
 // of the global offset table.  To avoid breaking such executables, this code
 // must preserve that register's value across cpuid instructions.

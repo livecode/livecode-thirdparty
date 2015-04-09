@@ -284,6 +284,13 @@
 						'conditions':
 						[
 							[
+								# Not supported on Android
+								'OS == "android"',
+								{
+									'type': 'none',
+								},
+							],
+							[
 								# Re-add the OSX- and iOS-specific support
 								'OS == "mac" or OS == "ios"',
 								{

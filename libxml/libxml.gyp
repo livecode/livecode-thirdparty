@@ -154,6 +154,12 @@
 							'src/xpointer.c',
 						],
 						
+						# xmllint is a separate tool
+						'sources!':
+						[
+							'src/xmllint.c',
+						],
+						
 						# The "trio*.c" and test files aren't needed
 						'sources/':
 						[

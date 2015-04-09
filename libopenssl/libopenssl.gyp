@@ -137,7 +137,7 @@
 			},
 		],
 		[
-			'OS == "linux"',
+			'OS == "linux" or OS == "android"',
 			{
 				'targets':
 				[

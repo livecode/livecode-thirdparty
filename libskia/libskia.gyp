@@ -280,7 +280,7 @@
 				
 				#'src/images/bmpdecoderhelper.cpp',
 				'src/images/SkDecodingImageGenerator.cpp',
-				'src/images/SkForceLinking.cpp',
+				#'src/images/SkForceLinking.cpp',
 				'src/images/SkImageDecoder.cpp',
 				'src/images/SkImageDecoder_FactoryDefault.cpp',
 				'src/images/SkImageDecoder_FactoryRegistrar.cpp',
@@ -437,8 +437,8 @@
 				'src/ports/SkFontConfigParser_android.cpp',
 				#'src/ports/SkFontHost_android.cpp',
 				'src/ports/SkFontHost_fontconfig.cpp',
-				#'src/ports/SkFontHost_FreeType.cpp',
-				#'src/ports/SkFontHost_FreeType_common.cpp',
+				'src/ports/SkFontHost_FreeType.cpp',
+				'src/ports/SkFontHost_FreeType_common.cpp',
 				#'src/ports/SkFontHost_linux.cpp',
 				#'src/ports/SkFontHost_mac.cpp',
 				'src/ports/SkFontHost_none.cpp',
@@ -471,7 +471,11 @@
 				#'src/ports/SkXMLParser_tinyxml.cpp',
 				#'src/ports/SkXMLPullParser_expat.cpp',
 				
+				'src/sfnt/SkOTTable_name.cpp',
+				'src/sfnt/SkOTUtils.cpp',
+				
 				'src/utils/SkOSFile.cpp',
+				'src/utils/android/ashmem.cpp',
 			],
 			
 			# Exclude all non-generic optimisations by default
@@ -519,7 +523,14 @@
 						'sources!':
 						[
 							'src/ports/SkFontHost_fontconfig.cpp',
-						]
+							'src/ports/SkFontHost_FreeType.cpp',
+							'src/ports/SkFontHost_FreeType_common.cpp',
+							
+							'src/sfnt/SkOTTable_name.cpp',
+							'src/sfnt/SkOTUtils.cpp',
+							
+							'src/utils/android/ashmem.cpp',
+						],
 					},
 				],
 				[
@@ -530,6 +541,32 @@
 						[
 							['include', 'opts/Sk.+_SSE2\\.cpp$'],
 							['include', 'opts/.+_mac\\.cpp$'],
+						],
+					},
+				],
+				[
+					'OS == "android"',
+					{
+						'dependencies':
+						[
+							'../libexpat/libexpat.gyp:libexpat',
+							'../libfreetype/libfreetype.gyp:libfreetype',
+						],
+
+						'defines':
+						[
+							'SK_BUILD_FOR_ANDROID',
+							'SK_BUILD_FOR_ANDROID_NDK',
+						],
+						
+						'sources!':
+						[
+							'src/image/SkSurface_Gpu.cpp',
+							
+							'src/ports/SkDebug_stdio.cpp',
+							'src/ports/SkFontHost_none.cpp',
+							'src/ports/SkOSFile_none.cpp',
+							'src/ports/SkTLS_none.cpp',
 						],
 					},
 				],

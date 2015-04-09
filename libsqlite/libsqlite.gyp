@@ -71,7 +71,24 @@
 									],
 								},
 							],
+							[
+								'OS == "linux" or OS == "android"',
+								{
+									'cflags_cc':
+									[
+										'-fexceptions',
+									],
+								},
+							],
 						],
+						
+						'msvs_settings':
+						{
+							'VCCLCompilerTool':
+							{
+								'ExceptionHandling': 1,
+							},
+						},
 						
 						'xcode_settings':
 						{

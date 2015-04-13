@@ -366,7 +366,7 @@ _zip_readcdir(FILE *fp, unsigned char *buf, unsigned char *eocd, int buflen,
 	/* go to start of cdir and read it entry by entry */
 	bufp = NULL;
 	clearerr(fp);
-	fseek(fp, -(cd->size+cd->comment_len+EOCDLEN), SEEK_END);
+	fseek(fp, -(signed)(cd->size+cd->comment_len+EOCDLEN), SEEK_END);
 	if (ferror(fp) || (ftell(fp) != cd->offset)) {
 	    /* seek error or offset of cdir wrong */
 	    if (ferror(fp))

@@ -47,6 +47,10 @@ struct zip_source *
 zip_source_file(struct zip *za, const char *fname, off_t start, off_t len)
 {
     struct zip_source *zs;
+#ifdef _WINDOWS
+	WCHAR *t_utf16_filename;
+	int t_success;
+#endif
     FILE *fp;
 
     if (za == NULL)
@@ -57,7 +61,22 @@ zip_source_file(struct zip *za, const char *fname, off_t start, off_t len)
 	return NULL;
     }
 
+#ifdef _WINDOWS
+	t_utf16_filename = ConvertCStringToLpwstr(fname);
+
+	t_success = t_utf16_filename != NULL;
+
+	if (t_success)
+	{
+		fp = _wfopen(t_utf16_filename, L"rb");
+		t_success = fp != NULL;
+	}
+
+	free(t_utf16_filename);
+	if (!t_success) {
+#else
     if ((fp=fopen(fname, "rb")) == NULL) {
+#endif
 	_zip_error_set(&za->error, ZIP_ER_OPEN, errno);
 	return NULL;
     }

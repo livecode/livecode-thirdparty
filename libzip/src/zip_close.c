@@ -42,6 +42,12 @@
 
 #ifndef _WINDOWS
 #include <unistd.h>
+#else
+// SN-2015-03-10: [[ Bug 14413 ]] We need few types (WCHAR)
+// and function from the Windows API
+#include <io.h>
+#include <windows.h>
+#include <WinNT.h>
 #endif
 
 #include <sys/types.h>
@@ -67,7 +73,6 @@ zip_close(struct zip *za)
 {
     int changed, survivors;
     int i, j, tfd, error;
-    char *temp;
     FILE *tfp;
     mode_t mask;
     struct zip_cdir *cd;
@@ -76,6 +81,16 @@ zip_close(struct zip *za)
 	struct zip_stat t_st;
 	zip_source_callback cb;
 	void *ud; 
+
+	// SN-2015-03-10: [[ Bug 14413 ]] Windows needs a WCHAR * name,
+	//  and we keep the char * for the other platforms
+#ifdef _WINDOWS
+	WCHAR *t_zn;
+    WCHAR *temp;
+#else
+	char *t_zn;
+	char *temp;
+#endif
 
     changed = survivors = 0;
     for (i=0; i<za->nentry; i++) {
@@ -90,11 +105,34 @@ zip_close(struct zip *za)
 	return 0;
     }
 
+	if (za->zn)
+	{
+		// SN-2015-03-10: [[ Bug 14413 ]] Convert the UTF-8 encoded filename
+		//  to WCHAR* on Windows, simply duplicate on others platforms (to
+		//  avoid to release t_zn inside #ifdef _WINDOWS each time).
+#ifdef _WINDOWS
+		t_zn = ConvertCStringToLpwstr(za->zn);
+
+		if (t_zn == NULL)
+			return -1;
+#else
+		t_zn = strdup(za->zn);
+#endif
+	}
+	else
+		t_zn = NULL;
+
     /* don't create zip files with no entries */
     if (survivors == 0) {
-	if (za->zn) {
-	    if (remove(za->zn) != 0) {
+	if (t_zn) {
+		// SN-2015-03-10: [[ Bug 14413 ]] Use the WCHAR-specific Windows function
+#ifdef _WINDOWS
+		if (_wremove(t_zn) != 0) {
+#else
+	    if (remove(t_zn) != 0) {
+#endif
 		_zip_error_set(&za->error, ZIP_ER_REMOVE, errno);
+		free(t_zn);
 		return -1;
 	    }
 	}
@@ -103,29 +141,70 @@ zip_close(struct zip *za)
     }	       
 	
     if ((cd=_zip_cdir_new(survivors, &za->error)) == NULL)
+	{
+	free(t_zn);
 	return -1;
+	}
 
-    if ((temp=malloc(strlen(za->zn)+8)) == NULL) {
+	// SN-2015-03-10: [[ Bug 14413 ]] Use the correct size on Windows
+#ifdef _WINDOWS
+	if ((temp=malloc((wcslen(t_zn)+8) * sizeof(WCHAR))) == NULL) {
+#else
+    if ((temp=malloc(strlen(t_zn)+8)) == NULL) {
+#endif
 	_zip_error_set(&za->error, ZIP_ER_MEMORY, 0);
 	_zip_cdir_free(cd);
+	free(t_zn);
 	return -1;
     }
 
-    sprintf(temp, "%s.XXXXXX", za->zn);
+#ifdef _WINDOWS
+	// SN-2015-03-10: [[ Bug 14413 ]] Windows does not allow the use of 
+	//  mkstemp (good thing). We simply use _wfopen straight with the temp
+	//  filename provided.
+    swprintf(temp, (wcslen(t_zn)+8), L"%s.XXXXXX", t_zn);
+
+	{
+		WCHAR *t_temp_fn;
+		t_temp_fn = _wmktemp(temp);
+
+		// _wmktemp can fail (in which case it returns NULL).
+		if (t_temp_fn == NULL)
+		{
+			free(t_zn);
+			free(temp);
+			return -1;
+		}
+
+		// We open to write, since we need to create the file.
+		tfp = _wfopen(t_temp_fn, L"w+b");
+	}
+	if (tfp == NULL) {
+#else
+	sprintf(temp, "%s.XXXXXXX", t_zn);
 
     if ((tfd=mkstemp(temp)) == -1) {
 	_zip_error_set(&za->error, ZIP_ER_TMPOPEN, errno);
 	_zip_cdir_free(cd);
 	free(temp);
+	free(t_zn);
 	return -1;
     }
     
     if ((tfp=fdopen(tfd, "r+b")) == NULL) {
+#endif
 	_zip_error_set(&za->error, ZIP_ER_TMPOPEN, errno);
 	_zip_cdir_free(cd);
-	close(tfd);
+
+	// SN-2015-03-10: [[ Bug 14413 ]] Use the WCHAR Windows function
+#ifdef _WINDOWS
+	_wremove(temp);
+#else
 	remove(temp);
+	close(tfd);
+#endif
 	free(temp);
+	free(t_zn);
 	return -1;
     }
 
@@ -151,6 +230,13 @@ zip_close(struct zip *za)
 
 	if (ZIP_ENTRY_DATA_CHANGED(za->entry+i)) {
 	    _zip_dirent_init(&de);
+		// SN-2015-03-10: [[ Bug 14413 ]] Add the UTF-8 encoding bitflag, in
+		//  the bit 11 of the General Purpose Bit Flag
+		// (see https://pkware.cachefly.net/webdocs/APPNOTE/APPNOTE-6.3.0.TXT)
+		//  We keep the cd array up-to-date with the de structure.
+		de.bitflags |= (1 << 11);
+		cd->entry[i].bitflags |= (1 << 11);
+
 	    memcpy(cd->entry+j, &de, sizeof(cd->entry[i]));
 	    if (za->entry[i].ch_filename == NULL) {
 		if (za->entry[i].state == ZIP_ST_REPLACED) {
@@ -166,7 +252,7 @@ zip_close(struct zip *za)
 		    cd->entry[j].filename_len = de.filename_len;
 		}
 	    }
-
+	
 	}
 	else 
 	{
@@ -256,14 +342,28 @@ zip_close(struct zip *za)
     if (error) {
 	_zip_dirent_finalize(&de);
 	fclose(tfp);
+	// SN-2015-03-10: [[ Bug 14413 ]] Use WCHAR Windows function
+	// and free the allocated strings
+#ifdef _WINDOWS
+	_wremove(temp);
+#else
 	remove(temp);
+#endif
+	free(t_zn);
 	free(temp);
 	return -1;
     }
 
     if (fclose(tfp) != 0) {
 	_zip_error_set(&za->error, ZIP_ER_CLOSE, errno);
+	// SN-2015-03-10: [[ Bug 14413 ]] Use WCHAR Windows function
+	// and free the allocated strings.
+#ifdef _WINDOWS
+	_wremove(temp);
+#else
 	remove(temp);
+#endif
+	free(t_zn);
 	free(temp);
 	return -1;
     }
@@ -273,11 +373,17 @@ zip_close(struct zip *za)
 		fclose(za->zp);
 		za->zp = NULL;
 	}
-	_unlink(za->zn);
-#endif
-	if (rename(temp, za->zn) != 0) {
-	_zip_error_set(&za->error, ZIP_ER_RENAME, errno);
+	
+	// SN-2015-03-10: [[ Bug 14413 ]] Use WCHAR Windows function
+	_wunlink(t_zn);
+	if (_wrename(temp, t_zn) != 0) {
+	_wremove(temp);
+#else
+	if (rename(temp, t_zn) != 0) {
 	remove(temp);
+#endif
+	_zip_error_set(&za->error, ZIP_ER_RENAME, errno);
+	free(t_zn);
 	free(temp);
 	return -1;
     }
@@ -289,10 +395,18 @@ zip_close(struct zip *za)
 #endif
     mask = umask(0);
     umask(mask);
-    chmod(za->zn, 0666&~mask);
+	// SM-2015-03-10: [[ Bug 14413 ]] Use WCHAR Windows functions
+#ifdef _WINDOWS
+	_wchmod(t_zn, 0666&~mask);
+#else
+    chmod(t_zn, 0666&~mask);
+#endif
 
     _zip_free(za);
     
+	// SN-2015-03-10: [[ Bug 14413 ]] Free the platform independantly allocated
+	//  strings.
+	free(t_zn);
 	free(temp);
 
     return 0;

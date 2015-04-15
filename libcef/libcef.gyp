@@ -329,7 +329,7 @@
 					'action_name': 'generate_libcef_stubs',
 					'inputs':
 					[
-						'../../tools/weak_stub_maker.lc',
+						'../../util/weak_stub_maker.pl',
 						'libcef.stubs',
 					],
 					'outputs':
@@ -339,8 +339,8 @@
 					
 					'action':
 					[
-						'<(revolution_path)',
-						'../../tools/weak_stub_maker.lc',
+						'<@(perl)',
+						'../../util/weak_stub_maker.pl',
 						'libcef.stubs',
 						'<@(_outputs)',
 					],

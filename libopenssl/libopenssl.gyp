@@ -26,7 +26,7 @@
 					'action_name': 'libopenssl_stubs',
 					'inputs':
 					[
-						'../../tools/weak_stub_maker.lc',
+						'../../util/weak_stub_maker.pl',
 						'ssl.stubs',
 					],
 					'outputs':
@@ -36,8 +36,8 @@
 					
 					'action':
 					[
-						'<(revolution_path)',
-						'../../tools/weak_stub_maker.lc',
+						'<@(perl)',
+						'../../util/weak_stub_maker.pl',
 						'ssl.stubs',
 						'<@(_outputs)',
 					],
@@ -114,7 +114,7 @@
 								'action_name': 'libopenssl_symbol_list',
 								'inputs':
 								[
-									'../../tools/list_stub_symbols.lc'
+									'../../util/list_stub_symbols.pl'
 									'ssl.stubs',
 								],
 								'outputs':
@@ -124,8 +124,8 @@
 								
 								'action':
 								[
-									'<(revolution_path)',
-									'../../tools/list_stub_symbols.lc',
+									'<@(perl)',
+									'../../util/list_stub_symbols.pl',
 									'_',
 									'ssl.stubs',
 									'<@(_outputs)',
@@ -213,7 +213,7 @@
 								'action_name': 'libopenssl_symbol_list',
 								'inputs':
 								[
-									'../../tools/list_stub_symbols.lc'
+									'../../util/list_stub_symbols.pl'
 									'ssl.stubs',
 								],
 								'outputs':
@@ -223,8 +223,8 @@
 								
 								'action':
 								[
-									'<(revolution_path)',
-									'../../tools/list_stub_symbols.lc',
+									'<@(perl)',
+									'../../util/list_stub_symbols.pl',
 									'_',
 									'ssl.stubs',
 									'<@(_outputs)',
@@ -234,7 +234,7 @@
 								'action_name': 'libopenssl_libinfo',
 								'inputs':
 								[
-									'../../tools/build_libinfo.lc',
+									'../../util/build_libinfo.pl',
 									'ssl.stubs',
 								],
 								'outputs':
@@ -244,8 +244,8 @@
 								
 								'action':
 								[
-									'<(revolution_path)',
-									'../../tools/build_libinfo.lc',
+									'<@(perl)',
+									'../../util/build_libinfo.pl',
 									'revsecurity',
 									'ssl.stubs',
 									'<@(_outputs)',

@@ -148,7 +148,7 @@
 								{
 									'sources/':
 									[
-										['exclude', '^src/(pgsleep|snprintf|dirmod)\\.c$'],
+										['exclude', '^src/(pgsleep|snprintf|dirmod|memcmp)\\.c$'],
 										['include', '^src/(crypt|getaddrinfo|ip|win32)\\.c$'],
 									],
 									

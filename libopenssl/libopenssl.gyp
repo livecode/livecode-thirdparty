@@ -170,6 +170,7 @@
 								'OS == "android"',
 								{
 									'product_name': 'RevSecurity',
+									'product_extension': '',
 								},
 							],
 						],

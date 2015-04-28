@@ -86,6 +86,7 @@
 						'target_name': 'revsecurity',
 						'type': 'shared_library',
 						'product_prefix': '',
+						'product_name': 'revsecurity',
 
 						'dependencies':
 						[
@@ -101,6 +102,14 @@
 						'xcode_settings':
 						{
 							'EXPORTED_SYMBOLS_FILE': '<(SHARED_INTERMEDIATE_DIR)/src/sslstubs.mac.symlist',
+						},
+						
+						'all_dependent_settings':
+						{
+							'variables':
+							{
+								'dist_files': [ '<(PRODUCT_DIR)/<(_product_name)>(lib_suffix)' ],
+							},
 						},
 					},
 					
@@ -148,11 +157,30 @@
 						'target_name': 'revsecurity',
 						'type': 'loadable_module',
 						'product_prefix': '',
-						
+						'product_name': 'revsecurity',
+
 						'dependencies':
 						[
 							'../../prebuilt/libopenssl.gyp:libopenssl',
 						],
+						
+						'conditions':
+						[
+							[
+								'OS == "android"',
+								{
+									'product_name': 'RevSecurity',
+								},
+							],
+						],
+						
+						'all_dependent_settings':
+						{
+							'variables':
+							{
+								'dist_files': [ '<(PRODUCT_DIR)/<(_product_name)>(lib_suffix)' ],
+							},
+						},
 					},
 				],
 			},
@@ -179,6 +207,7 @@
 						'target_name': 'revsecurity',
 						'type': 'loadable_module',
 						'product_prefix': '',
+						'product_name': 'revsecurity',
 
 						'dependencies':
 						[
@@ -200,6 +229,14 @@
 						{
 							'ios_external_symbols': [],
 							'ios_external_symbol_list': '<(SHARED_INTERMEDIATE_DIR)/src/sslstubs.ios.symlist',
+						},
+						
+						'all_dependent_settings':
+						{
+							'variables':
+							{
+								'dist_files': [ '<(PRODUCT_DIR)/<(_product_name)>(ext_bundle_suffix)' ],
+							},
 						},
 					},
 					

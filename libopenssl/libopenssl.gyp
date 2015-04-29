@@ -194,7 +194,50 @@
 					# Revsecurity is a pre-built on windows
 					{
 						'target_name': 'revsecurity',
-						'type': 'none',
+						'type': 'shared_library',
+						'product_name': 'revsecurity',
+						
+						'dependencies':
+						[
+							'../../prebuilt/libopenssl.gyp:libopenssl',
+						],
+						
+						'sources':
+						[
+							# Empty
+						],
+						
+						'libraries':
+						[
+							'-lws2_32.lib',
+							'-lgdi32.lib',
+							'-ladvapi32.lib',
+							'-lcrypt32.lib',
+							'-luser32.lib',
+							'-llibcmt.lib',
+						],
+						
+						'msvs_settings':
+						{
+							'VCLinkerTool':
+							{
+								'ModuleDefinitionFile': '$(SolutionDir)..\\thirdparty\\libopenssl\\revsecurity.def',
+							},
+							
+							'VCManifestTool':
+							{
+								# Seems to be missing...
+								#'AdditionalManifestFiles': 'revsecurity.manifest',
+							},
+						},
+						
+						'all_dependent_settings':
+						{
+							'variables':
+							{
+								'dist_files': [ '<(PRODUCT_DIR)/<(_product_name)>(lib_suffix)' ],
+							},
+						},
 					},
 				],
 			}

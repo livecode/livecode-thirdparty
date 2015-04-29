@@ -204,7 +204,7 @@
 						
 						'sources':
 						[
-							# Empty
+							'src/dummy.cpp',
 						],
 						
 						'libraries':
@@ -222,6 +222,7 @@
 							'VCLinkerTool':
 							{
 								'ModuleDefinitionFile': '$(SolutionDir)..\\thirdparty\\libopenssl\\revsecurity.def',
+								'SubSystem': '1',
 							},
 							
 							'VCManifestTool':

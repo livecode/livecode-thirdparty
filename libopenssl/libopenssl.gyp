@@ -215,12 +215,12 @@
 							'-lcrypt32.lib',
 							'-luser32.lib',
 						],
-						
+
 						'msvs_settings':
 						{
 							'VCLinkerTool':
 							{
-								'ModuleDefinitionFile': '$(SolutionDir)..\\thirdparty\\libopenssl\\revsecurity.def',
+								'ModuleDefinitionFile': '$(ProjectDir)..\\..\\..\\..\\thirdparty\\libopenssl\\revsecurity.def',
 								'SubSystem': '1',
 							},
 							

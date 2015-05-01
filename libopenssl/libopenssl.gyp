@@ -84,9 +84,10 @@
 				[
 					{
 						'target_name': 'revsecurity',
-						'type': 'shared_library',
+						'type': 'loadable_module',
 						'product_prefix': '',
 						'product_name': 'revsecurity',
+						'product_extension': 'dylib',
 
 						'dependencies':
 						[

@@ -114,6 +114,10 @@ typedef signed long ssize_t;
 #define ZIP_CM_DEFLATE64       9  /* deflate64 */
 #define ZIP_CM_PKWARE_IMPLODE 10  /* PKWARE imploding */
 
+/* Bit flags */
+
+#define ZIP_UTF8_FLAG  (1 << 11) /* Comment and item names are UTF-8 encoded */
+
 
 
 enum zip_source_cmd {
@@ -137,6 +141,8 @@ struct zip_stat {
     off_t size;				/* size of file (uncompressed) */
     off_t comp_size;			/* size of file (compressed) */
     unsigned short comp_method;		/* compression method used */
+	// SN-2015-03-11: [[ Bug 14413 ]] Add the missing bitflags zip_stat field
+	unsigned short bitflags;        /* bitflags of the archive */
 };
 
 struct zip;

@@ -60,7 +60,13 @@ struct zip_source * zip_source_filename(struct zip *za, const char *filename, of
 {
     struct read_file *f;
     struct zip_source *zs;
-		struct stat fst;
+#ifdef _WINDOWS
+	struct _stat64i32 fst;
+	WCHAR* t_utf16_filename;
+	int t_error;
+#else
+	struct stat fst;
+#endif
 
     if (za == NULL)
 		return NULL;
@@ -71,7 +77,22 @@ struct zip_source * zip_source_filename(struct zip *za, const char *filename, of
 		return NULL;
     }
 
+#ifdef _WINDOWS
+	t_utf16_filename = ConvertCStringToLpwstr(filename);
+
+	if (t_utf16_filename == NULL)
+	{
+		_zip_error_set(&za->error, ZIP_ER_NOENT, 0);
+		return NULL;
+	}
+	// Call stat, free the memory, and then check the stat struct
+	t_error = _wstat(t_utf16_filename, &fst);
+	free(t_utf16_filename);
+
+	if (t_error == -1)
+#else
 	if (stat(filename, &fst) == -1)
+#endif
 	{
 		_zip_error_set(&za->error, ZIP_ER_NOENT, 0);
 		return NULL;
@@ -84,7 +105,7 @@ struct zip_source * zip_source_filename(struct zip *za, const char *filename, of
 		return NULL;
     }
 
-	strcpy(f->fname, filename);	
+	strcpy(f->fname, filename);
 	f->f = 0;					
     f->off = start;
     f->len = (len ? len : -1);
@@ -106,6 +127,11 @@ static ssize_t read_filename(void *state, void *data, size_t len, enum zip_sourc
     char *buf;
     int i, n;
 
+#ifdef _WINDOWS
+	WCHAR* t_utf16_filename;
+	int t_success;
+#endif
+
     z = (struct read_file *)state;
     buf = (char *)data;
 
@@ -114,10 +140,27 @@ static ssize_t read_filename(void *state, void *data, size_t len, enum zip_sourc
     case ZIP_SOURCE_OPEN:			
 		if(!z->f)
 		{
+#ifdef _WINDOWS
+			t_utf16_filename = ConvertCStringToLpwstr(z->fname);
+			t_success = t_utf16_filename != NULL;
+			
+			if (t_success)
+			{
+				z->f = _wfopen(t_utf16_filename, L"rb");
+				t_success = z->f != NULL;
+			}
+
+			free(t_utf16_filename);
+			if (!t_success)
+#else
 			if((z->f = fopen(z->fname, "rb")) == NULL)
+#endif
 			{
 				z->e[0] = ZIP_ER_OPEN;
 				z->e[1] = errno;
+				// Bug leading to a crash, when trying to add a folder
+				//  as an item.
+				return -1;
 			}
 		}
 		if (fseeko(z->f, z->off, SEEK_SET) < 0) 
@@ -167,7 +210,21 @@ static ssize_t read_filename(void *state, void *data, size_t len, enum zip_sourc
 
 		if(!z->f)
 		{
+#ifdef _WINDOWS
+			t_utf16_filename = ConvertCStringToLpwstr(z->fname);
+			t_success = t_utf16_filename != NULL;
+
+			if (t_success)
+			{
+				z->f = _wfopen(t_utf16_filename, L"rb");
+				t_success = z->f != NULL;
+			}
+
+			free(t_utf16_filename);
+			if (!t_success)
+#else
 			if((z->f = fopen(z->fname, "rb")) == NULL)
+#endif
 			{
 				z->e[0] = ZIP_ER_OPEN;
 				z->e[1] = errno;

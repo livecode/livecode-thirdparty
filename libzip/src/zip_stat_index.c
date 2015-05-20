@@ -74,7 +74,8 @@ zip_stat_index(struct zip *za, int index, int flags, struct zip_stat *st)
 	st->mtime = za->cdir->entry[index].last_mod;
 	st->comp_size = za->cdir->entry[index].comp_size;
 	st->comp_method = za->cdir->entry[index].comp_method;
-	/* st->bitflags = za->cdir->entry[index].bitflags; */
+	// SN-2015-03-11: [[ Bug 14413 ]] Reinstate the disabled bitflags setting
+	st->bitflags = za->cdir->entry[index].bitflags;
     }
 
     st->name = name;

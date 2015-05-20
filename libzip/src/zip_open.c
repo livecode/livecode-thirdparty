@@ -71,18 +71,52 @@ zip_open(const char *fn, int flags, int *zep)
     struct zip *za;
     struct zip_cdir *cdir, *cdirnew;
     long len;
+	// SN-2015-03-10: [[ Bug 14413 ]] Windows asks for a specific
+	// stat structure with _wstat, and needs a WCHAR* filename.
+#ifndef _WINDOWS
     struct stat st;
+#else
+	struct _stat64i32 st;
+	WCHAR *t_utf16_fn;
+#endif
     struct zip_error error, err2;
+	
+	// SN-2015-03-09: [[ Bug 14413 ]] Add Windows-specific handling of the UTF-8 input
+	//  string, as fopen does not handle it.
+	//  A libzip update requires to much changes and checking, since callback calls
+	//  have been added and must be kept (and LiveCode 8 will allow us to do it
+	//  in a better way, later on).
 
     if (fn == NULL) {
 	set_error(zep, NULL, ZIP_ER_INVAL);
 	return NULL;
     }
     
+	// SN-2015-03-10: [[ Bug 14413 ]] Create the WCHAR* filename
+#ifdef _WINDOWS
+	t_utf16_fn = ConvertCStringToLpwstr(fn);
+
+	if (t_utf16_fn == NULL)
+	{
+		set_error(zep, NULL, ZIP_ER_OPEN);
+		return NULL;
+	}
+
+	if (_wstat(t_utf16_fn, &st) != 0) {
+#else
     if (stat(fn, &st) != 0) {
+#endif
 		if (flags & ZIP_CREATE) {
 			FILE *fh;
+
+#ifdef _WINDOWS
+			// SN-2015-03-09: [[ Bug 14413 ]] We call the WCHAR* function on Windows,
+			//  and then we can deallocate the UTF-16 filename
+			fh = _wfopen(t_utf16_fn, L"wb");
+			free(t_utf16_fn);
+#else
 			fh = fopen(fn, "wb");
+#endif
 			if (fh == NULL)
 			{
 				set_error(zep, NULL, ZIP_ER_OPEN);
@@ -118,12 +152,25 @@ zip_open(const char *fn, int flags, int *zep)
     }
     else if ((flags & ZIP_EXCL)) {
 	set_error(zep, NULL, ZIP_ER_EXISTS);
+	// SN-2015-03-10: [[ Bug 14413 ]] Free the WCHAR* filename
+#ifdef _WINDOWS
+	free(t_utf16_fn);
+#endif
 	return NULL;
     }
     /* ZIP_CREATE gets ignored if file exists and not ZIP_EXCL,
        just like open() */
     
+#ifdef _WINDOWS
+	// SN-2015-03-09: [[ Bug 14413 ]] Use WCHAR Windows function
+	//  and deallocate the UTF-16 filename
+	fp = _wfopen(t_utf16_fn, L"rb");
+	free(t_utf16_fn);
+	
+	if (fp == NULL) {
+#else
     if ((fp=fopen(fn, "rb")) == NULL) {
+#endif
 	set_error(zep, NULL, ZIP_ER_OPEN);
 	return NULL;
     }
@@ -319,7 +366,7 @@ _zip_readcdir(FILE *fp, unsigned char *buf, unsigned char *eocd, int buflen,
 	/* go to start of cdir and read it entry by entry */
 	bufp = NULL;
 	clearerr(fp);
-	fseek(fp, -(cd->size+cd->comment_len+EOCDLEN), SEEK_END);
+	fseek(fp, -(signed)(cd->size+cd->comment_len+EOCDLEN), SEEK_END);
 	if (ferror(fp) || (ftell(fp) != cd->offset)) {
 	    /* seek error or offset of cdir wrong */
 	    if (ferror(fp))

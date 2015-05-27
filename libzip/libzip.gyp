@@ -40,6 +40,8 @@
 							'src/zipint.h',
 							'src/zipintw32.h',
 							
+							'src/w32support.cpp',
+							
 							'src/mkstemp.c',
 							'src/zip_add.c',
 							'src/zip_close.c',

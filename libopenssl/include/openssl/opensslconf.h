@@ -97,8 +97,8 @@
 
 #if !(defined(VMS) || defined(__VMS)) /* VMS uses logical names instead */
 #if defined(HEADER_CRYPTLIB_H) && !defined(OPENSSLDIR)
-#define ENGINESDIR "/Users/mark/revlibs/prefix/mac/i386/lib/engines"
-#define OPENSSLDIR "/Users/mark/revlibs/prefix/mac/i386/ssl"
+#define ENGINESDIR "/Users/mark/Workspace/livecode-7.0/prebuilt/build/install/mac/i386/lib/engines"
+#define OPENSSLDIR "/Users/mark/Workspace/livecode-7.0/prebuilt/build/install/mac/i386/ssl"
 #endif
 #endif
 
@@ -106,6 +106,7 @@
 #define OPENSSL_UNISTD <unistd.h>
 
 #undef OPENSSL_EXPORT_VAR_AS_FUNCTION
+#define OPENSSL_EXPORT_VAR_AS_FUNCTION
 
 #if defined(HEADER_IDEA_H) && !defined(IDEA_INT)
 #define IDEA_INT unsigned int

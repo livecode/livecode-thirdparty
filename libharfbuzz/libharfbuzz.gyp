@@ -13,9 +13,6 @@
 			'dependencies':
 			[
 				'../../prebuilt/libicu.gyp:libicu',
-				
-				# Seems to need to be explicit, for some reason...
-				'../../prebuilt/fetch.gyp:fetch',
 			],
 			
 			'defines':

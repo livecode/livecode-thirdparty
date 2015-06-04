@@ -41,7 +41,7 @@
 			'src/types.c',
 		],
 		
-		'libffi_all_platform_sources':
+		'libffi_all_platform_source_files':
 		[
 			'src/aarch64/ffi.c',
 			'src/aarch64/sysv.S',
@@ -58,97 +58,51 @@
 			'src/x86/win32.S',
 			'src/x86/win64.S',
 		],
-		
-		'conditions':
+
+		'libffi_mac_source_files':
 		[
-			[ 
-				'OS=="mac" or OS=="ios"',
-				{ 
-					'libffi_public_headers_dir': '<(libffi_public_headers_darwin_dir)'
-				}
-			],
-			
-			# Only build the appropriate x86(_64) files for OSX
-			[ 
-				'OS == "mac"',
-				{
-					'libffi_platform_sources':
-					[
-						'src/x86/darwin.S',
-						'src/x86/darwin64.S',
-						'src/x86/ffi.c',
-						'src/x86/ffi64.c',
-						'src/x86/win32.S',
-						'src/x86/win64.S',
-					],
-				},
-			],
-			
-			# Only build the appropriate files for iOS
-			[
-				'OS == "ios"',
-				{
-					'libffi_platform_sources':
-					[
-						'src/aarch64/ffi.c',
-						'src/aarch64/sysv.S',
-						'src/arm/ffi.c',
-						'src/arm/sysv.S',
-						'src/arm/trampoline.S',
-						'src/x86/darwin.S',
-						'src/x86/darwin64.S',
-						'src/x86/ffi.c',
-						'src/x86/ffi64.c',
-						'src/x86/win32.S',
-						'src/x86/win64.S'
-					],
-				},
-			],
-			
-			# Only build the appropriate x86(_64) files for Win32
-			[
-				'OS == "win"',
-				{
-					'libffi_public_headers_dir': '<(libffi_public_headers_win32_dir)',
-					
-					'libffi_platform_sources':
-					[
-						'src/x86/ffi.c',
-						'src/x86/win32.asm',
-					],
-				},
-			],
-			
-			# Only build the appropriate files for Linux and Android x86(_64)
-			[
-				'(OS == "linux" or OS == "android") and (target_arch == "x86" or target_arch == "x86_64")',
-				{
-					'libffi_public_headers_dir': '<(libffi_public_headers_linux_x86_64_dir)',
-					
-					'libffi_platform_sources':
-					[
-						'src/x86/ffi.c',
-						'src/x86/ffi64.c',
-						'src/x86/sysv.S',
-						'src/x86/unix64.S',
-					],
-				},
-			],
-			
-			# Only build the appropriate files for Linux and Android ARM
-			[
-				'(OS == "linux" or OS == "android") and target_arch == "arm"',
-				{
-					'libffi_public_headers_dir': '<(libffi_public_headers_android_dir)',
-					
-					'libffi_platform_sources':
-					[
-						'src/arm/ffi.c',
-						'src/arm/sysv.S',
-						'src/arm/trampoline.S',
-					],
-				},
-			],
+			'src/x86/darwin.S',
+			'src/x86/darwin64.S',
+			'src/x86/ffi.c',
+			'src/x86/ffi64.c',
+			'src/x86/win32.S',
+			'src/x86/win64.S',
+		],
+		
+		'libffi_ios_source_files':
+		[
+			'src/aarch64/ffi.c',
+			'src/aarch64/sysv.S',
+			'src/arm/ffi.c',
+			'src/arm/sysv.S',
+			'src/arm/trampoline.S',
+			'src/x86/darwin.S',
+			'src/x86/darwin64.S',
+			'src/x86/ffi.c',
+			'src/x86/ffi64.c',
+			'src/x86/win32.S',
+			'src/x86/win64.S'
+		],
+		
+		'libffi_win_source_files':
+		[
+			'src/x86/ffi.c',
+			'src/x86/win32.asm',
+		],
+		
+		'libffi_linux_x86_source_files':
+		[
+			'src/x86/ffi.c',
+			'src/x86/ffi64.c',
+			'src/x86/sysv.S',
+			'src/x86/unix64.S',
+		],
+		
+		'libffi_linux_arm_source_files':
+		[
+			'src/arm/ffi.c',
+			'src/arm/sysv.S',
+			'src/arm/trampoline.S',
 		],
 	},
 	
@@ -160,19 +114,129 @@
 			
 			'toolsets': ['host','target'],
 			
-			'include_dirs':
-			[
-				'<(libffi_public_headers_dir)',
-			],
+			'variables':
+			{
+				'conditions':
+				[
+					[
+						'_toolset == "host"',
+						{
+							'toolset_os': '<(host_os)',
+							'toolset_arch': '<(host_arch)',
+						},
+						{
+							'toolset_os': '<(OS)',
+							'toolset_arch': '<(target_arch)',
+						},
+					],
+				],
+			},
+			
 			'sources':
 			[
-				'<@(libffi_platform_sources)',
-				'<@(libffi_generic_sources)',
+				'<@(libffi_generic_sources)'
 			],
+			
+			'include_dirs':
+			[
+				'<@(_platform_include_dirs)',
+			],
+			
 			'direct_dependent_settings':
 			{
-				'include_dirs': [ '<(libffi_public_headers_dir)', ],
+				'include_dirs':
+				[
+					'<@(_platform_include_dirs)',
+				],
 			},
+			
+			'conditions':
+			[
+				[
+					'toolset_os == "mac"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_darwin_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_mac_source_files)',
+						],
+					},
+				],
+				[
+					'toolset_os == "ios"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_darwin_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_ios_source_files)',
+						],
+					},
+				],
+				[
+					'toolset_os == "win"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_win32_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_win_source_files)',
+						],
+					},
+				],
+				[
+					'(toolset_os == "linux" or toolset_os == "android") and toolset_arch == "x86"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_x86_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_linux_x86_source_files)',
+						],
+					},
+				],
+				[
+					'(toolset_os == "linux" or toolset_os == "android") and toolset_arch == "x86_64"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_x86_64_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_linux_x86_source_files)',
+						],
+					},
+				],
+				[
+					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv6hf")',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_android_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_linux_arm_source_files)',
+						],
+					},
+				],
+			],
 		},
 	],
 }

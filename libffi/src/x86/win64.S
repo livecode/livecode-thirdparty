@@ -258,7 +258,7 @@ ffi_call_win64 ENDP
 _TEXT	ENDS
 END
 
-#else
+#elif defined __x86_64__
 
 #ifdef SYMBOL_UNDERSCORE
 #define SYMBOL_NAME(name) _##name

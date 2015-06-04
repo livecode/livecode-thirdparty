@@ -37,7 +37,7 @@
 #define CIF_BYTES_OFFSET 16
 #define CIF_FLAGS_OFFSET 20
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(_WIN64)
 
 #define CLOSURE_CIF_OFFSET ((FFI_TRAMPOLINE_SIZE + 3) AND NOT 3)
 
@@ -516,7 +516,7 @@ ffi_closure_STDCALL ENDP
 _TEXT ENDS
 END
 
-#else
+#elif !defined(_MSV_VER) && !defined __x86_64__
 
 #define CLOSURE_CIF_OFFSET ((FFI_TRAMPOLINE_SIZE + 3) & ~3)
 

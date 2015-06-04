@@ -234,6 +234,12 @@
 						[
 							'<@(libffi_linux_arm_source_files)',
 						],
+						
+						# Disable VFP
+						'cflags':
+						[
+							'-U__ARM_EABI__',
+						],
 					},
 				],
 			],

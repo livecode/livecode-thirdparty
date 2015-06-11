@@ -113,6 +113,7 @@
 			
 			'toolsets': ['host','target'],
 			
+			'product_prefix': '',
 			'product_name': 'libffi',
 			
 			'variables':

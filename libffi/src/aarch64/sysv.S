@@ -19,6 +19,8 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
+#ifdef __aarch64__
+
 #define LIBFFI_ASM
 #include <fficonfig.h>
 #include <ffi.h>
@@ -331,3 +333,6 @@ CNAME(ffi_closure_SYSV):
 #ifdef __ELF__
         .size CNAME(ffi_closure_SYSV), .-CNAME(ffi_closure_SYSV)
 #endif
+
+#endif
+

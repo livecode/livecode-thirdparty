@@ -516,7 +516,7 @@ ffi_closure_STDCALL ENDP
 _TEXT ENDS
 END
 
-#elif !defined(_MSV_VER) && !defined __x86_64__
+#elif !defined(_MSV_VER) && defined __i386__
 
 #define CLOSURE_CIF_OFFSET ((FFI_TRAMPOLINE_SIZE + 3) & ~3)
 

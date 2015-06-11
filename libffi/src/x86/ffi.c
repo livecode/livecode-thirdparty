@@ -28,7 +28,7 @@
    DEALINGS IN THE SOFTWARE.
    ----------------------------------------------------------------------- */
 
-#if !defined(__x86_64__) || defined(_WIN64) || defined(__CYGWIN__)
+#if defined(__i386__) || defined(_WIN64) || defined(__CYGWIN__)
 
 #ifdef _WIN64
 #include <windows.h>
@@ -928,5 +928,5 @@ ffi_raw_call(ffi_cif *cif, void (*fn)(void), void *rvalue, ffi_raw *fake_avalue)
 
 #endif
 
-#endif /* !__x86_64__  || X86_WIN64 */
+#endif /* __i386__  || X86_WIN64 */
 

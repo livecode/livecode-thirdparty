@@ -26,7 +26,7 @@
    -----------------------------------------------------------------------
    */
 
-#ifndef __x86_64__
+#ifdef __i386__
 
 #define LIBFFI_ASM	
 #include <fficonfig.h>
@@ -441,4 +441,5 @@ LEFDE3:
 
 #endif
 
-#endif /* ifndef __x86_64__ */
+#endif /* ifdef __i386__ */
+

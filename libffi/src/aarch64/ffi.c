@@ -19,6 +19,8 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
+#ifdef __aarch64__
+
 #include <stdio.h>
 
 #include <ffi.h>
@@ -1176,4 +1178,6 @@ ffi_closure_SYSV_inner (ffi_closure *closure, struct call_context *context,
       (closure->fun) (cif, rvalue, avalue, closure->user_data);
     }
 }
+
+#endif
 

@@ -25,6 +25,8 @@
    DEALINGS IN THE SOFTWARE.
    ----------------------------------------------------------------------- */
 
+#ifdef __arm__
+
 #define LIBFFI_ASM	
 #include <fficonfig.h>
 #include <ffi.h>
@@ -489,3 +491,5 @@ ENTRY(ffi_arm_trampoline)
 #if defined __ELF__ && defined __linux__
 	.section	.note.GNU-stack,"",%progbits
 #endif
+#endif
+

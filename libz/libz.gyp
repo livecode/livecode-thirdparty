@@ -17,6 +17,8 @@
 						
 						'toolsets': ['host','target'],
 						
+						'product_name': 'libz',
+						
 						'variables':
 						{
 							'library_for_module': 1,
@@ -63,6 +65,16 @@
 								'include',
 							],
 						},
+						
+						'target_conditions':
+						[
+							[
+								'_toolset != "target"',
+								{
+									'product_name': 'libz->(_toolset)',
+								},
+							],
+						],
 					},
 				],
 			},

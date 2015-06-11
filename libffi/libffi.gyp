@@ -66,7 +66,6 @@
 			'src/x86/ffi.c',
 			'src/x86/ffi64.c',
 			'src/x86/win32.S',
-			'src/x86/win64.S',
 		],
 		
 		'libffi_ios_source_files':
@@ -81,7 +80,6 @@
 			'src/x86/ffi.c',
 			'src/x86/ffi64.c',
 			'src/x86/win32.S',
-			'src/x86/win64.S'
 		],
 		
 		'libffi_win_source_files':
@@ -96,6 +94,7 @@
 			'src/x86/ffi64.c',
 			'src/x86/sysv.S',
 			'src/x86/unix64.S',
+			'src/x86/win32.S',
 		],
 		
 		'libffi_linux_arm_source_files':
@@ -113,6 +112,8 @@
 			'type': 'static_library',
 			
 			'toolsets': ['host','target'],
+			
+			'product_name': 'libffi',
 			
 			'variables':
 			{
@@ -240,6 +241,16 @@
 						[
 							'-U__ARM_EABI__',
 						],
+					},
+				],
+			],
+			
+			'target_conditions':
+			[
+				[
+					'_toolset != "target"',
+					{
+						'product_name': 'libffi->(_toolset)',
 					},
 				],
 			],

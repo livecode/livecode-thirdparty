@@ -28,7 +28,7 @@
    DEALINGS IN THE SOFTWARE.
    ----------------------------------------------------------------------- */
 
-#if defined(__i386__) || defined(_WIN64) || defined(__CYGWIN__)
+#if defined(__i386__) || defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
 
 #ifdef _WIN64
 #include <windows.h>

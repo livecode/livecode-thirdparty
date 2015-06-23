@@ -10,6 +10,11 @@
 			'target_name': 'libfreetype',
 			'type': 'static_library',
 			
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+			
 			'include_dirs':
 			[
 				'include',

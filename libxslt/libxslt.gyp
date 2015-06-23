@@ -24,6 +24,7 @@
 						'variables':
 						{
 							'library_for_module': 1,
+							'silence_warnings': 1,
 						},
 						
 						'include_dirs':

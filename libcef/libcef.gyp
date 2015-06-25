@@ -16,11 +16,11 @@
 				'silence_warnings': 1,
 			},
 			
-			# Windows and OSX only
+			# OSX, Windows and Linux only
 			'conditions':
 			[
 				[
-					'OS != "mac" and OS != "win"',
+					'OS != "mac" and OS != "win" and OS != "linux"',
 					{
 						'type': 'none',
 					},
@@ -309,11 +309,11 @@
 				'silence_warnings': 1,
 			},
 			
-			# Windows and OSX only
+			# OSX, Windows and Linux only
 			'conditions':
 			[
 				[
-					'OS != "mac" and OS != "win"',
+					'OS != "mac" and OS != "win" and OS != "linux"',
 					{
 						'type': 'none',
 					},

@@ -338,5 +338,18 @@
 				],
 			},
 		],
+		[
+			'OS == "emscripten"',
+			{
+				'targets':
+				[
+					{
+						# Dummy revsecurity target for emscripten
+						'target_name': 'revsecurity',
+						'type': 'none',
+					},
+				],
+			},
+		],
 	],
 }

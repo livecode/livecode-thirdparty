@@ -444,7 +444,7 @@
 				'src/ports/SkFontHost_fontconfig.cpp',
 				'src/ports/SkFontHost_FreeType.cpp',
 				'src/ports/SkFontHost_FreeType_common.cpp',
-				#'src/ports/SkFontHost_linux.cpp',
+                                'src/ports/SkFontHost_linux.cpp',
 				#'src/ports/SkFontHost_mac.cpp',
 				'src/ports/SkFontHost_none.cpp',
 				#'src/ports/SkFontHost_win_dw.cpp',
@@ -480,7 +480,7 @@
 				'src/sfnt/SkOTUtils.cpp',
 				
 				'src/utils/SkOSFile.cpp',
-				'src/utils/android/ashmem.cpp',
+                                #'src/utils/android/ashmem.cpp',
 			],
 			
 			# Exclude all non-generic optimisations by default
@@ -522,22 +522,56 @@
 						],
 					},
 				],
+                                [
+                                        'OS != "emscripten"',
+                                        {
+                                                'sources!':
+                                                [
+                                                        'src/ports/SkFontHost_linux.cpp',
+                                                ],
+                                        },
+                                ],
 				[
-					'OS != "android"',
+                                        'OS != "android" and OS != "emscripten"',
 					{
 						'sources!':
 						[
 							'src/ports/SkFontHost_fontconfig.cpp',
 							'src/ports/SkFontHost_FreeType.cpp',
 							'src/ports/SkFontHost_FreeType_common.cpp',
+                                                        'src/fonts/SkFontMgr_fontconfig.cpp',
 							
 							'src/sfnt/SkOTTable_name.cpp',
 							'src/sfnt/SkOTUtils.cpp',
-							
+
 							'src/utils/android/ashmem.cpp',
 						],
 					},
 				],
+                                [
+                                        'OS == "emscripten"',
+                                        {
+                                                'defines':
+                                                [
+                                                       'SK_FONT_FILE_PREFIX="/boot/fonts/"',
+                                                ],
+
+                                                'dependencies':
+                                                [
+                                                        '../libexpat/libexpat.gyp:libexpat',
+                                                        '../libfreetype/libfreetype.gyp:libfreetype',
+                                                ],
+
+                                                'sources!':
+                                                [
+                                                        'src/image/SkSurface_Gpu.cpp',
+
+                                                        'src/ports/SkFontHost_none.cpp',
+                                                        'src/ports/SkOSFile_none.cpp',
+                                                        'src/ports/SkTLS_none.cpp',
+                                                ],
+                                        },
+                                ],
 				[
 					# All Intel Macs support SSE2 or above
 					'OS == "mac"',
@@ -550,7 +584,7 @@
 					},
 				],
 				[
-					'OS == "android"',
+                                        'OS == "android"',
 					{
 						'dependencies':
 						[
@@ -560,8 +594,8 @@
 
 						'defines':
 						[
-							'SK_BUILD_FOR_ANDROID',
-							'SK_BUILD_FOR_ANDROID_NDK',
+                                                        'SK_BUILD_FOR_ANDROID',
+                                                        'SK_BUILD_FOR_ANDROID_NDK',
 						],
 						
 						'sources!':

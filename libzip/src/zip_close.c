@@ -150,7 +150,7 @@ zip_close(struct zip *za)
 #ifdef _WINDOWS
 	if ((temp=malloc((wcslen(t_zn)+8) * sizeof(WCHAR))) == NULL) {
 #else
-    if ((temp=malloc(strlen(t_zn)+8)) == NULL) {
+    if ((temp=malloc(strlen(t_zn)+8+1)) == NULL) {
 #endif
 	_zip_error_set(&za->error, ZIP_ER_MEMORY, 0);
 	_zip_cdir_free(cd);

@@ -83,6 +83,8 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	d2i_PKCS7_bio: (pointer, pointer) -> (pointer)
 	
 	i2d_PKCS7_SIGNER_INFO: (pointer, pointer) -> (integer)
+
+	i2d_X509: (pointer, pointer) -> (integer)
 	
 	PKCS7_dataInit: (pointer, pointer) -> (pointer)
 	PKCS7_dataFinal: (pointer, pointer) -> (integer)
@@ -194,6 +196,8 @@ ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_load_error_strings: () -> ()
 	SSL_get_peer_certificate: (pointer) -> (pointer)
 	SSL_get_verify_result: (pointer) -> (integer)
+
+	SSL_get_peer_cert_chain: (pointer) -> (pointer)
 
 	SSL_CTX_set_default_verify_paths: (pointer) -> (integer)
 	SSL_CTX_load_verify_locations: (pointer, pointer, pointer) -> (integer)

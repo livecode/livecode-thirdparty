@@ -16,11 +16,11 @@
 				'silence_warnings': 1,
 			},
 			
-			# Windows and OSX only
+			# OSX, Windows and Linux only
 			'conditions':
 			[
 				[
-					'OS != "mac" and OS != "win"',
+					'OS != "mac" and OS != "win" and OS != "linux"',
 					{
 						'type': 'none',
 					},
@@ -95,7 +95,6 @@
 				'libcef_dll/cpptoc/cpptoc.h',
 				'libcef_dll/cpptoc/dialog_handler_cpptoc.h',
 				'libcef_dll/cpptoc/display_handler_cpptoc.h',
-				'libcef_dll/cpptoc/domevent_listener_cpptoc.h',
 				'libcef_dll/cpptoc/domvisitor_cpptoc.h',
 				'libcef_dll/cpptoc/download_handler_cpptoc.h',
 				'libcef_dll/cpptoc/drag_handler_cpptoc.h',
@@ -107,6 +106,7 @@
 				'libcef_dll/cpptoc/keyboard_handler_cpptoc.h',
 				'libcef_dll/cpptoc/life_span_handler_cpptoc.h',
 				'libcef_dll/cpptoc/load_handler_cpptoc.h',
+				'libcef_dll/cpptoc/navigation_entry_visitor_cpptoc.h',
 				'libcef_dll/cpptoc/print_handler_cpptoc.h',
 				'libcef_dll/cpptoc/read_handler_cpptoc.h',
 				'libcef_dll/cpptoc/render_handler_cpptoc.h',
@@ -139,7 +139,6 @@
 				'libcef_dll/ctocpp/ctocpp.h',
 				'libcef_dll/ctocpp/dictionary_value_ctocpp.h',
 				'libcef_dll/ctocpp/domdocument_ctocpp.h',
-				'libcef_dll/ctocpp/domevent_ctocpp.h',
 				'libcef_dll/ctocpp/domnode_ctocpp.h',
 				'libcef_dll/ctocpp/download_item_callback_ctocpp.h',
 				'libcef_dll/ctocpp/download_item_ctocpp.h',
@@ -150,6 +149,7 @@
 				'libcef_dll/ctocpp/jsdialog_callback_ctocpp.h',
 				'libcef_dll/ctocpp/list_value_ctocpp.h',
 				'libcef_dll/ctocpp/menu_model_ctocpp.h',
+				'libcef_dll/ctocpp/navigation_entry_ctocpp.h',
 				'libcef_dll/ctocpp/post_data_ctocpp.h',
 				'libcef_dll/ctocpp/post_data_element_ctocpp.h',
 				'libcef_dll/ctocpp/print_dialog_callback_ctocpp.h',
@@ -196,7 +196,6 @@
 				'libcef_dll/cpptoc/cookie_visitor_cpptoc.cc',
 				'libcef_dll/cpptoc/dialog_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/display_handler_cpptoc.cc',
-				'libcef_dll/cpptoc/domevent_listener_cpptoc.cc',
 				'libcef_dll/cpptoc/domvisitor_cpptoc.cc',
 				'libcef_dll/cpptoc/download_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/drag_handler_cpptoc.cc',
@@ -208,6 +207,7 @@
 				'libcef_dll/cpptoc/keyboard_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/life_span_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/load_handler_cpptoc.cc',
+				'libcef_dll/cpptoc/navigation_entry_visitor_cpptoc.cc',
 				'libcef_dll/cpptoc/print_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/read_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/render_handler_cpptoc.cc',
@@ -238,7 +238,6 @@
 				'libcef_dll/ctocpp/cookie_manager_ctocpp.cc',
 				'libcef_dll/ctocpp/dictionary_value_ctocpp.cc',
 				'libcef_dll/ctocpp/domdocument_ctocpp.cc',
-				'libcef_dll/ctocpp/domevent_ctocpp.cc',
 				'libcef_dll/ctocpp/domnode_ctocpp.cc',
 				'libcef_dll/ctocpp/download_item_callback_ctocpp.cc',
 				'libcef_dll/ctocpp/download_item_ctocpp.cc',
@@ -249,6 +248,7 @@
 				'libcef_dll/ctocpp/jsdialog_callback_ctocpp.cc',
 				'libcef_dll/ctocpp/list_value_ctocpp.cc',
 				'libcef_dll/ctocpp/menu_model_ctocpp.cc',
+				'libcef_dll/ctocpp/navigation_entry_ctocpp.cc',
 				'libcef_dll/ctocpp/post_data_ctocpp.cc',
 				'libcef_dll/ctocpp/post_data_element_ctocpp.cc',
 				'libcef_dll/ctocpp/print_dialog_callback_ctocpp.cc',
@@ -309,11 +309,11 @@
 				'silence_warnings': 1,
 			},
 			
-			# Windows and OSX only
+			# OSX, Windows and Linux only
 			'conditions':
 			[
 				[
-					'OS != "mac" and OS != "win"',
+					'OS != "mac" and OS != "win" and OS != "linux"',
 					{
 						'type': 'none',
 					},

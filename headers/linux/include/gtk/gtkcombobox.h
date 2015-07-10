@@ -131,6 +131,8 @@ AtkObject*    gtk_combo_box_get_popup_accessible (GtkComboBox *combo_box);
 /* private */
 gboolean     _gtk_combo_box_editing_canceled (GtkComboBox     *combo_box);
 
+GtkWidget* gtk_combo_box_new_with_entry(void);
+
 G_END_DECLS
 
 #endif /* __GTK_COMBO_BOX_H__ */

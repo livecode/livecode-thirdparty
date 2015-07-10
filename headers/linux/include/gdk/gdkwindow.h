@@ -642,6 +642,8 @@ void gdk_window_set_opacity(GdkWindow*, gdouble);
    gdk_draw_pixmap(drawable,gc,source_drawable,source_x,source_y,x,y,width,height)
 #endif /* GDK_DISABLE_DEPRECATED */
 
+void gdk_window_restack(GdkWindow *window, GdkWindow *sibling, gboolean above);
+
 G_END_DECLS
 
 #endif /* __GDK_WINDOW_H__ */

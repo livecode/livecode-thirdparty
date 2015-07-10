@@ -796,6 +796,8 @@ void		  _gtk_widget_propagate_composited_changed (GtkWidget    *widget);
 
 GdkColormap* _gtk_widget_peek_colormap (void);
 
+GdkWindow* gtk_widget_get_window(GtkWidget *self);
+
 G_END_DECLS
 
 #endif /* __GTK_WIDGET_H__ */

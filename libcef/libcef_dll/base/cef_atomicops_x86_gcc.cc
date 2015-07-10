@@ -5,6 +5,9 @@
 // This module gets enough CPU information to optimize the
 // atomicops module on x86.
 
+#include <stdint.h>
+#include <string.h>
+
 #include "include/base/cef_atomicops.h"
 
 // This file only makes sense with atomicops_internals_x86_gcc.h -- it

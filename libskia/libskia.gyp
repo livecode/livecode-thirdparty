@@ -584,7 +584,17 @@
 					},
 				],
 				[
-                                        'OS == "android"',
+					'OS == "ios"',
+					{
+						'sources!':
+						[
+							'src/ports/SkOSFile_none.cpp',
+							'src/ports/SkTLS_none.cpp',
+						],
+					},
+				],
+				[
+					'OS == "android"',
 					{
 						'dependencies':
 						[

@@ -132,6 +132,8 @@
 						},
 					],
 				],
+
+				'silence_warnings': 1,
 			},
 			
 			'sources':

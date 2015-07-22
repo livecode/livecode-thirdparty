@@ -523,6 +523,16 @@
 					},
 				],
 				[
+					'OS == "linux"',
+					{
+						# Work around unreliable platform detection in the Skia headers
+						'defines':
+						[
+							'SK_BUILD_FOR_UNIX',
+						],
+					},
+				],
+				[
 					'OS != "android"',
 					{
 						'sources!':

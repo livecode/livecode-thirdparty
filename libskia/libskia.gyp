@@ -532,7 +532,17 @@
                                         },
                                 ],
 				[
-                                        'OS != "android" and OS != "emscripten"',
+					'OS == "linux" or OS == "emscripten"',
+					{
+						# Work around unreliable platform detection in the Skia headers
+						'defines':
+						[
+							'SK_BUILD_FOR_UNIX',
+						],
+					},
+				],
+				[
+					'OS != "android" and OS != "emscripten"',
 					{
 						'sources!':
 						[

@@ -295,7 +295,7 @@
 								'action_name': 'libopenssl_symbol_list',
 								'inputs':
 								[
-									'../../util/list_stub_symbols.pl'
+									'../../util/list_stub_symbols.pl',
 									'ssl.stubs',
 								],
 								'outputs':

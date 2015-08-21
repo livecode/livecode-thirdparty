@@ -25,7 +25,8 @@
 /* #undef FFI_MMAP_EXEC_EMUTRAMP_PAX */
 
 /* Cannot use malloc on this target, so, we revert to alternative means */
-/* #undef FFI_MMAP_EXEC_WRIT */
+#define FFI_MMAP_EXEC_WRIT 1
+#define FFI_MMAP_EXEC_SELINUX 0
 
 /* Define this if you do not want support for the raw API. */
 /* #undef FFI_NO_RAW_API */

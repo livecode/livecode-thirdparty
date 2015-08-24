@@ -480,7 +480,7 @@
 				'src/sfnt/SkOTUtils.cpp',
 				
 				'src/utils/SkOSFile.cpp',
-                                #'src/utils/android/ashmem.cpp',
+                                'src/utils/android/ashmem.cpp',
 			],
 			
 			# Exclude all non-generic optimisations by default
@@ -542,6 +542,15 @@
 					},
 				],
 				[
+					'OS != "android"',
+					{
+						'sources!':
+						[
+							'src/utils/android/ashmem.cpp',
+						],
+					},
+				],
+				[
 					'OS != "android" and OS != "emscripten"',
 					{
 						'sources!':
@@ -553,8 +562,6 @@
 							
 							'src/sfnt/SkOTTable_name.cpp',
 							'src/sfnt/SkOTUtils.cpp',
-
-							'src/utils/android/ashmem.cpp',
 						],
 					},
 				],

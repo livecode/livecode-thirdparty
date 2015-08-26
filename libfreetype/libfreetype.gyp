@@ -15,6 +15,11 @@
 				'silence_warnings': 1,
 			},
 			
+                        'dependencies':
+                        [
+                                '../libz/libz.gyp:libz',
+                        ],
+
 			'include_dirs':
 			[
 				'include',
@@ -166,7 +171,7 @@
 			[
 				# This library is only required on Android
 				[
-					'OS != "android"',
+                                        'OS != "android" and OS != "emscripten"',
 					{
 						'type': 'none',
 					},

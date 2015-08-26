@@ -286,7 +286,7 @@
 						[
 							[
 								# Not supported on Android
-								'OS == "android"',
+								'OS == "android" or OS == "emscripten"',
 								{
 									'type': 'none',
 								},

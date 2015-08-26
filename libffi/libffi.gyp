@@ -96,7 +96,12 @@
 			'src/x86/unix64.S',
 			'src/x86/win32.S',
 		],
-		
+
+		'libffi_emscripten_source_files':
+		[
+			'src/x86/ffi.c',
+		],
+
 		'libffi_linux_arm_source_files':
 		[
 			'src/arm/ffi.c',
@@ -244,6 +249,20 @@
 						[
 							'-U__ARM_EABI__',
 						],
+					},
+				],
+				[
+					'toolset_os == "emscripten"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_x86_dir)',
+						],
+
+						'sources':
+						[
+							'<@(libffi_emscripten_source_files)',
+						]
 					},
 				],
 			],

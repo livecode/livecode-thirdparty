@@ -5,23 +5,16 @@
  *		  Prototypes and macros around system calls, used to help make
  *		  threaded libraries reentrant and safe to use from threaded applications.
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/port/thread.c,v 1.31 2005/10/15 02:49:51 momjian Exp $
+ * src/port/thread.c
  *
  *-------------------------------------------------------------------------
  */
 
 #include "c.h"
 
-#ifdef WIN32_CLIENT_ONLY
-#undef ERROR
-#else
 #include <pwd.h>
-#endif
-#if defined(ENABLE_THREAD_SAFETY)
-#include <pthread.h>
-#endif
 
 
 /*
@@ -35,12 +28,12 @@
  *	Additional confusion exists because many operating systems that
  *	use pthread_setspecific/pthread_getspecific() also have *_r versions
  *	of standard library functions for compatibility with operating systems
- *	that require them.	However, internally, these *_r functions merely
+ *	that require them.  However, internally, these *_r functions merely
  *	call the thread-safe standard library functions.
  *
  *	For example, BSD/OS 4.3 uses Bind 8.2.3 for getpwuid().  Internally,
  *	getpwuid() calls pthread_setspecific/pthread_getspecific() to return
- *	static data to the caller in a thread-safe manner.	However, BSD/OS
+ *	static data to the caller in a thread-safe manner.  However, BSD/OS
  *	also has getpwuid_r(), which merely calls getpwuid() and shifts
  *	around the arguments to match the getpwuid_r() function declaration.
  *	Therefore, while BSD/OS has getpwuid_r(), it isn't required.  It also
@@ -50,12 +43,12 @@
  *	The current setup is to try threading in this order:
  *
  *		use *_r function names if they exit
- *			(*_THREADSAFE=ye)
+ *			(*_THREADSAFE=yes)
  *		use non-*_r functions if they are thread-safe
  *
  *	One thread-safe solution for gethostbyname() might be to use getaddrinfo().
  *
- *	Run src/tools/thread to see if your operating system has thread-safe
+ *	Run src/test/thread to test if your operating system has thread-safe
  *	non-*_r functions.
  */
 
@@ -81,7 +74,7 @@ pqStrerror(int errnum, char *strerrbuf, size_t buflen)
 #endif
 #else
 	/* no strerror_r() available, just use strerror */
-	StrNCpy(strerrbuf, strerror(errnum), buflen);
+	strlcpy(strerrbuf, strerror(errnum), buflen);
 
 	return strerrbuf;
 #endif
@@ -90,6 +83,12 @@ pqStrerror(int errnum, char *strerrbuf, size_t buflen)
 /*
  * Wrapper around getpwuid() or getpwuid_r() to mimic POSIX getpwuid_r()
  * behaviour, if it is not available or required.
+ *
+ * Per POSIX, the possible cases are:
+ * success: returns zero, *result is non-NULL
+ * uid not found: returns zero, *result is NULL
+ * error during lookup: returns an errno code, *result is NULL
+ * (caller should *not* assume that the errno variable is set)
  */
 #ifndef WIN32
 int
@@ -100,22 +99,25 @@ pqGetpwuid(uid_t uid, struct passwd * resultbuf, char *buffer,
 
 #ifdef GETPWUID_R_5ARG
 	/* POSIX version */
-	getpwuid_r(uid, resultbuf, buffer, buflen, result);
+	return getpwuid_r(uid, resultbuf, buffer, buflen, result);
 #else
 
 	/*
 	 * Early POSIX draft of getpwuid_r() returns 'struct passwd *'.
 	 * getpwuid_r(uid, resultbuf, buffer, buflen)
 	 */
+	errno = 0;
 	*result = getpwuid_r(uid, resultbuf, buffer, buflen);
+	/* paranoia: ensure we return zero on success */
+	return (*result == NULL) ? errno : 0;
 #endif
 #else
-
 	/* no getpwuid_r() available, just use getpwuid() */
+	errno = 0;
 	*result = getpwuid(uid);
+	/* paranoia: ensure we return zero on success */
+	return (*result == NULL) ? errno : 0;
 #endif
-
-	return (*result == NULL) ? -1 : 0;
 }
 #endif
 

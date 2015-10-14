@@ -4,10 +4,10 @@
  *	  header file for resource usage measurement support routines
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/pg_rusage.h,v 1.1 2005/10/03 22:52:26 tgl Exp $
+ * src/include/utils/pg_rusage.h
  *
  *-------------------------------------------------------------------------
  */
@@ -16,7 +16,7 @@
 
 #include <sys/time.h>
 
-#ifdef HAVE_GETRUSAGE
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #else
 #include "rusagestub.h"

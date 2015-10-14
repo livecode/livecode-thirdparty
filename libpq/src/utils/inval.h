@@ -4,10 +4,10 @@
  *	  POSTGRES cache invalidation dispatcher definitions.
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/inval.h,v 1.37 2005/10/15 02:49:46 momjian Exp $
+ * src/include/utils/inval.h
  *
  *-------------------------------------------------------------------------
  */
@@ -15,9 +15,12 @@
 #define INVAL_H
 
 #include "access/htup.h"
+#include "storage/relfilenode.h"
+#include "utils/relcache.h"
 
 
-typedef void (*CacheCallbackFunction) (Datum arg, Oid relid);
+typedef void (*SyscacheCallbackFunction) (Datum arg, int cacheid, uint32 hashvalue);
+typedef void (*RelcacheCallbackFunction) (Datum arg, Oid relid);
 
 
 extern void AcceptInvalidationMessages(void);
@@ -36,7 +39,11 @@ extern void PostPrepare_Inval(void);
 
 extern void CommandEndInvalidationMessages(void);
 
-extern void CacheInvalidateHeapTuple(Relation relation, HeapTuple tuple);
+extern void CacheInvalidateHeapTuple(Relation relation,
+						 HeapTuple tuple,
+						 HeapTuple newtuple);
+
+extern void CacheInvalidateCatalog(Oid catalogId);
 
 extern void CacheInvalidateRelcache(Relation relation);
 
@@ -44,14 +51,18 @@ extern void CacheInvalidateRelcacheByTuple(HeapTuple classTuple);
 
 extern void CacheInvalidateRelcacheByRelid(Oid relid);
 
+extern void CacheInvalidateSmgr(RelFileNodeBackend rnode);
+
+extern void CacheInvalidateRelmap(Oid databaseId);
+
 extern void CacheRegisterSyscacheCallback(int cacheid,
-							  CacheCallbackFunction func,
+							  SyscacheCallbackFunction func,
 							  Datum arg);
 
-extern void CacheRegisterRelcacheCallback(CacheCallbackFunction func,
+extern void CacheRegisterRelcacheCallback(RelcacheCallbackFunction func,
 							  Datum arg);
 
-extern void inval_twophase_postcommit(TransactionId xid, uint16 info,
-						  void *recdata, uint32 len);
+extern void CallSyscacheCallbacks(int cacheid, uint32 hashvalue);
 
+extern void InvalidateSystemCaches(void);
 #endif   /* INVAL_H */

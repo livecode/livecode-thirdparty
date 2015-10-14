@@ -4,19 +4,19 @@
  *	  Support getaddrinfo() on platforms that don't have it.
  *
  * We also supply getnameinfo() here, assuming that the platform will have
- * it if and only if it has getaddrinfo().	If this proves false on some
+ * it if and only if it has getaddrinfo().  If this proves false on some
  * platform, we'll need to split this file and provide a separate configure
  * test for getnameinfo().
  *
- * Windows may or may not have these routines, so we handle Windows special
+ * Windows may or may not have these routines, so we handle Windows specially
  * by dynamically checking for their existence.  If they already exist, we
  * use the Windows native routines, but if not, we use our own.
  *
  *
- * Copyright (c) 2003-2005, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2014, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/getaddrinfo.c,v 1.21.2.1 2005/12/08 17:52:20 momjian Exp $
+ *	  src/port/getaddrinfo.c
  *
  *-------------------------------------------------------------------------
  */
@@ -24,23 +24,16 @@
 /* This is intended to be used in both frontend and backend, so use c.h */
 #include "c.h"
 
-#ifndef WIN32_CLIENT_ONLY
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
 
 #include "getaddrinfo.h"
+#include "libpq/pqcomm.h"		/* needed for struct sockaddr_storage */
 
 
 #ifdef WIN32
-
-#define WIN32_LEAN_AND_MEAN
-
-#include <windows.h>
-
-#if !defined(WIN32_CLIENT_ONLY)
 /*
  * The native routines may or may not exist on the Windows platform we are on,
  * so we dynamically look up the routines, and call them via function pointers.
@@ -130,7 +123,6 @@ haveNativeWindowsIPv6routines(void)
 	return (getaddrinfo_ptr != NULL);
 }
 #endif
-#endif
 
 
 /*
@@ -151,7 +143,7 @@ getaddrinfo(const char *node, const char *service,
 			   *psin;
 	struct addrinfo hints;
 
-#if defined(WIN32) && !defined(WIN32_CLIENT_ONLY)
+#ifdef WIN32
 
 	/*
 	 * If Windows has native IPv6 support, use the native Windows routine.
@@ -190,7 +182,7 @@ getaddrinfo(const char *node, const char *service,
 		else if (hints.ai_flags & AI_NUMERICHOST)
 		{
 			if (!inet_aton(node, &sin.sin_addr))
-				return EAI_FAIL;
+				return EAI_NONAME;
 		}
 		else
 		{
@@ -274,7 +266,7 @@ freeaddrinfo(struct addrinfo * res)
 {
 	if (res)
 	{
-#if defined(WIN32) && !defined(WIN32_CLIENT_ONLY)
+#ifdef WIN32
 
 		/*
 		 * If Windows has native IPv6 support, use the native Windows routine.
@@ -336,7 +328,7 @@ gai_strerror(int errcode)
 		case EAI_MEMORY:
 			return "Not enough memory";
 #endif
-#ifdef EAI_NODATA
+#if defined(EAI_NODATA) && EAI_NODATA != EAI_NONAME		/* MSVC/WIN64 duplicate */
 		case EAI_NODATA:
 			return "No host data of that type was found";
 #endif
@@ -357,8 +349,8 @@ gai_strerror(int errcode)
 /*
  * Convert an ipv4 address to a hostname.
  *
- * Bugs:	- Only supports NI_NUMERICHOST and NI_NUMERICSERV
- *		  It will never resolv a hostname.
+ * Bugs:	- Only supports NI_NUMERICHOST and NI_NUMERICSERV behavior.
+ *		  It will never resolve a hostname.
  *		- No IPv6 support.
  */
 int
@@ -366,7 +358,7 @@ getnameinfo(const struct sockaddr * sa, int salen,
 			char *node, int nodelen,
 			char *service, int servicelen, int flags)
 {
-#if defined(WIN32) && !defined(WIN32_CLIENT_ONLY)
+#ifdef WIN32
 
 	/*
 	 * If Windows has native IPv6 support, use the native Windows routine.
@@ -381,28 +373,25 @@ getnameinfo(const struct sockaddr * sa, int salen,
 	if (sa == NULL || (node == NULL && service == NULL))
 		return EAI_FAIL;
 
-	/* We don't support those. */
-	if ((node && !(flags & NI_NUMERICHOST))
-		|| (service && !(flags & NI_NUMERICSERV)))
-		return EAI_FAIL;
-
 #ifdef	HAVE_IPV6
 	if (sa->sa_family == AF_INET6)
 		return EAI_FAMILY;
 #endif
 
+	/* Unsupported flags. */
+	if (flags & NI_NAMEREQD)
+		return EAI_AGAIN;
+
 	if (node)
 	{
-		int			ret = -1;
-
 		if (sa->sa_family == AF_INET)
 		{
-			char	   *p;
-
-			p = inet_ntoa(((struct sockaddr_in *) sa)->sin_addr);
-			ret = snprintf(node, nodelen, "%s", p);
+			if (inet_net_ntop(AF_INET, &((struct sockaddr_in *) sa)->sin_addr,
+							  sa->sa_family == AF_INET ? 32 : 128,
+							  node, nodelen) == NULL)
+				return EAI_MEMORY;
 		}
-		if (ret == -1 || ret > nodelen)
+		else
 			return EAI_MEMORY;
 	}
 
@@ -415,7 +404,7 @@ getnameinfo(const struct sockaddr * sa, int salen,
 			ret = snprintf(service, servicelen, "%d",
 						   ntohs(((struct sockaddr_in *) sa)->sin_port));
 		}
-		if (ret == -1 || ret > servicelen)
+		if (ret == -1 || ret >= servicelen)
 			return EAI_MEMORY;
 	}
 

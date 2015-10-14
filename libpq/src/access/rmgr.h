@@ -3,7 +3,7 @@
  *
  * Resource managers definition
  *
- * $PostgreSQL: pgsql/src/include/access/rmgr.h,v 1.14 2005/06/06 17:01:24 tgl Exp $
+ * src/include/access/rmgr.h
  */
 #ifndef RMGR_H
 #define RMGR_H
@@ -12,20 +12,24 @@ typedef uint8 RmgrId;
 
 /*
  * Built-in resource managers
+ *
+ * The actual numerical values for each rmgr ID are defined by the order
+ * of entries in rmgrlist.h.
+ *
+ * Note: RM_MAX_ID must fit in RmgrId; widening that type will affect the XLOG
+ * file format.
  */
-#define RM_XLOG_ID				0
-#define RM_XACT_ID				1
-#define RM_SMGR_ID				2
-#define RM_CLOG_ID				3
-#define RM_DBASE_ID				4
-#define RM_TBLSPC_ID			5
-#define RM_MULTIXACT_ID			6
-#define RM_HEAP_ID				10
-#define RM_BTREE_ID				11
-#define RM_HASH_ID				12
-#define RM_RTREE_ID				13
-#define RM_GIST_ID				14
-#define RM_SEQ_ID				15
-#define RM_MAX_ID				RM_SEQ_ID
+#define PG_RMGR(symname,name,redo,desc,startup,cleanup) \
+	symname,
+
+typedef enum RmgrIds
+{
+#include "access/rmgrlist.h"
+	RM_NEXT_ID
+} RmgrIds;
+
+#undef PG_RMGR
+
+#define RM_MAX_ID				(RM_NEXT_ID - 1)
 
 #endif   /* RMGR_H */

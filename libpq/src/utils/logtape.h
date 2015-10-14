@@ -5,10 +5,10 @@
  *
  * See logtape.c for explanations.
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/logtape.h,v 1.13 2005/10/18 22:59:37 tgl Exp $
+ * src/include/utils/logtape.h
  *
  *-------------------------------------------------------------------------
  */
@@ -26,6 +26,7 @@ typedef struct LogicalTapeSet LogicalTapeSet;
 
 extern LogicalTapeSet *LogicalTapeSetCreate(int ntapes);
 extern void LogicalTapeSetClose(LogicalTapeSet *lts);
+extern void LogicalTapeSetForgetFreeSpace(LogicalTapeSet *lts);
 extern size_t LogicalTapeRead(LogicalTapeSet *lts, int tapenum,
 				void *ptr, size_t size);
 extern void LogicalTapeWrite(LogicalTapeSet *lts, int tapenum,

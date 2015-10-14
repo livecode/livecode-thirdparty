@@ -4,10 +4,10 @@
  *	  POSTGRES tuple descriptor definitions.
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/tupdesc.h,v 1.47 2005/03/07 04:42:17 tgl Exp $
+ * src/include/access/tupdesc.h
  *
  *-------------------------------------------------------------------------
  */
@@ -29,6 +29,8 @@ typedef struct constrCheck
 {
 	char	   *ccname;
 	char	   *ccbin;			/* nodeToString representation of expr */
+	bool		ccvalid;
+	bool		ccnoinherit;	/* this is a non-inheritable constraint */
 } ConstrCheck;
 
 /* This structure contains constraints of a tuple */
@@ -53,10 +55,18 @@ typedef struct tupleConstr
  * TupleDesc; with the exception that tdhasoid indicates if OID is present.
  *
  * If the tupdesc is known to correspond to a named rowtype (such as a table's
- * rowtype) then tdtypeid identifies that type and tdtypmod is -1.	Otherwise
+ * rowtype) then tdtypeid identifies that type and tdtypmod is -1.  Otherwise
  * tdtypeid is RECORDOID, and tdtypmod can be either -1 for a fully anonymous
  * row type, or a value >= 0 to allow the rowtype to be looked up in the
  * typcache.c type cache.
+ *
+ * Tuple descriptors that live in caches (relcache or typcache, at present)
+ * are reference-counted: they can be deleted when their reference count goes
+ * to zero.  Tuple descriptors created by the executor need no reference
+ * counting, however: they are simply created in the appropriate memory
+ * context and go away when the context is freed.  We set the tdrefcount
+ * field of such a descriptor to -1, while reference-counted descriptors
+ * always have tdrefcount >= 0.
  */
 typedef struct tupleDesc
 {
@@ -67,6 +77,7 @@ typedef struct tupleDesc
 	Oid			tdtypeid;		/* composite type ID for tuple type */
 	int32		tdtypmod;		/* typmod for tuple type */
 	bool		tdhasoid;		/* tuple has oid attribute in its header */
+	int			tdrefcount;		/* reference count, or -1 if not counting */
 }	*TupleDesc;
 
 
@@ -79,7 +90,25 @@ extern TupleDesc CreateTupleDescCopy(TupleDesc tupdesc);
 
 extern TupleDesc CreateTupleDescCopyConstr(TupleDesc tupdesc);
 
+extern void TupleDescCopyEntry(TupleDesc dst, AttrNumber dstAttno,
+				   TupleDesc src, AttrNumber srcAttno);
+
 extern void FreeTupleDesc(TupleDesc tupdesc);
+
+extern void IncrTupleDescRefCount(TupleDesc tupdesc);
+extern void DecrTupleDescRefCount(TupleDesc tupdesc);
+
+#define PinTupleDesc(tupdesc) \
+	do { \
+		if ((tupdesc)->tdrefcount >= 0) \
+			IncrTupleDescRefCount(tupdesc); \
+	} while (0)
+
+#define ReleaseTupleDesc(tupdesc) \
+	do { \
+		if ((tupdesc)->tdrefcount >= 0) \
+			DecrTupleDescRefCount(tupdesc); \
+	} while (0)
 
 extern bool equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2);
 
@@ -90,6 +119,12 @@ extern void TupleDescInitEntry(TupleDesc desc,
 				   int32 typmod,
 				   int attdim);
 
+extern void TupleDescInitEntryCollation(TupleDesc desc,
+							AttrNumber attributeNumber,
+							Oid collationid);
+
 extern TupleDesc BuildDescForRelation(List *schema);
+
+extern TupleDesc BuildDescFromLists(List *names, List *types, List *typmods, List *collations);
 
 #endif   /* TUPDESC_H */

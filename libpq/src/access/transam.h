@@ -4,15 +4,17 @@
  *	  postgres transaction access method support code
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/transam.h,v 1.56 2005/10/15 02:49:42 momjian Exp $
+ * src/include/access/transam.h
  *
  *-------------------------------------------------------------------------
  */
 #ifndef TRANSAM_H
 #define TRANSAM_H
+
+#include "access/xlogdefs.h"
 
 
 /* ----------------
@@ -23,6 +25,7 @@
  * always be considered valid.
  *
  * FirstNormalTransactionId is the first "normal" transaction id.
+ * Note: if you need to change it, you must change pg_class.h as well.
  * ----------------
  */
 #define InvalidTransactionId		((TransactionId) 0)
@@ -40,6 +43,7 @@
 #define TransactionIdEquals(id1, id2)	((id1) == (id2))
 #define TransactionIdStore(xid, dest)	(*(dest) = (xid))
 #define StoreInvalidTransactionId(dest) (*(dest) = InvalidTransactionId)
+
 /* advance a transaction ID variable, handling wraparound correctly */
 #define TransactionIdAdvance(dest)	\
 	do { \
@@ -48,6 +52,21 @@
 			(dest) = FirstNormalTransactionId; \
 	} while(0)
 
+/* back up a transaction ID variable, handling wraparound correctly */
+#define TransactionIdRetreat(dest)	\
+	do { \
+		(dest)--; \
+	} while ((dest) < FirstNormalTransactionId)
+
+/* compare two XIDs already known to be normal; this is a macro for speed */
+#define NormalTransactionIdPrecedes(id1, id2) \
+	(AssertMacro(TransactionIdIsNormal(id1) && TransactionIdIsNormal(id2)), \
+	(int32) ((id1) - (id2)) < 0)
+
+/* compare two XIDs already known to be normal; this is a macro for speed */
+#define NormalTransactionIdFollows(id1, id2) \
+	(AssertMacro(TransactionIdIsNormal(id1) && TransactionIdIsNormal(id2)), \
+	(int32) ((id1) - (id2)) > 0)
 
 /* ----------
  *		Object ID (OID) zero is InvalidOid.
@@ -59,7 +78,7 @@
  *		using the OID generator.  (We start the generator at 10000.)
  *
  *		OIDs beginning at 16384 are assigned from the OID generator
- *		during normal multiuser operation.	(We force the generator up to
+ *		during normal multiuser operation.  (We force the generator up to
  *		16384 as soon as we are in normal operation.)
  *
  * The choices of 10000 and 16384 are completely arbitrary, and can be moved
@@ -75,22 +94,40 @@
 #define FirstNormalObjectId		16384
 
 /*
- * VariableCache is placed in shmem and used by
- * backends to get next available OID & XID.
+ * VariableCache is a data structure in shared memory that is used to track
+ * OID and XID assignment state.  For largely historical reasons, there is
+ * just one struct with different fields that are protected by different
+ * LWLocks.
  *
- * Note: xidWrapLimit and limit_datname are not "active" values, but are
+ * Note: xidWrapLimit and oldestXidDB are not "active" values, but are
  * used just to generate useful messages when xidWarnLimit or xidStopLimit
  * are exceeded.
  */
 typedef struct VariableCacheData
 {
+	/*
+	 * These fields are protected by OidGenLock.
+	 */
 	Oid			nextOid;		/* next OID to assign */
 	uint32		oidCount;		/* OIDs available before must do XLOG work */
+
+	/*
+	 * These fields are protected by XidGenLock.
+	 */
 	TransactionId nextXid;		/* next XID to assign */
+
+	TransactionId oldestXid;	/* cluster-wide minimum datfrozenxid */
+	TransactionId xidVacLimit;	/* start forcing autovacuums here */
 	TransactionId xidWarnLimit; /* start complaining here */
 	TransactionId xidStopLimit; /* refuse to advance nextXid beyond here */
 	TransactionId xidWrapLimit; /* where the world ends */
-	NameData	limit_datname;	/* database that needs vacuumed first */
+	Oid			oldestXidDB;	/* database with minimum datfrozenxid */
+
+	/*
+	 * These fields are protected by ProcArrayLock.
+	 */
+	TransactionId latestCompletedXid;	/* newest XID that has committed or
+										 * aborted */
 } VariableCacheData;
 
 typedef VariableCacheData *VariableCache;
@@ -101,30 +138,36 @@ typedef VariableCacheData *VariableCache;
  * ----------------
  */
 
-/* in transam/varsup.c */
-extern VariableCache ShmemVariableCache;
+/* in transam/xact.c */
+extern bool TransactionStartedDuringRecovery(void);
 
+/* in transam/varsup.c */
+extern PGDLLIMPORT VariableCache ShmemVariableCache;
 
 /*
  * prototypes for functions in transam/transam.c
  */
 extern bool TransactionIdDidCommit(TransactionId transactionId);
 extern bool TransactionIdDidAbort(TransactionId transactionId);
-extern void TransactionIdCommit(TransactionId transactionId);
+extern bool TransactionIdIsKnownCompleted(TransactionId transactionId);
 extern void TransactionIdAbort(TransactionId transactionId);
-extern void TransactionIdSubCommit(TransactionId transactionId);
-extern void TransactionIdCommitTree(int nxids, TransactionId *xids);
-extern void TransactionIdAbortTree(int nxids, TransactionId *xids);
+extern void TransactionIdCommitTree(TransactionId xid, int nxids, TransactionId *xids);
+extern void TransactionIdAsyncCommitTree(TransactionId xid, int nxids, TransactionId *xids, XLogRecPtr lsn);
+extern void TransactionIdAbortTree(TransactionId xid, int nxids, TransactionId *xids);
 extern bool TransactionIdPrecedes(TransactionId id1, TransactionId id2);
 extern bool TransactionIdPrecedesOrEquals(TransactionId id1, TransactionId id2);
 extern bool TransactionIdFollows(TransactionId id1, TransactionId id2);
 extern bool TransactionIdFollowsOrEquals(TransactionId id1, TransactionId id2);
+extern TransactionId TransactionIdLatest(TransactionId mainxid,
+					int nxids, const TransactionId *xids);
+extern XLogRecPtr TransactionIdGetCommitLSN(TransactionId xid);
 
 /* in transam/varsup.c */
 extern TransactionId GetNewTransactionId(bool isSubXact);
 extern TransactionId ReadNewTransactionId(void);
 extern void SetTransactionIdLimit(TransactionId oldest_datfrozenxid,
-					  Name oldest_datname);
+					  Oid oldest_datoid);
+extern bool ForceTransactionIdLimitUpdate(void);
 extern Oid	GetNewObjectId(void);
 
 #endif   /* TRAMSAM_H */

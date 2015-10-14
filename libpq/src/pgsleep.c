@@ -4,9 +4,9 @@
  *	   Portable delay handling.
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/port/pgsleep.c,v 1.6 2004/12/31 22:03:53 pgsql Exp $
+ * src/port/pgsleep.c
  *
  *-------------------------------------------------------------------------
  */
@@ -16,6 +16,12 @@
 #include <sys/time.h>
 
 /*
+ * In a Windows backend, we don't use this implementation, but rather
+ * the signal-aware version in src/backend/port/win32/signal.c.
+ */
+#if defined(FRONTEND) || !defined(WIN32)
+
+/*
  * pg_usleep --- delay the specified number of microseconds.
  *
  * NOTE: although the delay is specified in microseconds, the effective
@@ -23,10 +29,17 @@
  * the requested delay to be rounded up to the next resolution boundary.
  *
  * On machines where "long" is 32 bits, the maximum delay is ~2000 seconds.
+ *
+ * CAUTION: the behavior when a signal arrives during the sleep is platform
+ * dependent.  On most Unix-ish platforms, a signal does not terminate the
+ * sleep; but on some, it will (the Windows implementation also allows signals
+ * to terminate pg_usleep).  And there are platforms where not only does a
+ * signal not terminate the sleep, but it actually resets the timeout counter
+ * so that the sleep effectively starts over!  It is therefore rather hazardous
+ * to use this for long sleeps; a continuing stream of signal events could
+ * prevent the sleep from ever terminating.  Better practice for long sleeps
+ * is to use WaitLatch() with a timeout.
  */
-#ifdef pg_usleep
-#undef pg_usleep
-#endif
 void
 pg_usleep(long microsec)
 {
@@ -43,3 +56,5 @@ pg_usleep(long microsec)
 #endif
 	}
 }
+
+#endif   /* defined(FRONTEND) || !defined(WIN32) */

@@ -1,11 +1,10 @@
-
 /* -----------------------------------------------------------------------
  * formatting.h
  *
- * $PostgreSQL: pgsql/src/include/utils/formatting.h,v 1.15 2005/01/01 05:43:09 momjian Exp $
+ * src/include/utils/formatting.h
  *
  *
- *	 Portions Copyright (c) 1999-2005, PostgreSQL Global Development Group
+ *	 Portions Copyright (c) 1999-2014, PostgreSQL Global Development Group
  *
  *	 The PostgreSQL routines for a DateTime/int/float/numeric formatting,
  *	 inspire with Oracle TO_CHAR() / TO_DATE() / TO_NUMBER() routines.
@@ -20,6 +19,14 @@
 
 #include "fmgr.h"
 
+
+extern char *str_tolower(const char *buff, size_t nbytes, Oid collid);
+extern char *str_toupper(const char *buff, size_t nbytes, Oid collid);
+extern char *str_initcap(const char *buff, size_t nbytes, Oid collid);
+
+extern char *asc_tolower(const char *buff, size_t nbytes);
+extern char *asc_toupper(const char *buff, size_t nbytes);
+extern char *asc_initcap(const char *buff, size_t nbytes);
 
 extern Datum timestamp_to_char(PG_FUNCTION_ARGS);
 extern Datum timestamptz_to_char(PG_FUNCTION_ARGS);

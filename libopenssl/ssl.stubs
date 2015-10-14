@@ -1,6 +1,7 @@
 crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	OpenSSL_add_all_ciphers: () -> ()
 	OPENSSL_add_all_algorithms_noconf: () -> ()
+	OPENSSL_config: (pointer) -> ()
 
 	EVP_CipherInit: (pointer, pointer, pointer, pointer, integer) -> (integer)
 	EVP_CipherUpdate: (pointer, pointer, pointer, pointer, integer) -> (integer)
@@ -47,6 +48,9 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	X509_get_ext: (pointer, integer) -> (pointer)
 	X509_check_private_key: (pointer, pointer) -> (integer)
 	X509_free: (pointer) -> ()
+    
+	X509_STORE_load_locations: (pointer, pointer, pointer) -> (integer)
+	X509_STORE_set_flags: (pointer, integer) -> (integer)
 
 	X509V3_EXT_get: (pointer) -> (pointer)
 
@@ -119,6 +123,9 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	
 	CRYPTO_malloc: (integer) -> (pointer)
 	CRYPTO_free: (pointer) -> ()
+	CRYPTO_num_locks: () -> (integer)
+	CRYPTO_set_id_callback: (pointer) -> ()
+	CRYPTO_set_locking_callback: () -> (pointer)
 	
 	ASN1_item_d2i: (pointer, pointer, integer, pointer) -> (pointer)
 	ASN1_item_i2d: (pointer, pointer, pointer) -> (integer)
@@ -179,6 +186,12 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	
 	GENERAL_NAMES_free: (pointer) -> ()
 
+	ENGINE_by_id: (pointer) -> (pointer)
+	ENGINE_finish: (pointer) -> (integer)
+	ENGINE_free: (pointer) -> (integer)
+	ENGINE_init: (pointer) -> (integer)
+	ENGINE_load_private_key: (pointer, pointer, pointer, pointer)-> (pointer)
+
 ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_new: (pointer) -> (pointer)
 	SSL_free: (pointer) -> ()
@@ -225,3 +238,12 @@ ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_get_shared_ciphers: (pointer, pointer, integer) -> (pointer)
 	SSL_pending: (pointer) -> (integer)
 	SSL_set_quiet_shutdown: (pointer, integer) -> ()
+
+	SSL_CTX_use_certificate_chain_file: (pointer, pointer) -> (integer)
+	SSL_check_private_key: (pointer) -> (integer)
+	SSL_ctrl: (pointer, integer, integer, pointer) -> (integer)
+	SSL_set_ex_data: (pointer, integer, pointer) -> (integer)
+	SSL_set_verify: (pointer, integer, pointer) -> ()
+	SSL_use_PrivateKey: (pointer, pointer) -> (integer)
+	SSL_use_PrivateKey_file: (pointer, pointer, integer) -> (integer)
+	SSL_use_certificate_file: (pointer, pointer, integer) -> (integer)

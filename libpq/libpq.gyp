@@ -21,6 +21,11 @@
 							'library_for_module': 1,
 							'silence_warnings': 1,
 						},
+                        
+						'dependencies':
+						[
+							'../libopenssl/libopenssl.gyp:libopenssl',
+						],
 						
 						'include_dirs':
 						[
@@ -36,39 +41,16 @@
 						'sources':
 						[
 							'include/libpq-fe.h',
+							'include/pg_config_ext.h',
 							'include/postgres_ext.h',
-							
-							'src/c.h',
-							'src/fe-auth.h',
-							'src/fmgr.h',
-							'src/getaddrinfo.h',
-							'src/libpq-int.h',
-							'src/miscadmin.h',
-							'src/my_pg_config.h',
-							'src/pg_config_manual.h',
-							'src/pg_config_os.h',
-							'src/pg_config_paths.h',
+
 							'src/pg_config.h',
-							'src/pg_config.linux.h',
-							'src/pg_config.mac.i386.h',
-							'src/pg_config.mac.ppc.h',
+							'src/pg_config.mac.h',
 							'src/pg_config.win32.h',
-							'src/port.h',
-							'src/postgres_fe.h',
-							'src/postgres.h',
-							'src/pqexpbuffer.h',
-							'src/pqsignal.h',
-							'src/pthread-win32.h',
-							'src/strdup.h',
-							'src/win32.h',
-							
-							'src/copydir.c',
-							'src/crypt.c',
-							'src/dirmod.c',
-							'src/elog.c',
+							'src/pg_config.linux.h',
+
+							'src/chklocale.c',
 							'src/encnames.c',
-							'src/error.c',
-							'src/exec.c',
 							'src/fe-auth.c',
 							'src/fe-connect.c',
 							'src/fe-exec.c',
@@ -78,60 +60,21 @@
 							'src/fe-protocol2.c',
 							'src/fe-protocol3.c',
 							'src/fe-secure.c',
-							'src/fseeko.c',
-							'src/getaddrinfo.c',
-							'src/gethostname.c',
-							'src/getopt_long.c',
-							'src/getopt.c',
-							'src/getrusage.c',
-							'src/gettimeofday.c',
-							'src/inet_aton.c',
+							'src/getpeereid.c',
+							'src/inet_net_ntop.c',
 							'src/ip.c',
-							'src/isinf.c',
-							'src/kill.c',
+							'src/libpq-events.c',
 							'src/md5.c',
-							'src/memcmp.c',
 							'src/noblock.c',
-							'src/open.c',
-							'src/path.c',
 							'src/pgsleep.c',
 							'src/pgstrcasecmp.c',
-							'src/pipe.c',
 							'src/pqexpbuffer.c',
 							'src/pqsignal.c',
-							'src/pthread-win32.c',
-							'src/qsort.c',
-							'src/rand.c',
-							'src/random.c',
-							'src/rint.c',
-							'src/security.c',
-							'src/sema.c',
-							'src/shmem.c',
-							'src/signal.c',
-							'src/snprintf.c',
-							'src/socket.c',
-							'src/sprompt.c',
-							'src/srandom.c',
-							'src/strdup.c',
-							'src/strerror.c',
-							'src/strtol.c',
-							'src/strtoul.c',
+							'src/strlcpy.c',
 							'src/thread.c',
-							'src/timer.c',
-							'src/unsetenv.c',
 							'src/wchar.c',
-							'src/win32.c',
 						],
-						
-						# Be quite selective about the bits of libpq that we actually compile
-						'sources/':
-						[
-							['exclude', '^src/.*\\.c$'],
-							['include', '^src/fe-.*\\.c$'],
-							['include', '^src/pg.*\\.c$'],
-							['include', '^src/pq.*\\.c$'],
-							['include', '^src/(md5|pipe|fseeko|open|noblock|wchar|kill|dirmod|encnames|memcmp|isinf|inet_aton|qsort|snprintf|rint|random|rand|ip|thread)\\.c$'],
-						],
+
 						
 						'direct_dependent_settings':
 						{
@@ -144,13 +87,27 @@
 						'conditions':
 						[
 							[
-								# Remove source files that don't work on Windows and add some others that are needed
 								'OS == "win"',
 								{
-									'sources/':
+									'include_dirs':
 									[
-										['exclude', '^src/(pgsleep|snprintf|dirmod|memcmp)\\.c$'],
-										['include', '^src/(crypt|getaddrinfo|ip|win32)\\.c$'],
+										'src/port/win32',
+										'src/port/win32_msvc',
+									],
+
+									'sources':
+									[
+										'src/crypt.c',
+										'src/dirent.c',
+										'src/dirmod.c',
+										'src/getaddrinfo.c',
+										'src/inet_aton.c',
+										'src/pthread-win32.c',
+										'src/open.c',
+										'src/snprintf.c',
+										'src/system.c',
+										'src/win32.c',
+										'src/win32setlocale.c',
 									],
 									
 									'link_settings':
@@ -158,8 +115,11 @@
 										'libraries':
 										[
 											'-ladvapi32',
+											'-lsecur32',
 											'-lshell32',
+											'-lwldap32',
 											'-lws2_32',
+											'-lwsock32',
 										],
 									},
 								}

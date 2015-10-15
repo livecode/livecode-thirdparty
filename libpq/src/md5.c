@@ -2,7 +2,7 @@
  *	md5.c
  *
  *	Implements	the  MD5 Message-Digest Algorithm as specified in
- *	RFC  1321.	This  implementation  is a simple one, in that it
+ *	RFC  1321.  This  implementation  is a simple one, in that it
  *	needs  every  input  byte  to  be  buffered  before doing any
  *	calculations.  I  do  not  expect  this  file  to be used for
  *	general  purpose  MD5'ing  of large amounts of data, only for
@@ -10,17 +10,17 @@
  *
  *	Sverre H. Huseby <sverrehu@online.no>
  *
- *	Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ *	Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  *	Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/md5.c,v 1.31 2005/10/20 13:54:08 tgl Exp $
+ *	  src/backend/libpq/md5.c
  */
 
 /* This is intended to be used in both frontend and backend, so use c.h */
 #include "c.h"
 
-#include "libpq/crypt.h"
+#include "libpq/md5.h"
 
 
 /*
@@ -33,7 +33,7 @@
  *	when it is no longer needed.
  */
 static uint8 *
-createPaddedCopyWithLength(uint8 *b, uint32 *l)
+createPaddedCopyWithLength(const uint8 *b, uint32 *l)
 {
 	uint8	   *ret;
 	uint32		q;
@@ -182,7 +182,7 @@ doTheRounds(uint32 X[16], uint32 state[4])
 }
 
 static int
-calculateDigestFromBuffer(uint8 *b, uint32 len, uint8 sum[16])
+calculateDigestFromBuffer(const uint8 *b, uint32 len, uint8 sum[16])
 {
 	register uint32 i,
 				j,
@@ -265,7 +265,7 @@ bytesToHex(uint8 b[16], char *s)
  *
  *	Calculates the MD5 sum of the bytes in a buffer.
  *
- *	SYNOPSIS	  #include "crypt.h"
+ *	SYNOPSIS	  #include "md5.h"
  *				  int pg_md5_hash(const void *buff, size_t len, char *hexsum)
  *
  *	INPUT		  buff	  the buffer containing the bytes that you want
@@ -291,13 +291,20 @@ pg_md5_hash(const void *buff, size_t len, char *hexsum)
 {
 	uint8		sum[16];
 
-	if (!calculateDigestFromBuffer((uint8 *) buff, len, sum))
+	if (!calculateDigestFromBuffer(buff, len, sum))
 		return false;
 
 	bytesToHex(sum, hexsum);
 	return true;
 }
 
+bool
+pg_md5_binary(const void *buff, size_t len, void *outbuf)
+{
+	if (!calculateDigestFromBuffer(buff, len, outbuf))
+		return false;
+	return true;
+}
 
 
 /*
@@ -314,7 +321,9 @@ pg_md5_encrypt(const char *passwd, const char *salt, size_t salt_len,
 			   char *buf)
 {
 	size_t		passwd_len = strlen(passwd);
-	char	   *crypt_buf = malloc(passwd_len + salt_len);
+
+	/* +1 here is just to avoid risk of unportable malloc(0) */
+	char	   *crypt_buf = malloc(passwd_len + salt_len + 1);
 	bool		ret;
 
 	if (!crypt_buf)
@@ -324,7 +333,7 @@ pg_md5_encrypt(const char *passwd, const char *salt, size_t salt_len,
 	 * Place salt at the end because it may be known by users trying to crack
 	 * the MD5 output.
 	 */
-	strcpy(crypt_buf, passwd);
+	memcpy(crypt_buf, passwd, passwd_len);
 	memcpy(crypt_buf + passwd_len, salt, salt_len);
 
 	strcpy(buf, "md5");

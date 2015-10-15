@@ -4,23 +4,51 @@
  *	  reliable BSD-style signal(2) routine stolen from RWW who stole it
  *	  from Stevens...
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/interfaces/libpq/pqsignal.c,v 1.24 2004/12/31 22:03:50 pgsql Exp $
+ *	  src/port/pqsignal.c
  *
- * NOTES
- *		This shouldn't be in libpq, but the monitor and some other
- *		things need it...
+ *	A NOTE ABOUT SIGNAL HANDLING ACROSS THE VARIOUS PLATFORMS.
  *
- *-------------------------------------------------------------------------
+ *	pg_config.h defines the macro HAVE_POSIX_SIGNALS for some platforms and
+ *	not for others.  We use that here to decide how to handle signalling.
+ *
+ *	Ultrix and SunOS provide BSD signal(2) semantics by default.
+ *
+ *	SVID2 and POSIX signal(2) semantics differ from BSD signal(2)
+ *	semantics.  We can use the POSIX sigaction(2) on systems that
+ *	allow us to request restartable signals (SA_RESTART).
+ *
+ *	Some systems don't allow restartable signals at all unless we
+ *	link to a special BSD library.
+ *
+ *	We devoutly hope that there aren't any Unix-oid systems that provide
+ *	neither POSIX signals nor BSD signals.  The alternative is to do
+ *	signal-handler reinstallation, which doesn't work well at all.
+ *
+ *	Windows, of course, is resolutely in a class by itself.  In the backend,
+ *	we don't use this file at all; src/backend/port/win32/signal.c provides
+ *	pqsignal() for the backend environment.  Frontend programs can use
+ *	this version of pqsignal() if they wish, but beware that Windows
+ *	requires signal-handler reinstallation, because indeed it provides
+ *	neither POSIX signals nor BSD signals :-(
+ * ------------------------------------------------------------------------
  */
-#include "pqsignal.h"
+
+#include "c.h"
 
 #include <signal.h>
 
+#if !defined(WIN32) || defined(FRONTEND)
+
+/*
+ * Set up a signal handler for signal "signo"
+ *
+ * Returns the previous handler.
+ */
 pqsigfunc
 pqsignal(int signo, pqsigfunc func)
 {
@@ -32,9 +60,7 @@ pqsignal(int signo, pqsigfunc func)
 
 	act.sa_handler = func;
 	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-	if (signo != SIGALRM)
-		act.sa_flags |= SA_RESTART;
+	act.sa_flags = SA_RESTART;
 #ifdef SA_NOCLDSTOP
 	if (signo == SIGCHLD)
 		act.sa_flags |= SA_NOCLDSTOP;
@@ -45,28 +71,4 @@ pqsignal(int signo, pqsigfunc func)
 #endif   /* !HAVE_POSIX_SIGNALS */
 }
 
-pqsigfunc
-pqsignalinquire(int signo)
-{
-#ifndef WIN32
-#if !defined(HAVE_POSIX_SIGNALS)
-	pqsigfunc	old_sigfunc;
-	int			old_sigmask;
-
-	/* Prevent signal handler calls during test */
-	old_sigmask = sigblock(sigmask(signo));
-	old_sigfunc = signal(signo, SIG_DFL);
-	signal(signo, old_sigfunc);
-	sigblock(old_sigmask);
-	return old_sigfunc;
-#else
-	struct sigaction oact;
-
-	if (sigaction(signo, NULL, &oact) < 0)
-		return SIG_ERR;
-	return oact.sa_handler;
-#endif   /* !HAVE_POSIX_SIGNALS */
-#else
-	return SIG_DFL;
-#endif
-}
+#endif   /* !defined(WIN32) || defined(FRONTEND) */

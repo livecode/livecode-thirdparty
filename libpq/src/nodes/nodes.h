@@ -4,10 +4,10 @@
  *	  Definitions for tagged nodes.
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/nodes.h,v 1.176.2.1 2005/11/22 18:23:28 momjian Exp $
+ * src/include/nodes/nodes.h
  *
  *-------------------------------------------------------------------------
  */
@@ -43,17 +43,25 @@ typedef enum NodeTag
 	 */
 	T_Plan = 100,
 	T_Result,
+	T_ModifyTable,
 	T_Append,
+	T_MergeAppend,
+	T_RecursiveUnion,
 	T_BitmapAnd,
 	T_BitmapOr,
 	T_Scan,
 	T_SeqScan,
 	T_IndexScan,
+	T_IndexOnlyScan,
 	T_BitmapIndexScan,
 	T_BitmapHeapScan,
 	T_TidScan,
 	T_SubqueryScan,
 	T_FunctionScan,
+	T_ValuesScan,
+	T_CteScan,
+	T_WorkTableScan,
+	T_ForeignScan,
 	T_Join,
 	T_NestLoop,
 	T_MergeJoin,
@@ -62,10 +70,16 @@ typedef enum NodeTag
 	T_Sort,
 	T_Group,
 	T_Agg,
+	T_WindowAgg,
 	T_Unique,
 	T_Hash,
 	T_SetOp,
+	T_LockRows,
 	T_Limit,
+	/* these aren't subclasses of Plan: */
+	T_NestLoopParam,
+	T_PlanRowMark,
+	T_PlanInvalItem,
 
 	/*
 	 * TAGS FOR PLAN STATE NODES (execnodes.h)
@@ -74,17 +88,25 @@ typedef enum NodeTag
 	 */
 	T_PlanState = 200,
 	T_ResultState,
+	T_ModifyTableState,
 	T_AppendState,
+	T_MergeAppendState,
+	T_RecursiveUnionState,
 	T_BitmapAndState,
 	T_BitmapOrState,
 	T_ScanState,
 	T_SeqScanState,
 	T_IndexScanState,
+	T_IndexOnlyScanState,
 	T_BitmapIndexScanState,
 	T_BitmapHeapScanState,
 	T_TidScanState,
 	T_SubqueryScanState,
 	T_FunctionScanState,
+	T_ValuesScanState,
+	T_CteScanState,
+	T_WorkTableScanState,
+	T_ForeignScanState,
 	T_JoinState,
 	T_NestLoopState,
 	T_MergeJoinState,
@@ -93,9 +115,11 @@ typedef enum NodeTag
 	T_SortState,
 	T_GroupState,
 	T_AggState,
+	T_WindowAggState,
 	T_UniqueState,
 	T_HashState,
 	T_SetOpState,
+	T_LockRowsState,
 	T_LimitState,
 
 	/*
@@ -108,35 +132,45 @@ typedef enum NodeTag
 	T_Const,
 	T_Param,
 	T_Aggref,
+	T_WindowFunc,
 	T_ArrayRef,
 	T_FuncExpr,
+	T_NamedArgExpr,
 	T_OpExpr,
 	T_DistinctExpr,
+	T_NullIfExpr,
 	T_ScalarArrayOpExpr,
 	T_BoolExpr,
 	T_SubLink,
 	T_SubPlan,
+	T_AlternativeSubPlan,
 	T_FieldSelect,
 	T_FieldStore,
 	T_RelabelType,
+	T_CoerceViaIO,
+	T_ArrayCoerceExpr,
 	T_ConvertRowtypeExpr,
+	T_CollateExpr,
 	T_CaseExpr,
 	T_CaseWhen,
 	T_CaseTestExpr,
 	T_ArrayExpr,
 	T_RowExpr,
+	T_RowCompareExpr,
 	T_CoalesceExpr,
 	T_MinMaxExpr,
-	T_NullIfExpr,
+	T_XmlExpr,
 	T_NullTest,
 	T_BooleanTest,
 	T_CoerceToDomain,
 	T_CoerceToDomainValue,
 	T_SetToDefault,
+	T_CurrentOfExpr,
 	T_TargetEntry,
 	T_RangeTblRef,
 	T_JoinExpr,
 	T_FromExpr,
+	T_IntoClause,
 
 	/*
 	 * TAGS FOR EXPRESSION STATE NODES (execnodes.h)
@@ -146,21 +180,29 @@ typedef enum NodeTag
 	 */
 	T_ExprState = 400,
 	T_GenericExprState,
+	T_WholeRowVarExprState,
 	T_AggrefExprState,
+	T_WindowFuncExprState,
 	T_ArrayRefExprState,
 	T_FuncExprState,
 	T_ScalarArrayOpExprState,
 	T_BoolExprState,
 	T_SubPlanState,
+	T_AlternativeSubPlanState,
 	T_FieldSelectState,
 	T_FieldStoreState,
+	T_CoerceViaIOState,
+	T_ArrayCoerceExprState,
 	T_ConvertRowtypeExprState,
 	T_CaseExprState,
 	T_CaseWhenState,
 	T_ArrayExprState,
 	T_RowExprState,
+	T_RowCompareExprState,
 	T_CoalesceExprState,
 	T_MinMaxExprState,
+	T_XmlExprState,
+	T_NullTestState,
 	T_CoerceToDomainState,
 	T_DomainConstraintState,
 
@@ -168,8 +210,10 @@ typedef enum NodeTag
 	 * TAGS FOR PLANNER NODES (relation.h)
 	 */
 	T_PlannerInfo = 500,
+	T_PlannerGlobal,
 	T_RelOptInfo,
 	T_IndexOptInfo,
+	T_ParamPathInfo,
 	T_Path,
 	T_IndexPath,
 	T_BitmapHeapPath,
@@ -179,14 +223,23 @@ typedef enum NodeTag
 	T_MergePath,
 	T_HashPath,
 	T_TidPath,
+	T_ForeignPath,
 	T_AppendPath,
+	T_MergeAppendPath,
 	T_ResultPath,
 	T_MaterialPath,
 	T_UniquePath,
-	T_PathKeyItem,
+	T_EquivalenceClass,
+	T_EquivalenceMember,
+	T_PathKey,
 	T_RestrictInfo,
-	T_InnerIndexscanInfo,
-	T_InClauseInfo,
+	T_PlaceHolderVar,
+	T_SpecialJoinInfo,
+	T_LateralJoinInfo,
+	T_AppendRelInfo,
+	T_PlaceHolderInfo,
+	T_MinMaxAggInfo,
+	T_PlannerParamItem,
 
 	/*
 	 * TAGS FOR MEMORY NODES (memnodes.h)
@@ -212,9 +265,10 @@ typedef enum NodeTag
 	T_OidList,
 
 	/*
-	 * TAGS FOR PARSE TREE NODES (parsenodes.h)
+	 * TAGS FOR STATEMENT NODES (mostly in parsenodes.h)
 	 */
 	T_Query = 700,
+	T_PlannedStmt,
 	T_InsertStmt,
 	T_DeleteStmt,
 	T_UpdateStmt,
@@ -225,6 +279,7 @@ typedef enum NodeTag
 	T_SetOperationStmt,
 	T_GrantStmt,
 	T_GrantRoleStmt,
+	T_AlterDefaultPrivilegesStmt,
 	T_ClosePortalStmt,
 	T_ClusterStmt,
 	T_CopyStmt,
@@ -237,9 +292,7 @@ typedef enum NodeTag
 	T_IndexStmt,
 	T_CreateFunctionStmt,
 	T_AlterFunctionStmt,
-	T_RemoveAggrStmt,
-	T_RemoveFuncStmt,
-	T_RemoveOperStmt,
+	T_DoStmt,
 	T_RenameStmt,
 	T_RuleStmt,
 	T_NotifyStmt,
@@ -253,15 +306,14 @@ typedef enum NodeTag
 	T_DropdbStmt,
 	T_VacuumStmt,
 	T_ExplainStmt,
+	T_CreateTableAsStmt,
 	T_CreateSeqStmt,
 	T_AlterSeqStmt,
 	T_VariableSetStmt,
 	T_VariableShowStmt,
-	T_VariableResetStmt,
+	T_DiscardStmt,
 	T_CreateTrigStmt,
-	T_DropPropertyStmt,
 	T_CreatePLangStmt,
-	T_DropPLangStmt,
 	T_CreateRoleStmt,
 	T_AlterRoleStmt,
 	T_DropRoleStmt,
@@ -275,9 +327,9 @@ typedef enum NodeTag
 	T_AlterRoleSetStmt,
 	T_CreateConversionStmt,
 	T_CreateCastStmt,
-	T_DropCastStmt,
 	T_CreateOpClassStmt,
-	T_RemoveOpClassStmt,
+	T_CreateOpFamilyStmt,
+	T_AlterOpFamilyStmt,
 	T_PrepareStmt,
 	T_ExecuteStmt,
 	T_DeallocateStmt,
@@ -286,17 +338,51 @@ typedef enum NodeTag
 	T_DropTableSpaceStmt,
 	T_AlterObjectSchemaStmt,
 	T_AlterOwnerStmt,
+	T_DropOwnedStmt,
+	T_ReassignOwnedStmt,
+	T_CompositeTypeStmt,
+	T_CreateEnumStmt,
+	T_CreateRangeStmt,
+	T_AlterEnumStmt,
+	T_AlterTSDictionaryStmt,
+	T_AlterTSConfigurationStmt,
+	T_CreateFdwStmt,
+	T_AlterFdwStmt,
+	T_CreateForeignServerStmt,
+	T_AlterForeignServerStmt,
+	T_CreateUserMappingStmt,
+	T_AlterUserMappingStmt,
+	T_DropUserMappingStmt,
+	T_AlterTableSpaceOptionsStmt,
+	T_AlterTableMoveAllStmt,
+	T_SecLabelStmt,
+	T_CreateForeignTableStmt,
+	T_CreateExtensionStmt,
+	T_AlterExtensionStmt,
+	T_AlterExtensionContentsStmt,
+	T_CreateEventTrigStmt,
+	T_AlterEventTrigStmt,
+	T_RefreshMatViewStmt,
+	T_ReplicaIdentityStmt,
+	T_AlterSystemStmt,
 
-	T_A_Expr = 800,
+	/*
+	 * TAGS FOR PARSE TREE NODES (parsenodes.h)
+	 */
+	T_A_Expr = 900,
 	T_ColumnRef,
 	T_ParamRef,
 	T_A_Const,
 	T_FuncCall,
+	T_A_Star,
 	T_A_Indices,
 	T_A_Indirection,
+	T_A_ArrayExpr,
 	T_ResTarget,
 	T_TypeCast,
+	T_CollateClause,
 	T_SortBy,
+	T_WindowDef,
 	T_RangeSubselect,
 	T_RangeFunction,
 	T_TypeName,
@@ -305,17 +391,31 @@ typedef enum NodeTag
 	T_Constraint,
 	T_DefElem,
 	T_RangeTblEntry,
-	T_SortClause,
-	T_GroupClause,
-	T_FkConstraint,
+	T_RangeTblFunction,
+	T_WithCheckOption,
+	T_SortGroupClause,
+	T_WindowClause,
 	T_PrivGrantee,
 	T_FuncWithArgs,
-	T_PrivTarget,
+	T_AccessPriv,
 	T_CreateOpClassItem,
-	T_CompositeTypeStmt,
-	T_InhRelation,
+	T_TableLikeClause,
 	T_FunctionParameter,
 	T_LockingClause,
+	T_RowMarkClause,
+	T_XmlSerialize,
+	T_WithClause,
+	T_CommonTableExpr,
+
+	/*
+	 * TAGS FOR REPLICATION GRAMMAR PARSE NODES (replnodes.h)
+	 */
+	T_IdentifySystemCmd,
+	T_BaseBackupCmd,
+	T_CreateReplicationSlotCmd,
+	T_DropReplicationSlotCmd,
+	T_StartReplicationCmd,
+	T_TimeLineHistoryCmd,
 
 	/*
 	 * TAGS FOR RANDOM OTHER STUFF
@@ -325,9 +425,13 @@ typedef enum NodeTag
 	 * purposes (usually because they are involved in APIs where we want to
 	 * pass multiple object types through the same pointer).
 	 */
-	T_TriggerData = 900,		/* in commands/trigger.h */
+	T_TriggerData = 950,		/* in commands/trigger.h */
+	T_EventTriggerData,			/* in commands/event_trigger.h */
 	T_ReturnSetInfo,			/* in nodes/execnodes.h */
-	T_TIDBitmap					/* in nodes/tidbitmap.h */
+	T_WindowObjectData,			/* private in nodeWindowAgg.c */
+	T_TIDBitmap,				/* in nodes/tidbitmap.h */
+	T_InlineCodeBlock,			/* in nodes/parsenodes.h */
+	T_FdwRoutine				/* in foreign/fdwapi.h */
 } NodeTag;
 
 /*
@@ -341,7 +445,7 @@ typedef struct Node
 	NodeTag		type;
 } Node;
 
-#define nodeTag(nodeptr)		(((Node*)(nodeptr))->type)
+#define nodeTag(nodeptr)		(((const Node*)(nodeptr))->type)
 
 /*
  * newNode -
@@ -351,12 +455,28 @@ typedef struct Node
  * !WARNING!: Avoid using newNode directly. You should be using the
  *	  macro makeNode.  eg. to create a Query node, use makeNode(Query)
  *
+ * Note: the size argument should always be a compile-time constant, so the
+ * apparent risk of multiple evaluation doesn't matter in practice.
+ */
+#ifdef __GNUC__
+
+/* With GCC, we can use a compound statement within an expression */
+#define newNode(size, tag) \
+({	Node   *_result; \
+	AssertMacro((size) >= sizeof(Node));		/* need the tag, at least */ \
+	_result = (Node *) palloc0fast(size); \
+	_result->type = (tag); \
+	_result; \
+})
+#else
+
+/*
  *	There is no way to dereference the palloc'ed pointer to assign the
  *	tag, and also return the pointer itself, so we need a holder variable.
  *	Fortunately, this macro isn't recursive so we just define
  *	a global variable for this purpose.
  */
-extern DLLIMPORT Node *newNodeMacroHolder;
+extern PGDLLIMPORT Node *newNodeMacroHolder;
 
 #define newNode(size, tag) \
 ( \
@@ -365,6 +485,7 @@ extern DLLIMPORT Node *newNodeMacroHolder;
 	newNodeMacroHolder->type = (tag), \
 	newNodeMacroHolder \
 )
+#endif   /* __GNUC__ */
 
 
 #define makeNode(_type_)		((_type_ *) newNode(sizeof(_type_),T_##_type_))
@@ -380,7 +501,7 @@ extern DLLIMPORT Node *newNodeMacroHolder;
 /*
  * nodes/{outfuncs.c,print.c}
  */
-extern char *nodeToString(void *obj);
+extern char *nodeToString(const void *obj);
 
 /*
  * nodes/{readfuncs.c,read.c}
@@ -390,12 +511,12 @@ extern void *stringToNode(char *str);
 /*
  * nodes/copyfuncs.c
  */
-extern void *copyObject(void *obj);
+extern void *copyObject(const void *obj);
 
 /*
  * nodes/equalfuncs.c
  */
-extern bool equal(void *a, void *b);
+extern bool equal(const void *a, const void *b);
 
 
 /*
@@ -412,17 +533,16 @@ typedef double Cost;			/* execution cost (in page-access units) */
 
 /*
  * CmdType -
- *	  enums for type of operation represented by a Query
+ *	  enums for type of operation represented by a Query or PlannedStmt
  *
- * ??? could have put this in parsenodes.h but many files not in the
- *	  optimizer also need this...
+ * This is needed in both parsenodes.h and plannodes.h, so put it here...
  */
 typedef enum CmdType
 {
 	CMD_UNKNOWN,
-	CMD_SELECT,					/* select stmt (formerly retrieve) */
-	CMD_UPDATE,					/* update stmt (formerly replace) */
-	CMD_INSERT,					/* insert stmt (formerly append) */
+	CMD_SELECT,					/* select stmt */
+	CMD_UPDATE,					/* update stmt */
+	CMD_INSERT,					/* insert stmt */
 	CMD_DELETE,
 	CMD_UTILITY,				/* cmds like create, destroy, copy, vacuum,
 								 * etc. */
@@ -444,38 +564,57 @@ typedef enum CmdType
 typedef enum JoinType
 {
 	/*
-	 * The canonical kinds of joins
+	 * The canonical kinds of joins according to the SQL JOIN syntax. Only
+	 * these codes can appear in parser output (e.g., JoinExpr nodes).
 	 */
 	JOIN_INNER,					/* matching tuple pairs only */
-	JOIN_LEFT,					/* pairs + unmatched outer tuples */
-	JOIN_FULL,					/* pairs + unmatched outer + unmatched inner */
-	JOIN_RIGHT,					/* pairs + unmatched inner tuples */
+	JOIN_LEFT,					/* pairs + unmatched LHS tuples */
+	JOIN_FULL,					/* pairs + unmatched LHS + unmatched RHS */
+	JOIN_RIGHT,					/* pairs + unmatched RHS tuples */
 
 	/*
-	 * SQL92 considers UNION JOIN to be a kind of join, so list it here for
-	 * parser convenience, even though it's not implemented like a join in the
-	 * executor.  (The planner must convert it to an Append plan.)
+	 * Semijoins and anti-semijoins (as defined in relational theory) do not
+	 * appear in the SQL JOIN syntax, but there are standard idioms for
+	 * representing them (e.g., using EXISTS).  The planner recognizes these
+	 * cases and converts them to joins.  So the planner and executor must
+	 * support these codes.  NOTE: in JOIN_SEMI output, it is unspecified
+	 * which matching RHS row is joined to.  In JOIN_ANTI output, the row is
+	 * guaranteed to be null-extended.
 	 */
-	JOIN_UNION,
+	JOIN_SEMI,					/* 1 copy of each LHS row that has match(es) */
+	JOIN_ANTI,					/* 1 copy of each LHS row that has no match */
 
 	/*
-	 * These are used for queries like WHERE foo IN (SELECT bar FROM ...).
-	 * Only JOIN_IN is actually implemented in the executor; the others are
-	 * defined for internal use in the planner.
+	 * These codes are used internally in the planner, but are not supported
+	 * by the executor (nor, indeed, by most of the planner).
 	 */
-	JOIN_IN,					/* at most one result per outer row */
-	JOIN_REVERSE_IN,			/* at most one result per inner row */
-	JOIN_UNIQUE_OUTER,			/* outer path must be made unique */
-	JOIN_UNIQUE_INNER			/* inner path must be made unique */
+	JOIN_UNIQUE_OUTER,			/* LHS path must be made unique */
+	JOIN_UNIQUE_INNER			/* RHS path must be made unique */
 
 	/*
 	 * We might need additional join types someday.
 	 */
 } JoinType;
 
+/*
+ * OUTER joins are those for which pushed-down quals must behave differently
+ * from the join's own quals.  This is in fact everything except INNER and
+ * SEMI joins.  However, this macro must also exclude the JOIN_UNIQUE symbols
+ * since those are temporary proxies for what will eventually be an INNER
+ * join.
+ *
+ * Note: semijoins are a hybrid case, but we choose to treat them as not
+ * being outer joins.  This is okay principally because the SQL syntax makes
+ * it impossible to have a pushed-down qual that refers to the inner relation
+ * of a semijoin; so there is no strong need to distinguish join quals from
+ * pushed-down quals.  This is convenient because for almost all purposes,
+ * quals attached to a semijoin can be treated the same as innerjoin quals.
+ */
 #define IS_OUTER_JOIN(jointype) \
-	((jointype) == JOIN_LEFT || \
-	 (jointype) == JOIN_FULL || \
-	 (jointype) == JOIN_RIGHT)
+	(((1 << (jointype)) & \
+	  ((1 << JOIN_LEFT) | \
+	   (1 << JOIN_FULL) | \
+	   (1 << JOIN_RIGHT) | \
+	   (1 << JOIN_ANTI))) != 0)
 
 #endif   /* NODES_H */

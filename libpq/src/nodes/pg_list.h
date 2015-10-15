@@ -27,10 +27,10 @@
  * always be so; try to be careful to maintain the distinction.)
  *
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/pg_list.h,v 1.53 2005/10/15 02:49:45 momjian Exp $
+ * src/include/nodes/pg_list.h
  *
  *-------------------------------------------------------------------------
  */
@@ -71,34 +71,34 @@ struct ListCell
 /*
  * These routines are used frequently. However, we can't implement
  * them as macros, since we want to avoid double-evaluation of macro
- * arguments. Therefore, we implement them using GCC inline functions,
- * and as regular functions with non-GCC compilers.
+ * arguments. Therefore, we implement them using static inline functions
+ * if supported by the compiler, or as regular functions otherwise.
+ * See STATIC_IF_INLINE in c.h.
  */
-#ifdef __GNUC__
-
-static __inline__ ListCell *
-list_head(List *l)
+#ifndef PG_USE_INLINE
+extern ListCell *list_head(const List *l);
+extern ListCell *list_tail(List *l);
+extern int	list_length(const List *l);
+#endif   /* PG_USE_INLINE */
+#if defined(PG_USE_INLINE) || defined(PG_LIST_INCLUDE_DEFINITIONS)
+STATIC_IF_INLINE ListCell *
+list_head(const List *l)
 {
 	return l ? l->head : NULL;
 }
 
-static __inline__ ListCell *
+STATIC_IF_INLINE ListCell *
 list_tail(List *l)
 {
 	return l ? l->tail : NULL;
 }
 
-static __inline__ int
-list_length(List *l)
+STATIC_IF_INLINE int
+list_length(const List *l)
 {
 	return l ? l->length : 0;
 }
-#else
-
-extern ListCell *list_head(List *l);
-extern ListCell *list_tail(List *l);
-extern int	list_length(List *l);
-#endif   /* __GNUC__ */
+#endif   /*-- PG_USE_INLINE || PG_LIST_INCLUDE_DEFINITIONS */
 
 /*
  * NB: There is an unfortunate legacy from a previous incarnation of
@@ -182,6 +182,15 @@ extern int	list_length(List *l);
 		 (cell1) != NULL && (cell2) != NULL;						\
 		 (cell1) = lnext(cell1), (cell2) = lnext(cell2))
 
+/*
+ * forthree -
+ *	  the same for three lists
+ */
+#define forthree(cell1, list1, cell2, list2, cell3, list3)			\
+	for ((cell1) = list_head(list1), (cell2) = list_head(list2), (cell3) = list_head(list3); \
+		 (cell1) != NULL && (cell2) != NULL && (cell3) != NULL;		\
+		 (cell1) = lnext(cell1), (cell2) = lnext(cell2), (cell3) = lnext(cell3))
+
 extern List *lappend(List *list, void *datum);
 extern List *lappend_int(List *list, int datum);
 extern List *lappend_oid(List *list, Oid datum);
@@ -197,14 +206,14 @@ extern List *lcons_oid(Oid datum, List *list);
 extern List *list_concat(List *list1, List *list2);
 extern List *list_truncate(List *list, int new_size);
 
-extern void *list_nth(List *list, int n);
-extern int	list_nth_int(List *list, int n);
-extern Oid	list_nth_oid(List *list, int n);
+extern void *list_nth(const List *list, int n);
+extern int	list_nth_int(const List *list, int n);
+extern Oid	list_nth_oid(const List *list, int n);
 
-extern bool list_member(List *list, void *datum);
-extern bool list_member_ptr(List *list, void *datum);
-extern bool list_member_int(List *list, int datum);
-extern bool list_member_oid(List *list, Oid datum);
+extern bool list_member(const List *list, const void *datum);
+extern bool list_member_ptr(const List *list, const void *datum);
+extern bool list_member_int(const List *list, int datum);
+extern bool list_member_oid(const List *list, Oid datum);
 
 extern List *list_delete(List *list, void *datum);
 extern List *list_delete_ptr(List *list, void *datum);
@@ -213,15 +222,19 @@ extern List *list_delete_oid(List *list, Oid datum);
 extern List *list_delete_first(List *list);
 extern List *list_delete_cell(List *list, ListCell *cell, ListCell *prev);
 
-extern List *list_union(List *list1, List *list2);
-extern List *list_union_ptr(List *list1, List *list2);
-extern List *list_union_int(List *list1, List *list2);
-extern List *list_union_oid(List *list1, List *list2);
+extern List *list_union(const List *list1, const List *list2);
+extern List *list_union_ptr(const List *list1, const List *list2);
+extern List *list_union_int(const List *list1, const List *list2);
+extern List *list_union_oid(const List *list1, const List *list2);
 
-extern List *list_difference(List *list1, List *list2);
-extern List *list_difference_ptr(List *list1, List *list2);
-extern List *list_difference_int(List *list1, List *list2);
-extern List *list_difference_oid(List *list1, List *list2);
+extern List *list_intersection(const List *list1, const List *list2);
+
+/* currently, there's no need for list_intersection_int etc */
+
+extern List *list_difference(const List *list1, const List *list2);
+extern List *list_difference_ptr(const List *list1, const List *list2);
+extern List *list_difference_int(const List *list1, const List *list2);
+extern List *list_difference_oid(const List *list1, const List *list2);
 
 extern List *list_append_unique(List *list, void *datum);
 extern List *list_append_unique_ptr(List *list, void *datum);
@@ -236,8 +249,8 @@ extern List *list_concat_unique_oid(List *list1, List *list2);
 extern void list_free(List *list);
 extern void list_free_deep(List *list);
 
-extern List *list_copy(List *list);
-extern List *list_copy_tail(List *list, int nskip);
+extern List *list_copy(const List *list);
+extern List *list_copy_tail(const List *list, int nskip);
 
 /*
  * To ease migration to the new list API, a set of compatibility

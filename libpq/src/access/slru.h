@@ -3,33 +3,50 @@
  * slru.h
  *		Simple LRU buffering for transaction status logfiles
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2014, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/slru.h,v 1.14 2005/10/15 02:49:42 momjian Exp $
+ * src/include/access/slru.h
  *
  *-------------------------------------------------------------------------
  */
 #ifndef SLRU_H
 #define SLRU_H
 
+#include "access/xlogdefs.h"
 #include "storage/lwlock.h"
 
 
 /*
- * Number of page buffers.	Ideally this could be different for CLOG and
- * SUBTRANS, but the benefit doesn't seem to be worth any additional
- * notational cruft.
+ * Define SLRU segment size.  A page is the same BLCKSZ as is used everywhere
+ * else in Postgres.  The segment size can be chosen somewhat arbitrarily;
+ * we make it 32 pages by default, or 256Kb, i.e. 1M transactions for CLOG
+ * or 64K transactions for SUBTRANS.
+ *
+ * Note: because TransactionIds are 32 bits and wrap around at 0xFFFFFFFF,
+ * page numbering also wraps around at 0xFFFFFFFF/xxxx_XACTS_PER_PAGE (where
+ * xxxx is CLOG or SUBTRANS, respectively), and segment numbering at
+ * 0xFFFFFFFF/xxxx_XACTS_PER_PAGE/SLRU_PAGES_PER_SEGMENT.  We need
+ * take no explicit notice of that fact in slru.c, except when comparing
+ * segment and page numbers in SimpleLruTruncate (see PagePrecedes()).
+ *
+ * Note: slru.c currently assumes that segment file names will be four hex
+ * digits.  This sets a lower bound on the segment size (64K transactions
+ * for 32-bit TransactionIds).
  */
-#define NUM_SLRU_BUFFERS	8
+#define SLRU_PAGES_PER_SEGMENT	32
 
-/* Page status codes */
+/*
+ * Page status codes.  Note that these do not include the "dirty" bit.
+ * page_dirty can be TRUE only in the VALID or WRITE_IN_PROGRESS states;
+ * in the latter case it implies that the page has been re-dirtied since
+ * the write started.
+ */
 typedef enum
 {
 	SLRU_PAGE_EMPTY,			/* buffer is not in use */
 	SLRU_PAGE_READ_IN_PROGRESS, /* page is being read in */
-	SLRU_PAGE_CLEAN,			/* page is valid and not dirty */
-	SLRU_PAGE_DIRTY,			/* page is valid but needs write */
+	SLRU_PAGE_VALID,			/* page is valid and not being written */
 	SLRU_PAGE_WRITE_IN_PROGRESS /* page is being written out */
 } SlruPageStatus;
 
@@ -38,19 +55,43 @@ typedef enum
  */
 typedef struct SlruSharedData
 {
-	LWLockId	ControlLock;
+	LWLock	   *ControlLock;
+
+	/* Number of buffers managed by this SLRU structure */
+	int			num_slots;
 
 	/*
-	 * Info for each buffer slot.  Page number is undefined when status is
-	 * EMPTY.  lru_count is essentially the number of page switches since last
-	 * use of this page; the page with highest lru_count is the best candidate
-	 * to replace.
+	 * Arrays holding info for each buffer slot.  Page number is undefined
+	 * when status is EMPTY, as is page_lru_count.
 	 */
-	char	   *page_buffer[NUM_SLRU_BUFFERS];
-	SlruPageStatus page_status[NUM_SLRU_BUFFERS];
-	int			page_number[NUM_SLRU_BUFFERS];
-	unsigned int page_lru_count[NUM_SLRU_BUFFERS];
-	LWLockId	buffer_locks[NUM_SLRU_BUFFERS];
+	char	  **page_buffer;
+	SlruPageStatus *page_status;
+	bool	   *page_dirty;
+	int		   *page_number;
+	int		   *page_lru_count;
+	LWLock	  **buffer_locks;
+
+	/*
+	 * Optional array of WAL flush LSNs associated with entries in the SLRU
+	 * pages.  If not zero/NULL, we must flush WAL before writing pages (true
+	 * for pg_clog, false for multixact, pg_subtrans, pg_notify).  group_lsn[]
+	 * has lsn_groups_per_page entries per buffer slot, each containing the
+	 * highest LSN known for a contiguous group of SLRU entries on that slot's
+	 * page.
+	 */
+	XLogRecPtr *group_lsn;
+	int			lsn_groups_per_page;
+
+	/*----------
+	 * We mark a page "most recently used" by setting
+	 *		page_lru_count[slotno] = ++cur_lru_count;
+	 * The oldest page is therefore the one with the highest value of
+	 *		cur_lru_count - page_lru_count[slotno]
+	 * The counts will eventually wrap around, but this calculation still
+	 * works as long as no page's age exceeds INT_MAX counts.
+	 *----------
+	 */
+	int			cur_lru_count;
 
 	/*
 	 * latest_page_number is the page number of the current end of the log;
@@ -71,8 +112,8 @@ typedef struct SlruCtlData
 	SlruShared	shared;
 
 	/*
-	 * This flag tells whether to fsync writes (true for pg_clog, false for
-	 * pg_subtrans).
+	 * This flag tells whether to fsync writes (true for pg_clog and multixact
+	 * stuff, false for pg_subtrans and pg_notify).
 	 */
 	bool		do_fsync;
 
@@ -92,18 +133,29 @@ typedef struct SlruCtlData
 
 typedef SlruCtlData *SlruCtl;
 
-/* Opaque struct known only in slru.c */
-typedef struct SlruFlushData *SlruFlush;
 
-
-extern Size SimpleLruShmemSize(void);
-extern void SimpleLruInit(SlruCtl ctl, const char *name,
-			  LWLockId ctllock, const char *subdir);
+extern Size SimpleLruShmemSize(int nslots, int nlsns);
+extern void SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,
+			  LWLock *ctllock, const char *subdir);
 extern int	SimpleLruZeroPage(SlruCtl ctl, int pageno);
-extern int	SimpleLruReadPage(SlruCtl ctl, int pageno, TransactionId xid);
-extern void SimpleLruWritePage(SlruCtl ctl, int slotno, SlruFlush fdata);
+extern int SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
+				  TransactionId xid);
+extern int SimpleLruReadPage_ReadOnly(SlruCtl ctl, int pageno,
+						   TransactionId xid);
+extern void SimpleLruWritePage(SlruCtl ctl, int slotno);
 extern void SimpleLruFlush(SlruCtl ctl, bool checkpoint);
 extern void SimpleLruTruncate(SlruCtl ctl, int cutoffPage);
-extern bool SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions);
+extern bool SimpleLruDoesPhysicalPageExist(SlruCtl ctl, int pageno);
+
+typedef bool (*SlruScanCallback) (SlruCtl ctl, char *filename, int segpage,
+											  void *data);
+extern bool SlruScanDirectory(SlruCtl ctl, SlruScanCallback callback, void *data);
+extern void SlruDeleteSegment(SlruCtl ctl, char *filename);
+
+/* SlruScanDirectory public callbacks */
+extern bool SlruScanDirCbReportPresence(SlruCtl ctl, char *filename,
+							int segpage, void *data);
+extern bool SlruScanDirCbDeleteAll(SlruCtl ctl, char *filename, int segpage,
+					   void *data);
 
 #endif   /* SLRU_H */

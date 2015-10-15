@@ -3,18 +3,31 @@
  * ip.h
  *	  Definitions for IPv6-aware network access.
  *
- * Copyright (c) 2003-2005, PostgreSQL Global Development Group
+ * These definitions are used by both frontend and backend code.  Be careful
+ * what you include here!
  *
- * $PostgreSQL: pgsql/src/include/libpq/ip.h,v 1.15.2.1 2005/11/22 18:23:28 momjian Exp $
+ * Copyright (c) 2003-2014, PostgreSQL Global Development Group
+ *
+ * src/include/libpq/ip.h
  *
  *-------------------------------------------------------------------------
  */
 #ifndef IP_H
 #define IP_H
 
-#include "getaddrinfo.h"
-#include "libpq/pqcomm.h"
+#include "getaddrinfo.h"		/* pgrminclude ignore */
+#include "libpq/pqcomm.h"		/* pgrminclude ignore */
 
+
+#ifdef	HAVE_UNIX_SOCKETS
+#define IS_AF_UNIX(fam) ((fam) == AF_UNIX)
+#else
+#define IS_AF_UNIX(fam) (0)
+#endif
+
+typedef void (*PgIfAddrCallback) (struct sockaddr * addr,
+											  struct sockaddr * netmask,
+											  void *cb_data);
 
 extern int pg_getaddrinfo_all(const char *hostname, const char *servname,
 				   const struct addrinfo * hintp,
@@ -33,15 +46,6 @@ extern int pg_range_sockaddr(const struct sockaddr_storage * addr,
 extern int pg_sockaddr_cidr_mask(struct sockaddr_storage * mask,
 					  char *numbits, int family);
 
-#ifdef HAVE_IPV6
-extern void pg_promote_v4_to_v6_addr(struct sockaddr_storage * addr);
-extern void pg_promote_v4_to_v6_mask(struct sockaddr_storage * addr);
-#endif
-
-#ifdef	HAVE_UNIX_SOCKETS
-#define IS_AF_UNIX(fam) ((fam) == AF_UNIX)
-#else
-#define IS_AF_UNIX(fam) (0)
-#endif
+extern int	pg_foreach_ifaddr(PgIfAddrCallback callback, void *cb_data);
 
 #endif   /* IP_H */

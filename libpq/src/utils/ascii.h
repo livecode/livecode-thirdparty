@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------
  * ascii.h
  *
- *	 Portions Copyright (c) 1999-2005, PostgreSQL Global Development Group
+ *	 Portions Copyright (c) 1999-2014, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/utils/ascii.h,v 1.13 2005/01/01 05:43:09 momjian Exp $
+ * src/include/utils/ascii.h
  *
  *-----------------------------------------------------------------------
  */
@@ -16,5 +16,7 @@
 extern Datum to_ascii_encname(PG_FUNCTION_ARGS);
 extern Datum to_ascii_enc(PG_FUNCTION_ARGS);
 extern Datum to_ascii_default(PG_FUNCTION_ARGS);
+
+extern void ascii_safe_strlcpy(char *dest, const char *src, size_t destsiz);
 
 #endif   /* _ASCII_H_ */

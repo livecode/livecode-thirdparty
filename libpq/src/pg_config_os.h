@@ -1,5 +1,7 @@
-#define __darwin__	1
-
-#if HAVE_DECL_F_FULLFSYNC		/* not present before OS X 10.3 */
-#define HAVE_FSYNC_WRITETHROUGH
+#if defined(WIN32)
+#include "port/win32.h"
+#elif defined(_LINUX)
+#include "port/linux.h"
+#elif defined(_MACOSX)
+#include "port/darwin.h"
 #endif

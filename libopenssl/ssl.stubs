@@ -125,7 +125,7 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	CRYPTO_free: (pointer) -> ()
 	CRYPTO_num_locks: () -> (integer)
 	CRYPTO_set_id_callback: (pointer) -> ()
-	CRYPTO_set_locking_callback: () -> (pointer)
+	CRYPTO_set_locking_callback: (pointer) -> ()
 	
 	ASN1_item_d2i: (pointer, pointer, integer, pointer) -> (pointer)
 	ASN1_item_i2d: (pointer, pointer, pointer) -> (integer)

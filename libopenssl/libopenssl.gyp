@@ -8,8 +8,8 @@
 	[
 		{
 			'target_name': 'libopenssl_stubs',
-			'type': 'none',
-			
+			'type': 'static_library',
+
 			'variables':
 			{
 				'library_for_module': 1,
@@ -17,13 +17,13 @@
 			
 			'sources':
 			[
-				'ssl.stubs',
+				'<(INTERMEDIATE_DIR)/src/ssl.<(OS).stubs.cpp',
 			],
 			
 			'actions':
 			[
 				{
-					'action_name': 'libopenssl_stubs',
+					'action_name': 'generate_libopenssl_stubs',
 					'inputs':
 					[
 						'../../util/weak_stub_maker.pl',
@@ -31,9 +31,9 @@
 					],
 					'outputs':
 					[
-						'<(SHARED_INTERMEDIATE_DIR)/src/ssl.<(OS).stubs.cpp',
+						'<(INTERMEDIATE_DIR)/src/ssl.<(OS).stubs.cpp',
 					],
-					
+
 					'action':
 					[
 						'<@(perl)',
@@ -43,28 +43,7 @@
 					],
 				},
 			],
-		},
-		
-		{
-			'target_name': 'libopenssl',
-			'type': 'static_library',
-			
-			'variables':
-			{
-				'library_for_module': 1,
-			},
-			
-			'dependencies':
-			[
-				'libopenssl_stubs',
-				#'../../prebuilt/libopenssl.gyp:libopenssl',
-			],
-			
-			'sources':
-			[
-				'<(SHARED_INTERMEDIATE_DIR)/src/ssl.<(OS).stubs.cpp',
-			],
-			
+
 			'direct_dependent_settings':
 			{
 				'include_dirs':

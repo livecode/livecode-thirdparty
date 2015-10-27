@@ -24,7 +24,7 @@
                         
 						'dependencies':
 						[
-							'../libopenssl/libopenssl.gyp:libopenssl',
+							'../libopenssl/libopenssl.gyp:libopenssl_stubs',
 						],
 						
 						'include_dirs':

@@ -1,26 +1,52 @@
 
 /* filter_neon.S - NEON optimised filter functions
  *
- * Copyright (c) 2011 Glenn Randers-Pehrson
+ * Copyright (c) 2013 Glenn Randers-Pehrson
  * Written by Mans Rullgard, 2011.
+ * Last changed in libpng 1.5.17 [June 27, 2013]
  *
  * This code is released under the libpng license.
  * For conditions of distribution and use, see the disclaimer
  * and license in png.h
  */
 
-// IM-2012-10-03 Modified to compile for iOS
+/* This is required to get the symbol renames, which are #defines, and also
+ * includes the definition (or not) of PNG_ARM_NEON_OPT.
+ */
+#define PNG_VERSION_INFO_ONLY
+#include "../pngpriv.h"
 
-.macro begin_func
-	.align 2
-	.arm
-	.globl _$0
-	.no_dead_strip _$0
-	.private_extern _$0
-_$0:
-.endmacro
+#if defined(__linux__) && defined(__ELF__)
+.section .note.GNU-stack,"",%progbits /* mark stack as non-executable */
+#endif
 
-begin_func png_read_filter_row_sub4_neon
+#if PNG_ARM_NEON_OPT > 0
+
+#ifdef __ELF__
+#   define ELF
+#else
+#   define ELF @
+#endif
+
+        .arch armv7-a
+        .fpu  neon
+
+.macro  func    name, export=0
+    .macro endfunc
+ELF     .size   \name, . - \name
+        .endfunc
+        .purgem endfunc
+    .endm
+        .text
+    .if \export
+        .global \name
+    .endif
+ELF     .type   \name, STT_FUNC
+        .func   \name
+\name:
+.endm
+
+func    png_read_filter_row_sub4_neon, export=1
         ldr             r3,  [r0, #4]           @ rowbytes
         vmov.i8         d3,  #0
 1:
@@ -34,8 +60,9 @@ begin_func png_read_filter_row_sub4_neon
         bgt             1b
 
         bx              lr
+endfunc
 
-begin_func png_read_filter_row_sub3_neon
+func    png_read_filter_row_sub3_neon, export=1
         ldr             r3,  [r0, #4]           @ rowbytes
         vmov.i8         d3,  #0
         mov             r0,  r1
@@ -59,8 +86,9 @@ begin_func png_read_filter_row_sub3_neon
         bgt             1b
 
         bx              lr
+endfunc
 
-begin_func png_read_filter_row_up_neon
+func    png_read_filter_row_up_neon, export=1
         ldr             r3,  [r0, #4]           @ rowbytes
 1:
         vld1.8          {q0}, [r1,:128]
@@ -71,8 +99,9 @@ begin_func png_read_filter_row_up_neon
         bgt             1b
 
         bx              lr
+endfunc
 
-begin_func png_read_filter_row_avg4_neon
+func    png_read_filter_row_avg4_neon, export=1
         ldr             r12, [r0, #4]           @ rowbytes
         vmov.i8         d3,  #0
 1:
@@ -91,8 +120,9 @@ begin_func png_read_filter_row_avg4_neon
         bgt             1b
 
         bx              lr
+endfunc
 
-begin_func png_read_filter_row_avg3_neon
+func    png_read_filter_row_avg3_neon, export=1
         push            {r4,lr}
         ldr             r12, [r0, #4]           @ rowbytes
         vmov.i8         d3,  #0
@@ -125,24 +155,25 @@ begin_func png_read_filter_row_avg3_neon
         bgt             1b
 
         pop             {r4,pc}
+endfunc
 
-.macro  paeth
-		vaddl.u8        q12, $1, $2           @ a + b
-		vaddl.u8        q15, $3, $3           @ 2*c
-		vabdl.u8        q13, $2, $3           @ pa
-		vabdl.u8        q14, $1, $3           @ pb
-		vabd.u16        q15, q12, q15           @ pc
-		vcle.u16        q12, q13, q14           @ pa <= pb
-		vcle.u16        q13, q13, q15           @ pa <= pc
-		vcle.u16        q14, q14, q15           @ pb <= pc
-		vand            q12, q12, q13           @ pa <= pb && pa <= pc
-		vmovn.u16       d28, q14
-		vmovn.u16       $0, q12
-		vbsl            d28, $2, $3
-		vbsl            $0, $1, d28
-.endmacro
+.macro  paeth           rx,  ra,  rb,  rc
+        vaddl.u8        q12, \ra, \rb           @ a + b
+        vaddl.u8        q15, \rc, \rc           @ 2*c
+        vabdl.u8        q13, \rb, \rc           @ pa
+        vabdl.u8        q14, \ra, \rc           @ pb
+        vabd.u16        q15, q12, q15           @ pc
+        vcle.u16        q12, q13, q14           @ pa <= pb
+        vcle.u16        q13, q13, q15           @ pa <= pc
+        vcle.u16        q14, q14, q15           @ pb <= pc
+        vand            q12, q12, q13           @ pa <= pb && pa <= pc
+        vmovn.u16       d28, q14
+        vmovn.u16       \rx, q12
+        vbsl            d28, \rb, \rc
+        vbsl            \rx, \ra, d28
+.endm
 
-begin_func png_read_filter_row_paeth4_neon
+func    png_read_filter_row_paeth4_neon, export=1
         ldr             r12, [r0, #4]           @ rowbytes
         vmov.i8         d3,  #0
         vmov.i8         d20, #0
@@ -163,8 +194,9 @@ begin_func png_read_filter_row_paeth4_neon
         bgt             1b
 
         bx              lr
+endfunc
 
-begin_func png_read_filter_row_paeth3_neon
+func    png_read_filter_row_paeth3_neon, export=1
         push            {r4,lr}
         ldr             r12, [r0, #4]           @ rowbytes
         vmov.i8         d3,  #0
@@ -199,3 +231,5 @@ begin_func png_read_filter_row_paeth3_neon
         bgt             1b
 
         pop             {r4,pc}
+endfunc
+#endif /* PNG_ARM_NEON_OPT > 0 */

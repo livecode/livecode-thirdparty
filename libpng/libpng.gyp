@@ -44,7 +44,6 @@
 							
 							'src/png.c',
 							'src/pngerror.c',
-							'src/pnggccrd.c',
 							'src/pngget.c',
 							'src/pngmem.c',
 							'src/pngpread.c',
@@ -54,7 +53,6 @@
 							'src/pngrutil.c',
 							'src/pngset.c',
 							'src/pngtrans.c',
-							'src/pngvcrd.c',
 							'src/pngwio.c',
 							'src/pngwrite.c',
 							'src/pngwtran.c',

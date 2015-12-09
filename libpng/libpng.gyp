@@ -57,8 +57,6 @@
 							'src/pngwrite.c',
 							'src/pngwtran.c',
 							'src/pngwutil.c',
-							
-							#'src/filter_ios_neon.s',
 						],
 						
 						'direct_dependent_settings':
@@ -72,11 +70,11 @@
 						'conditions':
 						[
 							[
-								'OS != "ios"',
+								'OS == "ios"',
 								{
-									'sources!':
+									'sources':
 									[
-										'src/filter_ios_neon.s',
+										'src/filter_neon.S',
 									],
 								},
 							],

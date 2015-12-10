@@ -16,6 +16,11 @@
 			'./include_win32',
 		],
 		
+		'libffi_public_headers_linux_armv6hf_dir':
+		[
+			'./include_linux/armv6hf',
+		],
+		
 		'libffi_public_headers_linux_x86_dir':
 		[
 			'./include_linux/x86',
@@ -232,7 +237,7 @@
 					},
 				],
 				[
-					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv6hf")',
+					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6")',
 					{
 						'platform_include_dirs':
 						[
@@ -248,6 +253,20 @@
 						'cflags':
 						[
 							'-U__ARM_EABI__',
+						],
+					},
+				],
+				[
+					'(toolset_os == "linux") and (toolset_arch == "armv6hf")',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_armv6hf_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_linux_arm_source_files)',
 						],
 					},
 				],

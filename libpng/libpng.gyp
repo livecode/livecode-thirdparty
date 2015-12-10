@@ -67,18 +67,10 @@
 							],
 						},
 						
-						'conditions':
-						[
-							[
-								'OS == "ios"',
-								{
-									'sources':
-									[
-										'src/filter_neon.S',
-									],
-								},
-							],
-						],
+                        'defines':
+                        [
+                            'PNG_ARM_NEON_OPT=0',
+                        ],
 					},
 					{
 						'type': 'none',

@@ -221,3 +221,5 @@ ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_get_shared_ciphers: (pointer, pointer, integer) -> (pointer)
 	SSL_pending: (pointer) -> (integer)
 	SSL_set_quiet_shutdown: (pointer, integer) -> ()
+
+	SSL_ctrl: (pointer, integer, integer, pointer) -> (integer)

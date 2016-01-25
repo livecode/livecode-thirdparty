@@ -1,11 +1,11 @@
 /***************************************************************************/
 /*                                                                         */
-/*  ftgzip.h                                                               */
+/*  ftbzip2.h                                                              */
 /*                                                                         */
-/*    Gzip-compressed stream support.                                      */
+/*    Bzip2-compressed stream support.                                     */
 /*                                                                         */
-/*  Copyright 2002-2015 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
+/*  Copyright 2010-2015 by                                                 */
+/*  Joel Klinghed.                                                         */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
 /*  modified, and distributed under the terms of the FreeType project      */
@@ -16,8 +16,8 @@
 /***************************************************************************/
 
 
-#ifndef __FTGZIP_H__
-#define __FTGZIP_H__
+#ifndef __FTBZIP2_H__
+#define __FTBZIP2_H__
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -34,16 +34,16 @@ FT_BEGIN_HEADER
   /*************************************************************************/
   /*                                                                       */
   /* <Section>                                                             */
-  /*    gzip                                                               */
+  /*    bzip2                                                              */
   /*                                                                       */
   /* <Title>                                                               */
-  /*    GZIP Streams                                                       */
+  /*    BZIP2 Streams                                                      */
   /*                                                                       */
   /* <Abstract>                                                            */
-  /*    Using gzip-compressed font files.                                  */
+  /*    Using bzip2-compressed font files.                                 */
   /*                                                                       */
   /* <Description>                                                         */
-  /*    This section contains the declaration of Gzip-specific functions.  */
+  /*    This section contains the declaration of Bzip2-specific functions. */
   /*                                                                       */
   /*************************************************************************/
 
@@ -51,11 +51,11 @@ FT_BEGIN_HEADER
  /************************************************************************
   *
   * @function:
-  *   FT_Stream_OpenGzip
+  *   FT_Stream_OpenBzip2
   *
   * @description:
-  *   Open a new stream to parse gzip-compressed font files.  This is
-  *   mainly used to support the compressed `*.pcf.gz' fonts that come
+  *   Open a new stream to parse bzip2-compressed font files.  This is
+  *   mainly used to support the compressed `*.pcf.bz2' fonts that come
   *   with XFree86.
   *
   * @input:
@@ -78,71 +78,25 @@ FT_BEGIN_HEADER
   *   The stream implementation is very basic and resets the decompression
   *   process each time seeking backwards is needed within the stream.
   *
-  *   In certain builds of the library, gzip compression recognition is
+  *   In certain builds of the library, bzip2 compression recognition is
   *   automatically handled when calling @FT_New_Face or @FT_Open_Face.
   *   This means that if no font driver is capable of handling the raw
-  *   compressed file, the library will try to open a gzipped stream from
-  *   it and re-open the face with it.
+  *   compressed file, the library will try to open a bzip2 compressed stream
+  *   from it and re-open the face with it.
   *
   *   This function may return `FT_Err_Unimplemented_Feature' if your build
-  *   of FreeType was not compiled with zlib support.
+  *   of FreeType was not compiled with bzip2 support.
   */
   FT_EXPORT( FT_Error )
-  FT_Stream_OpenGzip( FT_Stream  stream,
-                      FT_Stream  source );
-
-
- /************************************************************************
-  *
-  * @function:
-  *   FT_Gzip_Uncompress
-  *
-  * @description:
-  *   Decompress a zipped input buffer into an output buffer.  This function
-  *   is modeled after zlib's `uncompress' function.
-  *
-  * @input:
-  *   memory ::
-  *     A FreeType memory handle.
-  *
-  *   input ::
-  *     The input buffer.
-  *
-  *   input_len ::
-  *     The length of the input buffer.
-  *
-  * @output:
-  *   output::
-  *     The output buffer.
-  *
-  * @inout:
-  *   output_len ::
-  *     Before calling the function, this is the the total size of the
-  *     output buffer, which must be large enough to hold the entire
-  *     uncompressed data (so the size of the uncompressed data must be
-  *     known in advance).  After calling the function, `output_len' is the
-  *     size of the used data in `output'.
-  *
-  * @return:
-  *   FreeType error code.  0~means success.
-  *
-  * @note:
-  *   This function may return `FT_Err_Unimplemented_Feature' if your build
-  *   of FreeType was not compiled with zlib support.
-  */
-  FT_EXPORT( FT_Error )
-  FT_Gzip_Uncompress( FT_Memory       memory,
-                      FT_Byte*        output,
-                      FT_ULong*       output_len,
-                      const FT_Byte*  input,
-                      FT_ULong        input_len );
+  FT_Stream_OpenBzip2( FT_Stream  stream,
+                       FT_Stream  source );
 
   /* */
 
 
 FT_END_HEADER
 
-#endif /* __FTGZIP_H__ */
+#endif /* __FTBZIP2_H__ */
 
 
 /* END */

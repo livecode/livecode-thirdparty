@@ -1,8 +1,8 @@
 /***************************************************************************/
 /*                                                                         */
-/*  svwinfnt.h                                                             */
+/*  svfntfmt.h                                                             */
 /*                                                                         */
-/*    The FreeType Windows FNT/FONT service (specification).               */
+/*    The FreeType font format service (specification only).               */
 /*                                                                         */
 /*  Copyright 2003-2015 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
@@ -16,27 +16,32 @@
 /***************************************************************************/
 
 
-#ifndef __SVWINFNT_H__
-#define __SVWINFNT_H__
+#ifndef __SVFNTFMT_H__
+#define __SVFNTFMT_H__
 
 #include FT_INTERNAL_SERVICE_H
-#include FT_WINFONTS_H
 
 
 FT_BEGIN_HEADER
 
 
-#define FT_SERVICE_ID_WINFNT  "winfonts"
+  /*
+   *  A trivial service used to return the name of a face's font driver,
+   *  according to the XFree86 nomenclature.  Note that the service data
+   *  is a simple constant string pointer.
+   */
 
-  typedef FT_Error
-  (*FT_WinFnt_GetHeaderFunc)( FT_Face               face,
-                              FT_WinFNT_HeaderRec  *aheader );
+#define FT_SERVICE_ID_FONT_FORMAT  "font-format"
 
-
-  FT_DEFINE_SERVICE( WinFnt )
-  {
-    FT_WinFnt_GetHeaderFunc  get_header;
-  };
+#define FT_FONT_FORMAT_TRUETYPE  "TrueType"
+#define FT_FONT_FORMAT_TYPE_1    "Type 1"
+#define FT_FONT_FORMAT_BDF       "BDF"
+#define FT_FONT_FORMAT_PCF       "PCF"
+#define FT_FONT_FORMAT_TYPE_42   "Type 42"
+#define FT_FONT_FORMAT_CID       "CID Type 1"
+#define FT_FONT_FORMAT_CFF       "CFF"
+#define FT_FONT_FORMAT_PFR       "PFR"
+#define FT_FONT_FORMAT_WINFNT    "Windows FNT"
 
   /* */
 
@@ -44,7 +49,7 @@ FT_BEGIN_HEADER
 FT_END_HEADER
 
 
-#endif /* __SVWINFNT_H__ */
+#endif /* __SVFNTFMT_H__ */
 
 
 /* END */

@@ -426,7 +426,6 @@
 				'src/ports/SkAtomics_win.h',
 				'src/ports/SkFontConfigParser_android.h',
 				'src/ports/SkFontConfigTypeface.h',
-				'src/ports/SkFontHost_FreeType_common.h',
 				'src/ports/SkMutex_none.h',
 				'src/ports/SkMutex_pthread.h',
 				'src/ports/SkMutex_win.h',

@@ -554,13 +554,20 @@
 					{
 						'sources!':
 						[
-							'src/ports/SkFontHost_fontconfig.cpp',
 							'src/ports/SkFontHost_FreeType.cpp',
 							'src/ports/SkFontHost_FreeType_common.cpp',
-                                                        'src/fonts/SkFontMgr_fontconfig.cpp',
-							
 							'src/sfnt/SkOTTable_name.cpp',
 							'src/sfnt/SkOTUtils.cpp',
+						],
+					},
+				],
+				[
+					'OS != "android"',
+					{
+						'sources!':
+						[
+							'src/ports/SkFontHost_fontconfig.cpp',
+                                                        'src/fonts/SkFontMgr_fontconfig.cpp',
 						],
 					},
 				],
@@ -569,7 +576,7 @@
                                         {
                                                 'defines':
                                                 [
-                                                       'SK_FONT_FILE_PREFIX="/boot/fonts/"',
+                                                       'SK_FONT_FILE_PREFIX="/boot/standalone/"',
                                                 ],
 
                                                 'dependencies':

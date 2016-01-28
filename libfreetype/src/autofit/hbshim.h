@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  ftxf86.c                                                               */
+/*  hbshim.h                                                               */
 /*                                                                         */
-/*    FreeType utility file for X11 support (body).                        */
+/*    HarfBuzz interface for accessing OpenType features (specification).  */
 /*                                                                         */
-/*  Copyright 2002, 2003, 2004 by                                          */
+/*  Copyright 2013-2015 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,25 +16,41 @@
 /***************************************************************************/
 
 
+#ifndef __HBSHIM_H__
+#define __HBSHIM_H__
+
+
 #include <ft2build.h>
-#include FT_XFREE86_H
-#include FT_INTERNAL_OBJECTS_H
-#include FT_SERVICE_XFREE86_NAME_H
+#include FT_FREETYPE_H
 
 
-  /* documentation is in ftxf86.h */
+#ifdef FT_CONFIG_OPTION_USE_HARFBUZZ
 
-  FT_EXPORT_DEF( const char* )
-  FT_Get_X11_Font_Format( FT_Face  face )
-  {
-    const char*  result = NULL;
+#include <hb.h>
+#include <hb-ot.h>
+#include <hb-ft.h>
+
+#endif
 
 
-    if ( face )
-      FT_FACE_FIND_SERVICE( face, result, XF86_NAME );
+FT_BEGIN_HEADER
 
-    return result;
-  }
+  FT_Error
+  af_get_coverage( AF_FaceGlobals  globals,
+                   AF_StyleClass   style_class,
+                   FT_UShort*      gstyles );
+
+  FT_Error
+  af_get_char_index( AF_StyleMetrics  metrics,
+                     FT_ULong         charcode,
+                     FT_ULong        *codepoint,
+                     FT_Long         *y_offset );
+
+ /* */
+
+FT_END_HEADER
+
+#endif /* __HBSHIM_H__ */
 
 
 /* END */

@@ -151,10 +151,15 @@
 								{
 									'product_name': 'RevSecurity',
 									'product_extension': '',
+
+									'ldflags!':
+									[
+										'-flto',
+									],
 								},
 							],
 						],
-						
+
 						'all_dependent_settings':
 						{
 							'variables':

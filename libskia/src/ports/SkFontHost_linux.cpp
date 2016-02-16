@@ -379,6 +379,7 @@ private:
         static const char* gDefaultNames[] = {
             "Arial", "Verdana", "Times New Roman", NULL
         };
+        gDefaultNormal = NULL;
         for (size_t i = 0; i < SK_ARRAY_COUNT(gDefaultNames); ++i) {
             SkFontStyleSet_Custom* set = this->onMatchFamily(gDefaultNames[i]);
             if (NULL == set) {

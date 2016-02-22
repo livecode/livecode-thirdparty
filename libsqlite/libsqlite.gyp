@@ -34,7 +34,9 @@
 							'SQLITE_ENABLE_FTS4',
 							'SQLITE_ENABLE_FTS3_PARENTHESIS',
 							'SQLITE_ENABLE_RTREE',
+							'SQLITE_ALLOW_URI_AUTHORITY',
 							'SQLITE_ENABLE_ICU',
+							'SQLITE_SOUNDEX',
 						],
 						
 						'sources':

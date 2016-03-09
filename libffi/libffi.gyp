@@ -6,9 +6,15 @@
 	
 	'variables':
 	{
-		'libffi_public_headers_darwin_dir':
+		'libffi_public_headers_darwin_osx_dir':
 		[
 			'./include_darwin'
+		],
+		
+		'libffi_public_headers_darwin_ios_dir':
+		[
+			'./git_master/darwin_ios/include',
+			'./git_master/darwin_common/include',
 		],
 		
 		'libffi_public_headers_win32_dir':
@@ -41,24 +47,6 @@
 			'src/types.c',
 		],
 		
-		'libffi_all_platform_source_files':
-		[
-			'src/aarch64/ffi.c',
-			'src/aarch64/sysv.S',
-			'src/arm/ffi.c',
-			'src/arm/sysv.S',
-			'src/arm/trampoline.S',
-			'src/x86/darwin.S',
-			'src/x86/darwin64.S',
-			'src/x86/ffi.c',
-			'src/x86/ffi64.c',
-			'src/x86/freebsd.S',
-			'src/x86/sysv.S',
-			'src/x86/unix64.S',
-			'src/x86/win32.S',
-			'src/x86/win64.S',
-		],
-
 		'libffi_mac_source_files':
 		[
 			'src/x86/darwin.S',
@@ -70,16 +58,25 @@
 		
 		'libffi_ios_source_files':
 		[
-			'src/aarch64/ffi.c',
-			'src/aarch64/sysv.S',
-			'src/arm/ffi.c',
-			'src/arm/sysv.S',
-			'src/arm/trampoline.S',
-			'src/x86/darwin.S',
-			'src/x86/darwin64.S',
-			'src/x86/ffi.c',
-			'src/x86/ffi64.c',
-			'src/x86/win32.S',
+			'git_master/darwin_ios/src/aarch64/ffi_arm64.c',
+			'git_master/darwin_ios/src/aarch64/sysv_arm64.S',
+			'git_master/darwin_ios/src/arm/ffi_armv7.c',
+			'git_master/darwin_ios/src/arm/sysv_armv7.S',
+			'git_master/darwin_ios/src/arm/trampoline_armv7.S',
+
+			'git_master/src/x86/ffi64.c',
+			'git_master/src/x86/ffi.c',
+			'git_master/src/x86/sysv.S',
+			'git_master/src/x86/unix64.S',
+			'git_master/src/x86/ffiw64.c',
+			'git_master/src/x86/win64.S',
+
+			'git_master/src/closures.c',
+			'git_master/src/debug.c',
+			'git_master/src/java_raw_api.c',
+			'git_master/src/prep_cif.c',
+			'git_master/src/raw_api.c',
+			'git_master/src/types.c',
 		],
 		
 		'libffi_win_source_files':
@@ -143,7 +140,6 @@
 			
 			'sources':
 			[
-				'<@(libffi_generic_sources)'
 			],
 			
 			'include_dirs':
@@ -166,12 +162,13 @@
 					{
 						'platform_include_dirs':
 						[
-							'<@(libffi_public_headers_darwin_dir)',
+							'<@(libffi_public_headers_darwin_osx_dir)',
 						],
 						
 						'sources':
 						[
 							'<@(libffi_mac_source_files)',
+							'<@(libffi_generic_sources)'
 						],
 					},
 				],
@@ -180,12 +177,18 @@
 					{
 						'platform_include_dirs':
 						[
-							'<@(libffi_public_headers_darwin_dir)',
+							'<@(libffi_public_headers_darwin_ios_dir)',
 						],
 						
 						'sources':
 						[
 							'<@(libffi_ios_source_files)',
+							'<@(libffi_generic_sources)'
+						],
+
+						'include_dirs':
+						[
+							'git_master/src',
 						],
 					},
 				],
@@ -200,6 +203,7 @@
 						'sources':
 						[
 							'<@(libffi_win_source_files)',
+							'<@(libffi_generic_sources)'
 						],
 					},
 				],
@@ -214,6 +218,7 @@
 						'sources':
 						[
 							'<@(libffi_linux_x86_source_files)',
+							'<@(libffi_generic_sources)'
 						],
 					},
 				],
@@ -228,6 +233,7 @@
 						'sources':
 						[
 							'<@(libffi_linux_x86_source_files)',
+							'<@(libffi_generic_sources)'
 						],
 					},
 				],
@@ -242,6 +248,7 @@
 						'sources':
 						[
 							'<@(libffi_linux_arm_source_files)',
+							'<@(libffi_generic_sources)'
 						],
 						
 						# Disable VFP
@@ -262,6 +269,7 @@
 						'sources':
 						[
 							'<@(libffi_emscripten_source_files)',
+							'<@(libffi_generic_sources)'
 						]
 					},
 				],

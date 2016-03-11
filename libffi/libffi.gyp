@@ -63,10 +63,10 @@
 			'git_master/darwin_ios/src/arm/ffi_armv7.c',
 			'git_master/darwin_ios/src/arm/sysv_armv7.S',
 			'git_master/darwin_ios/src/arm/trampoline_armv7.S',
+			'git_master/darwin_ios/src/x86/ffi_i386.c',
+			'git_master/darwin_ios/src/x86/sysv_i386.S',
 
 			'git_master/src/x86/ffi64.c',
-			'git_master/src/x86/ffi.c',
-			'git_master/src/x86/sysv.S',
 			'git_master/src/x86/unix64.S',
 			'git_master/src/x86/ffiw64.c',
 			'git_master/src/x86/win64.S',

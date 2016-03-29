@@ -221,7 +221,7 @@
 						{
 							'VCLinkerTool':
 							{
-								'ModuleDefinitionFile': '$(ProjectDir)..\\..\\..\\..\\thirdparty\\libopenssl\\revsecurity.def',
+								'ModuleDefinitionFile': '$(ProjectDir)..\\..\\..\\..\\prebuilt\\lib\\win\\x86\\revsecurity.def',
 								'SubSystem': '1',
 							},
 							

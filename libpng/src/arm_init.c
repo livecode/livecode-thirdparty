@@ -14,7 +14,7 @@
  */
 #define _POSIX_SOURCE 1
 
-#include "../pngpriv.h"
+#include "pngpriv.h"
 
 #ifdef PNG_READ_SUPPORTED
 #if PNG_ARM_NEON_OPT > 0

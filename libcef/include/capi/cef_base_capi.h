@@ -31,10 +31,7 @@
 #ifndef CEF_INCLUDE_CAPI_CEF_BASE_CAPI_H_
 #define CEF_INCLUDE_CAPI_CEF_BASE_CAPI_H_
 
-// IM-2014-08-13: [[ LibCef ]] stdint.h isn't available in VC++2005
-#if !defined(_WIN32)
 #include <stdint.h>
-#endif
 
 #include "include/internal/cef_export.h"
 #include "include/internal/cef_string.h"
@@ -80,7 +77,8 @@ typedef struct _cef_base_t {
 // Check that the structure |s|, which is defined with a cef_base_t member named
 // |base|, is large enough to contain the specified member |f|.
 #define CEF_MEMBER_EXISTS(s, f)   \
-  ((intptr_t)&((s)->f) - (intptr_t)(s) + sizeof((s)->f) <= (s)->base.size)
+  ((intptr_t)&((s)->f) - (intptr_t)(s) + sizeof((s)->f) <= \
+  reinterpret_cast<cef_base_t*>(s)->size)
 
 #define CEF_MEMBER_MISSING(s, f)  (!CEF_MEMBER_EXISTS(s, f) || !((s)->f))
 

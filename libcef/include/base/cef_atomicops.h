@@ -67,13 +67,7 @@
 // If the Chromium implementation diverges the below implementation should be
 // updated to match.
 
-// IM-2014-08-13: [[ LibCef ]] stdint.h isn't available in VC++2005
-#if defined(_WIN32)
-#include "include/base/cef_basictypes.h"
-typedef int32 int32_t;
-#else
 #include <stdint.h>
-#endif
 
 #include "include/base/cef_build.h"
 
@@ -195,7 +189,7 @@ Atomic64 Release_Load(volatile const Atomic64* ptr);
 
 // On some platforms we need additional declarations to make
 // AtomicWord compatible with our other Atomic* types.
-#if (defined(OS_MACOSX) && defined(ARCH_CPU_64_BITS)) || defined(OS_OPENBSD)
+#if defined(OS_MACOSX) || defined(OS_OPENBSD)
 #include "include/base/internal/cef_atomicops_atomicword_compat.h"
 #endif
 

@@ -31,7 +31,7 @@ cef libcef.so libcef.dylib libcef.dll
 	cef_get_min_log_level: () -> (integer)
 	cef_get_path: (integer,pointer) -> (integer)
 	cef_get_vlog_level: (pointer,integer) -> (integer)
-	cef_get_xdisplay: () -> (pointer)
+#	cef_get_xdisplay: () -> (pointer)
 	cef_initialize: (pointer,pointer,pointer,pointer) -> (integer)
 	cef_is_web_plugin_unstable: (pointer,pointer) -> ()
 	cef_launch_process: (pointer) -> (integer)

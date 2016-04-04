@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2016 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -10,8 +10,8 @@
 // for more information.
 //
 
-#ifndef CEF_LIBCEF_DLL_CTOCPP_QUOTA_CALLBACK_CTOCPP_H_
-#define CEF_LIBCEF_DLL_CTOCPP_QUOTA_CALLBACK_CTOCPP_H_
+#ifndef CEF_LIBCEF_DLL_CTOCPP_REQUEST_CALLBACK_CTOCPP_H_
+#define CEF_LIBCEF_DLL_CTOCPP_REQUEST_CALLBACK_CTOCPP_H_
 #pragma once
 
 #ifndef USING_CEF_SHARED
@@ -24,20 +24,16 @@
 
 // Wrap a C structure with a C++ class.
 // This class may be instantiated and accessed wrapper-side only.
-class CefQuotaCallbackCToCpp
-    : public CefCToCpp<CefQuotaCallbackCToCpp, CefQuotaCallback,
-        cef_quota_callback_t> {
+class CefRequestCallbackCToCpp
+    : public CefCToCpp<CefRequestCallbackCToCpp, CefRequestCallback,
+        cef_request_callback_t> {
  public:
-  explicit CefQuotaCallbackCToCpp(cef_quota_callback_t* str)
-      : CefCToCpp<CefQuotaCallbackCToCpp, CefQuotaCallback,
-          cef_quota_callback_t>(str) {}
-  virtual ~CefQuotaCallbackCToCpp() {}
+  CefRequestCallbackCToCpp();
 
-  // CefQuotaCallback methods
-  virtual void Continue(bool allow) OVERRIDE;
-  virtual void Cancel() OVERRIDE;
+  // CefRequestCallback methods.
+  void Continue(bool allow) OVERRIDE;
+  void Cancel() OVERRIDE;
 };
 
 #endif  // USING_CEF_SHARED
-#endif  // CEF_LIBCEF_DLL_CTOCPP_QUOTA_CALLBACK_CTOCPP_H_
-
+#endif  // CEF_LIBCEF_DLL_CTOCPP_REQUEST_CALLBACK_CTOCPP_H_

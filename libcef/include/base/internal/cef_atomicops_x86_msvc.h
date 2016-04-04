@@ -35,20 +35,7 @@
 
 #include <windows.h>
 
-// IM-2014-08-13: [[ LibCef ]] Workaround for VC++ 2005 error when including <intrin.h> after <windows.h>
-#pragma push_macro("_interlockedbittestandset")
-#pragma push_macro("_interlockedbittestandreset")
-#pragma push_macro("_interlockedbittestandset64")
-#pragma push_macro("_interlockedbittestandreset64")
-#define _interlockedbittestandset _local_interlockedbittestandset
-#define _interlockedbittestandreset _local_interlockedbittestandreset
-#define _interlockedbittestandset64 _local_interlockedbittestandset64
-#define _interlockedbittestandreset64 _local_interlockedbittestandreset64
 #include <intrin.h>
-#pragma pop_macro("_interlockedbittestandreset64")
-#pragma pop_macro("_interlockedbittestandset64")
-#pragma pop_macro("_interlockedbittestandreset")
-#pragma pop_macro("_interlockedbittestandset")
 
 #include "include/base/cef_macros.h"
 

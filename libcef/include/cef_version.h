@@ -1,4 +1,4 @@
-// Copyright (c) 2015 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2016 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -35,14 +35,16 @@
 #ifndef CEF_INCLUDE_CEF_VERSION_H_
 #define CEF_INCLUDE_CEF_VERSION_H_
 
+#define CEF_VERSION "3.2526.1373.gb660893"
 #define CEF_VERSION_MAJOR 3
-#define CEF_REVISION 1972
-#define COPYRIGHT_YEAR 2015
+#define CEF_COMMIT_NUMBER 1373
+#define CEF_COMMIT_HASH "b660893c6e800374d2b908a0b56ca47441ea2135"
+#define COPYRIGHT_YEAR 2016
 
-#define CHROME_VERSION_MAJOR 39
+#define CHROME_VERSION_MAJOR 47
 #define CHROME_VERSION_MINOR 0
-#define CHROME_VERSION_BUILD 2171
-#define CHROME_VERSION_PATCH 95
+#define CHROME_VERSION_BUILD 2526
+#define CHROME_VERSION_PATCH 80
 
 #define DO_MAKE_STRING(p) #p
 #define MAKE_STRING(p) DO_MAKE_STRING(p)
@@ -61,25 +63,19 @@ extern "C" {
 // universal hash value will change if any platform is affected whereas the
 // platform hash values will change only if that particular platform is
 // affected.
-#define CEF_API_HASH_UNIVERSAL "45820f043326b9ef42f6cb68dc257c0f91442428"
+#define CEF_API_HASH_UNIVERSAL "d3a0414c40a4941f5c67005055e2c70599ad14ce"
 #if defined(OS_WIN)
-#define CEF_API_HASH_PLATFORM "1051c471f09e2ad841a331540a5ccd583e4b4704"
+#define CEF_API_HASH_PLATFORM "1572ecbd47bba644fb71ada9451e128cd5087d12"
 #elif defined(OS_MACOSX)
-#define CEF_API_HASH_PLATFORM "c2d2321d0bd2f7cf0023a407e13df0c42c478d34"
+#define CEF_API_HASH_PLATFORM "f7d1855852e19149522d8b531325cb4e8a4daa66"
 #elif defined(OS_LINUX)
-#define CEF_API_HASH_PLATFORM "e3e43a5d2801816451413dbe70dc361a615867c7"
+#define CEF_API_HASH_PLATFORM "b0919d511659eb09d6a020f297a4ef446a37f0b5"
 #endif
 
-///
-// Returns the CEF build revision for the libcef library.
-///
-CEF_EXPORT int cef_build_revision();
-
-///
 // Returns CEF version information for the libcef library. The |entry|
 // parameter describes which version component will be returned:
 // 0 - CEF_VERSION_MAJOR
-// 1 - CEF_REVISION
+// 1 - CEF_COMMIT_NUMBER
 // 2 - CHROME_VERSION_MAJOR
 // 3 - CHROME_VERSION_MINOR
 // 4 - CHROME_VERSION_BUILD
@@ -93,6 +89,7 @@ CEF_EXPORT int cef_version_info(int entry);
 // hash value will be returned:
 // 0 - CEF_API_HASH_PLATFORM
 // 1 - CEF_API_HASH_UNIVERSAL
+// 2 - CEF_COMMIT_HASH
 ///
 CEF_EXPORT const char* cef_api_hash(int entry);
 

@@ -17,9 +17,14 @@
 			'./git_master/darwin_common/include',
 		],
 		
-		'libffi_public_headers_win32_dir':
+		'libffi_public_headers_win32_x86_dir':
 		[
-			'./include_win32',
+			'./include_win32/x86',
+		],
+		
+		'libffi_public_headers_win32_x86_64_dir':
+		[
+			'./include_win32/x86_64',
 		],
 		
 		'libffi_public_headers_linux_x86_dir':
@@ -79,10 +84,16 @@
 			'git_master/src/types.c',
 		],
 		
-		'libffi_win_source_files':
+		'libffi_win32_x86_source_files':
 		[
 			'src/x86/ffi.c',
 			'src/x86/win32.asm',
+		],
+		
+		'libffi_win32_x86_64_source_files':
+		[
+			'src/x86/ffi.c',
+			'src/x86/win64.asm',
 		],
 		
 		'libffi_linux_x86_source_files':
@@ -193,17 +204,32 @@
 					},
 				],
 				[
-					'toolset_os == "win"',
+					'toolset_os == "win" and toolset_arch == "x86"',
 					{
 						'platform_include_dirs':
 						[
-							'<@(libffi_public_headers_win32_dir)',
+							'<@(libffi_public_headers_win32_x86_dir)',
 						],
 						
 						'sources':
 						[
-							'<@(libffi_win_source_files)',
+							'<@(libffi_win32_x86_source_files)',
 							'<@(libffi_generic_sources)'
+						],
+					},
+				],
+				[
+					'toolset_os == "win" and toolset_arch == "x86_64"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_win32_x86_64_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_win32_x86_64_source_files)',
+							'<@(libffi_generic_sources)',
 						],
 					},
 				],

@@ -1387,6 +1387,11 @@ cairo_surface_set_mime_data (cairo_surface_t		*surface,
 	return _cairo_surface_set_error (surface, status);
     }
 
+	/* begin revpdfprinter additions */
+	/* if we set mime data on a surface, then it is not clear */
+	surface->is_clear = FALSE;
+	/* end revpdfprinter additions */
+	
     return CAIRO_STATUS_SUCCESS;
 }
 slim_hidden_def (cairo_surface_set_mime_data);

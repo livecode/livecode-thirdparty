@@ -434,6 +434,12 @@
 							'src/pixman-vmx.c',
 							'src/pixman-x86.c',
 							'src/pixman.c',
+							
+							# revpdfprinter additions
+							
+							'src/cairo-pdf-ext-object.h',
+							'src/cairo-pdf-ext-private.h',
+							'src/cairo-pdf-ext.c',
 						],
 						
 						# Cairo has a lot of backends and features that we don't need

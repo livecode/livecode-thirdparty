@@ -143,6 +143,20 @@ typedef struct _cairo_pdf_surface cairo_pdf_surface_t;
 struct _cairo_pdf_surface {
     cairo_surface_t base;
 
+	/* begin revpdfprinter additions */
+	
+	cairo_pdf_value_t metadata;
+	cairo_pdf_value_t dests;
+	cairo_pdf_value_t annotations;
+	cairo_pdf_value_t annotation_ids;
+	
+	cairo_array_t actions;
+	cairo_array_t outline_entries;
+	
+	cairo_bool_t premultiplied_alpha;
+	
+	/* end revpdfprinter additions */
+	
     /* Prefer the name "output" here to avoid confusion over the
      * structure within a PDF document known as a "stream". */
     cairo_output_stream_t *output;

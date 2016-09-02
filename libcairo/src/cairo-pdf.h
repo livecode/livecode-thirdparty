@@ -85,6 +85,45 @@ cairo_pdf_surface_set_size (cairo_surface_t	*surface,
 			    double		 width_in_points,
 			    double		 height_in_points);
 
+/* begin revpdfprinter additions */
+
+#include "cairo-pdf-ext-object.h"
+
+cairo_public void
+cairo_pdf_surface_set_premultiplied_alpha(cairo_surface_t *p_surface,
+										  cairo_bool_t     p_premultiplied);
+
+cairo_public void
+cairo_pdf_surface_set_metadata(cairo_surface_t *	surface,
+							   const char *			key,
+							   cairo_pdf_value_t *	value);
+
+cairo_public void
+cairo_pdf_surface_add_destination(cairo_surface_t *	surface,
+								  const char *		name,
+								  double			x,
+								  double			y);
+
+cairo_public void
+cairo_pdf_surface_add_goto_link(cairo_surface_t * surface,
+								cairo_rectangle_t area,
+								const char *		name);
+
+cairo_public void
+cairo_pdf_surface_add_uri_link(cairo_surface_t *	surface,
+								  cairo_rectangle_t area,
+								  const char *		uri);
+
+cairo_public void
+cairo_pdf_surface_add_outline_entry(cairo_surface_t * surface,
+									const char *      title,
+									int               dest_x,
+									int               dest_y,
+									int               depth,
+									int               closed);
+
+/* end revpdfprinter additions */
+
 CAIRO_END_DECLS
 
 #else  /* CAIRO_HAS_PDF_SURFACE */

@@ -47,6 +47,8 @@
 #include "cairo-pdf-operators-private.h"
 #include "cairo-pdf-shading-private.h"
 
+#include "cairo-pdf-ext-private.h"
+
 #include "cairo-array-private.h"
 #include "cairo-analysis-surface-private.h"
 #include "cairo-composite-rectangles-private.h"
@@ -152,6 +154,17 @@
 static cairo_bool_t
 _cairo_pdf_surface_get_extents (void		        *abstract_surface,
 				cairo_rectangle_int_t   *rectangle);
+
+/* begin revpdfprinter additions */
+
+static cairo_pdf_resource_t
+_cairo_pdf_surface_write_dests (cairo_pdf_surface_t *surface);
+static cairo_pdf_resource_t
+_cairo_pdf_surface_write_outlines (cairo_pdf_surface_t *surface);
+static cairo_status_t
+_cairo_pdf_surface_write_page_annotations (cairo_pdf_surface_t *surface, cairo_pdf_array_t *p_annotations, cairo_pdf_array_t *p_ids);
+
+/* end revpdfprinter additions */
 
 /**
  * CAIRO_HAS_PDF_SURFACE:
@@ -369,7 +382,21 @@ _cairo_pdf_surface_create_for_stream_internal (cairo_output_stream_t	*output,
 			 NULL, /* device */
 			 CAIRO_CONTENT_COLOR_ALPHA,
 			 TRUE); /* is_vector */
-
+	
+	/* begin revpdfprinter additions */
+	
+	_cairo_pdf_value_init(&surface->metadata, CAIRO_PDF_VALUE_TYPE_DICTIONARY);
+	_cairo_pdf_value_init(&surface->dests, CAIRO_PDF_VALUE_TYPE_DICTIONARY);
+	_cairo_pdf_value_init(&surface->annotations, CAIRO_PDF_VALUE_TYPE_ARRAY);
+	_cairo_pdf_value_init(&surface->annotation_ids, CAIRO_PDF_VALUE_TYPE_ARRAY);
+	
+	_cairo_array_init (&surface->actions, sizeof (cairo_pdf_object_t));
+	_cairo_array_init (&surface->outline_entries, sizeof (cairo_pdf_outline_entry_t));
+	
+	surface->premultiplied_alpha = 1;
+	
+	/* end revpdfprinter additions */
+	
     surface->output = output;
     surface->width = width;
     surface->height = height;
@@ -734,7 +761,13 @@ _cairo_pdf_surface_clear (cairo_pdf_surface_t *surface)
 	_cairo_pdf_smask_group_destroy (group);
     }
     _cairo_array_truncate (&surface->smask_groups, 0);
-    _cairo_array_truncate (&surface->knockout_group, 0);
+	_cairo_array_truncate (&surface->knockout_group, 0);
+	
+	/* begin revpdfprinter additions */
+	
+	_cairo_pdf_value_array_clear(&surface->annotations.array);
+	
+	/* end revpdfprinter additions */
 }
 
 static void
@@ -2094,7 +2127,25 @@ _cairo_pdf_surface_finish (void *abstract_surface)
 
     _cairo_pdf_surface_clear (surface);
     _cairo_pdf_group_resources_fini (&surface->resources);
-
+	
+	/* begin revpdfprinter additions */
+	
+	_cairo_pdf_value_dictionary_finish(&surface->metadata.dictionary);
+	_cairo_pdf_value_dictionary_finish(&surface->dests.dictionary);
+	_cairo_pdf_value_array_finish(&surface->annotations.array);
+	_cairo_pdf_value_array_finish(&surface->annotation_ids.array);
+	
+	_cairo_array_fini (&surface->actions);
+	{
+		int i, t_entry_count;
+		t_entry_count = _cairo_array_num_elements(&surface->outline_entries);
+		for (i = 0; i < t_entry_count; i++)
+			_cairo_pdf_value_outline_entry_finish((cairo_pdf_outline_entry_t *) _cairo_array_index(&surface->outline_entries, i));
+	}
+	_cairo_array_fini (&surface->outline_entries);
+	
+	/* end revpdfprinter additions */
+	
     _cairo_array_fini (&surface->objects);
     _cairo_array_fini (&surface->pages);
     _cairo_array_fini (&surface->rgb_linear_functions);
@@ -2385,9 +2436,11 @@ _cairo_pdf_surface_emit_smask (cairo_pdf_surface_t	*surface,
 						 "   /Height %d\n"
 						 "   /Interpolate %s\n"
 						 "   /BitsPerComponent 1\n"
-						 "   /Decode [1 0]\n",
+						 "   /Decode [1 0]\n"
+						 "%s",
 						 image->width, image->height,
-						 interpolate ? "true" : "false");
+						 interpolate ? "true" : "false",
+						 surface->premultiplied_alpha ? "   /Matte [0 0 0]\n" : "");
     } else {
 	status = _cairo_pdf_surface_open_stream (surface,
 						 stream_res,
@@ -2398,10 +2451,12 @@ _cairo_pdf_surface_emit_smask (cairo_pdf_surface_t	*surface,
 						 "   /Height %d\n"
 						 "   /ColorSpace /DeviceGray\n"
 						 "   /Interpolate %s\n"
-						 "   /BitsPerComponent %d\n",
+						 "   /BitsPerComponent %d\n"
+						 "%s",
 						 image->width, image->height,
 						 interpolate ? "true" : "false",
-						 transparency == CAIRO_IMAGE_HAS_ALPHA ? 8 : 1);
+						 transparency == CAIRO_IMAGE_HAS_ALPHA ? 8 : 1,
+						 surface->premultiplied_alpha ? "   /Matte [0 0 0]\n" : "");
     }
     if (unlikely (status))
 	goto CLEANUP_ALPHA;
@@ -2509,6 +2564,9 @@ _cairo_pdf_surface_emit_image (cairo_pdf_surface_t              *surface,
 	for (x = 0; x < image->width; x++, pixel++) {
 	    int r, g, b;
 
+	/* begin revpdfprinter additions */
+		
+#if 0
 	    /* XXX: We're un-premultiplying alpha here. My reading of the PDF
 	     * specification suggests that we should be able to avoid having
 	     * to do this by filling in the SMask's Matte dictionary
@@ -2525,14 +2583,19 @@ _cairo_pdf_surface_emit_image (cairo_pdf_surface_t              *surface,
 		    b = (((*pixel & 0x0000ff) >>  0) * 255 + a / 2) / a;
 		}
 	    } else if (image->format == CAIRO_FORMAT_RGB24) {
+#else
+		if (image->format == CAIRO_FORMAT_RGB24 || image->format == CAIRO_FORMAT_ARGB32) {
+#endif
 		r = (*pixel & 0x00ff0000) >> 16;
 		g = (*pixel & 0x0000ff00) >>  8;
 		b = (*pixel & 0x000000ff) >>  0;
 	    } else {
 		r = g = b = 0;
 	    }
+			
+	/* end revpdfprinter additions */
 
-	    switch (color) {
+		switch (color) {
 		case CAIRO_IMAGE_IS_COLOR:
 		case CAIRO_IMAGE_UNKNOWN_COLOR:
 		    data[i++] = r;
@@ -4658,16 +4721,14 @@ _cairo_pdf_surface_write_info (cairo_pdf_surface_t *surface)
     if (info.id == 0)
 	return info;
 
-    _cairo_output_stream_printf (surface->output,
-				 "%d 0 obj\n"
-				 "<< /Creator (cairo %s (http://cairographics.org))\n"
-				 "   /Producer (cairo %s (http://cairographics.org))\n"
-				 ">>\n"
-				 "endobj\n",
-				 info.id,
-                                 cairo_version_string (),
-                                 cairo_version_string ());
-
+	/* begin revpdfprinter additions */
+	
+	_cairo_output_stream_printf(surface->output, "%d 0 obj\n", info.id);
+	_cairo_pdf_output_stream_write_object(surface->output, &surface->metadata);
+	_cairo_output_stream_printf(surface->output, "endobj\n");
+	
+	/* end revpdfprinter additions */
+	
     return info;
 }
 
@@ -5983,22 +6044,33 @@ BAIL:
 static cairo_pdf_resource_t
 _cairo_pdf_surface_write_catalog (cairo_pdf_surface_t *surface)
 {
-    cairo_pdf_resource_t catalog;
-
-    catalog = _cairo_pdf_surface_new_object (surface);
-    if (catalog.id == 0)
+	/* begin revpdfprinter additions */
+	
+	cairo_pdf_resource_t catalog, dests, outlines;
+	
+	dests = _cairo_pdf_surface_write_dests(surface);
+	outlines = _cairo_pdf_surface_write_outlines(surface);
+	
+	catalog = _cairo_pdf_surface_new_object (surface);
+	if (catalog.id == 0)
+		return catalog;
+	
+	_cairo_output_stream_printf (surface->output,
+								 "%d 0 obj\n"
+								 "<< /Type /Catalog\n"
+								 "   /Pages %d 0 R\n"
+								 "   /Dests %d 0 R\n"
+								 "   /Outlines %d 0 R\n"
+								 ">>\n"
+								 "endobj\n",
+								 catalog.id,
+								 surface->pages_resource.id,
+								 dests.id,
+								 outlines.id);
+	
+	/* end revpdfprinter additions */
+	
 	return catalog;
-
-    _cairo_output_stream_printf (surface->output,
-				 "%d 0 obj\n"
-				 "<< /Type /Catalog\n"
-				 "   /Pages %d 0 R\n"
-				 ">>\n"
-				 "endobj\n",
-				 catalog.id,
-				 surface->pages_resource.id);
-
-    return catalog;
 }
 
 static long
@@ -6408,7 +6480,13 @@ _cairo_pdf_surface_write_page (cairo_pdf_surface_t *surface)
 	if (unlikely (status))
 	    return status;
     }
-
+	
+	/* begin revpdfprinter additions */
+	
+	status = _cairo_pdf_surface_write_page_annotations(surface, &surface->annotations.array, &surface->annotation_ids.array);
+	if (unlikely (status))
+		return status;
+	
     page = _cairo_pdf_surface_new_object (surface);
     if (page.id == 0)
 	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
@@ -6426,15 +6504,21 @@ _cairo_pdf_surface_write_page (cairo_pdf_surface_t *surface)
 				 "      /CS /DeviceRGB\n"
 				 "   >>\n"
 				 "   /Resources %d 0 R\n"
-				 ">>\n"
-				 "endobj\n",
+				 "   /Annots ",
 				 page.id,
 				 surface->pages_resource.id,
 				 surface->width,
 				 surface->height,
 				 surface->content.id,
 				 surface->content_resources.id);
-
+	
+	_cairo_pdf_output_stream_write_object(surface->output, &surface->annotation_ids);
+	_cairo_output_stream_printf (surface->output, "\n"
+								 ">>\n"
+								 "endobj\n");
+	
+	/* end revpdfprinter additions */
+	
     status = _cairo_array_append (&surface->pages, &page);
     if (unlikely (status))
 	return status;
@@ -7843,6 +7927,452 @@ _cairo_pdf_surface_set_paginated_mode (void			*abstract_surface,
     surface->paginated_mode = paginated_mode;
 }
 
+/* begin revpdfprinter additions */
+	
+void
+cairo_pdf_surface_set_premultiplied_alpha(cairo_surface_t *surface, cairo_bool_t premultiplied)
+{
+	cairo_pdf_surface_t *pdf_surface = NULL; /* hide compiler warning */
+	cairo_status_t status;
+	
+	if (!_extract_pdf_surface (surface, &pdf_surface)) {
+		return;
+	}
+	
+	pdf_surface->premultiplied_alpha = premultiplied;
+}
+
+void
+cairo_pdf_surface_set_metadata(cairo_surface_t *	surface,
+							   const char *			key,
+							   cairo_pdf_value_t *	value)
+{
+	cairo_pdf_surface_t *pdf_surface = NULL; /* hide compiler warning */
+	cairo_status_t status;
+	
+	if (!_extract_pdf_surface (surface, &pdf_surface)) {
+		return;
+	}
+	
+	status = _cairo_pdf_value_dictionary_set(&pdf_surface->metadata.dictionary, key, value);
+	if (unlikely (status)) {
+		status = _cairo_surface_set_error (surface, status);
+		return;
+	}
+}
+
+void
+cairo_pdf_surface_add_destination(cairo_surface_t *	surface,
+								  const char *		name,
+								  double			x,
+								  double			y)
+{
+	cairo_pdf_surface_t *pdf_surface = NULL; /* hide compiler warning */
+	cairo_status_t status;
+	cairo_pdf_value_t t_dest;
+	
+	if (!_extract_pdf_surface (surface, &pdf_surface)) {
+		return;
+	}
+	
+	t_dest.type = CAIRO_PDF_VALUE_TYPE_DEST;
+	_cairo_pdf_value_dest_set_xyz(&t_dest.dest, _cairo_array_num_elements(&pdf_surface->pages), x, pdf_surface->height - y, 0);
+	
+	status = _cairo_pdf_value_dictionary_set(&pdf_surface->dests.dictionary, name, &t_dest);
+	if (unlikely (status)) {
+		status = _cairo_surface_set_error (surface, status);
+		return;
+	}
+}
+
+void cairo_pdf_surface_add_goto_link(cairo_surface_t *surface, cairo_rectangle_t area, const char *name)
+{
+	cairo_pdf_surface_t *pdf_surface = NULL; /* hide compiler warning */
+	cairo_status_t status;
+	cairo_pdf_value_t t_annotation;
+	
+	if (!_extract_pdf_surface (surface, &pdf_surface)) {
+		return;
+	}
+	
+	t_annotation.type = CAIRO_PDF_VALUE_TYPE_ANNOTATION;
+	t_annotation.annotation.type = CAIRO_PDF_ANNOTATION_TYPE_LINK;
+	t_annotation.annotation.link.dest = name;
+	t_annotation.annotation.rect.x = area.x;
+	t_annotation.annotation.rect.y = pdf_surface->height - (area.y + area.height);
+	t_annotation.annotation.rect.width = area.width;
+	t_annotation.annotation.rect.height = area.height;
+	
+	status = _cairo_pdf_value_array_append(&pdf_surface->annotations.array, &t_annotation);
+	if (unlikely (status)) {
+		status = _cairo_surface_set_error (surface, status);
+		return;
+	}
+}
+
+static cairo_pdf_value_t *
+_cairo_pdf_surface_find_uri_action(cairo_pdf_surface_t *surface, const char *uri)
+{
+	cairo_pdf_value_t *t_action;
+	int i;
+	
+	for (i = 0; i < _cairo_array_num_elements(&surface->actions); i++)
+	{
+		t_action = (cairo_pdf_value_t*) _cairo_array_index(&surface->actions, i);
+		
+		if (t_action->type == CAIRO_PDF_VALUE_TYPE_ACTION &&
+			t_action->action.type == CAIRO_PDF_ACTION_TYPE_URI &&
+			strcmp(t_action->action.uri.uri, uri) == 0)
+			return t_action;
+	}
+	return NULL;
+}
+
+void cairo_pdf_surface_add_uri_link(cairo_surface_t *surface, cairo_rectangle_t area, const char *uri)
+{
+	cairo_pdf_surface_t *pdf_surface = NULL; /* hide compiler warning */
+	cairo_status_t status;
+	cairo_pdf_value_t t_annotation;
+	
+	if (!_extract_pdf_surface (surface, &pdf_surface)) {
+		return;
+	}
+	
+	t_annotation.type = CAIRO_PDF_VALUE_TYPE_ANNOTATION;
+	t_annotation.annotation.type = CAIRO_PDF_ANNOTATION_TYPE_LINK;
+	t_annotation.annotation.link.dest = NULL;
+	t_annotation.annotation.link.uri = uri;
+	t_annotation.annotation.rect.x = area.x;
+	t_annotation.annotation.rect.y = pdf_surface->height - (area.y + area.height);
+	t_annotation.annotation.rect.width = area.width;
+	t_annotation.annotation.rect.height = area.height;
+	
+	status = _cairo_pdf_value_array_append(&pdf_surface->annotations.array, &t_annotation);
+	if (unlikely (status)) {
+		status = _cairo_surface_set_error (surface, status);
+		return;
+	}
+}
+
+void cairo_pdf_surface_add_outline_entry(cairo_surface_t * surface,
+										 const char *      title,
+										 int               dest_x,
+										 int               dest_y,
+										 int               depth,
+										 int               closed)
+{
+	cairo_pdf_surface_t *pdf_surface = NULL; /* hide compiler warning */
+	cairo_status_t status;
+	cairo_pdf_outline_entry_t *t_outline_entry = NULL;
+	int t_entry_count = 0;
+	cairo_pdf_outline_entry_t *t_previous_entry;
+	int t_previous_index;
+	
+	if (!_extract_pdf_surface (surface, &pdf_surface)) {
+		return;
+	}
+	
+	t_entry_count = _cairo_array_num_elements(&pdf_surface->outline_entries);
+	
+	if (depth < 1 || (depth > 1 && t_entry_count == 0))
+	{
+		// invalid depth value
+		_cairo_surface_set_error (surface, CAIRO_STATUS_INVALID_INDEX);
+		return;
+	}
+	
+	status = _cairo_array_allocate(&pdf_surface->outline_entries, 1, &t_outline_entry);
+	if (unlikely (status)) {
+		status = _cairo_surface_set_error (surface, status);
+		return;
+	}
+	
+	_cairo_pdf_value_outline_entry_init(t_outline_entry);
+	t_outline_entry->depth = depth;
+	t_outline_entry->closed = closed;
+	_cairo_pdf_value_dest_set_xyz(&t_outline_entry->destination, _cairo_array_num_elements(&pdf_surface->pages), dest_x, pdf_surface->height - dest_y, 0);
+	
+	if (title != NULL)
+	{
+		status = _cairo_pdf_value_string_copy_text(&t_outline_entry->title, title);
+		if (unlikely (status)) {
+			status = _cairo_surface_set_error(surface, CAIRO_STATUS_NO_MEMORY);
+			return;
+		}
+	}
+	
+	if (t_entry_count > 0)
+	{
+		t_previous_index = t_entry_count - 1;
+		t_previous_entry = _cairo_array_index(&pdf_surface->outline_entries, t_previous_index);
+		while (t_previous_entry->depth > depth)
+		{
+			t_previous_index = t_previous_entry->parent;
+			t_previous_entry = _cairo_array_index(&pdf_surface->outline_entries, t_previous_index);
+		}
+		
+		if (t_previous_entry->depth == depth)
+		{
+			t_previous_entry->next = t_entry_count;
+			t_outline_entry->prev = t_previous_index;
+			t_outline_entry->parent = t_previous_entry->parent;
+			if (t_outline_entry->parent != -1)
+			{
+				cairo_pdf_outline_entry_t *t_parent;
+				t_parent = (cairo_pdf_outline_entry_t*)_cairo_array_index(&pdf_surface->outline_entries, t_outline_entry->parent);
+				t_parent->last = t_entry_count;
+			}
+		}
+		else if (t_previous_entry->depth == depth - 1)
+		{
+			t_previous_entry->first = t_previous_entry->last = t_entry_count;
+			t_outline_entry->parent = t_previous_index;
+		}
+		else
+		{
+			// depth must be between 1 and 1 more than the depth of the previous element
+			status = _cairo_surface_set_error (surface, CAIRO_STATUS_INVALID_INDEX);
+			return;
+		}
+	}
+}
+
+static cairo_pdf_resource_t
+_cairo_pdf_surface_write_dests (cairo_pdf_surface_t *surface)
+{
+	cairo_pdf_resource_t dest;
+	
+	dest = _cairo_pdf_surface_new_object (surface);
+	if (dest.id == 0)
+		return dest;
+	
+	_cairo_output_stream_printf(surface->output, "%d 0 obj\n", dest.id);
+	_cairo_pdf_output_stream_write_object(surface->output, &surface->dests);
+	_cairo_output_stream_printf(surface->output, "endobj\n");
+	
+	return dest;
+}
+
+static void
+_cairo_pdf_surface_write_outline_entries(cairo_pdf_surface_t *surface, int p_base_id)
+{
+	int t_index, t_entry_count;
+	
+	t_entry_count = _cairo_array_num_elements(&surface->outline_entries);
+	
+	for (t_index = 0; t_index < t_entry_count; t_index++)
+	{
+		cairo_pdf_resource_t t_object;
+		cairo_pdf_outline_entry_t *t_entry;
+		
+		t_entry = (cairo_pdf_outline_entry_t*)_cairo_array_index(&surface->outline_entries, t_index);
+		
+		t_object = _cairo_pdf_surface_new_object(surface);
+		
+		_cairo_output_stream_printf(surface->output,
+									"%d 0 obj\n"
+									"<< /Title ",
+									t_index + p_base_id);
+		_cairo_pdf_output_stream_write_string(surface->output, &t_entry->title);
+		_cairo_output_stream_printf(surface->output,
+									"\n   /Parent %d 0 R\n",
+									t_entry->parent + p_base_id);
+		if (t_entry->prev != -1)
+		{
+			_cairo_output_stream_printf(surface->output,
+										"   /Prev %d 0 R\n",
+										t_entry->prev + p_base_id);
+		}
+		if (t_entry->next != -1)
+		{
+			_cairo_output_stream_printf(surface->output,
+										"   /Next %d 0 R\n",
+										t_entry->next + p_base_id);
+		}
+		
+		if (t_entry->first != -1)
+		{
+			_cairo_output_stream_printf(surface->output,
+										"   /First %d 0 R\n"
+										"   /Last %d 0 R\n"
+										"   /Count %d\n",
+										t_entry->first + p_base_id,
+										t_entry->last + p_base_id,
+										t_entry->count);
+		}
+		
+		_cairo_output_stream_printf(surface->output,
+									"   /Dest ");
+		_cairo_pdf_output_stream_write_dest(surface->output, &t_entry->destination);
+		_cairo_output_stream_printf(surface->output,
+									"\n>>\n"
+									"endobj\n");
+	}
+}
+
+static int
+_cairo_pdf_surface_update_outline_entry_count (cairo_array_t *p_array, int p_index)
+{
+	cairo_pdf_outline_entry_t *t_entry;
+	int t_count_total, t_index;
+	
+	t_count_total = 0;
+	t_index = p_index;
+	
+	while (t_index != -1)
+	{
+		int t_child_count;
+		t_entry = (cairo_pdf_outline_entry_t*)_cairo_array_index(p_array, t_index);
+		
+		if (t_entry->first != -1)
+		{
+			t_child_count = _cairo_pdf_surface_update_outline_entry_count(p_array, t_entry->first);
+			if (t_entry->closed)
+				t_entry->count = -t_child_count;
+			else
+				t_count_total += (t_entry->count = t_child_count);
+		}
+		t_count_total++;
+		t_index = t_entry->next;
+	}
+	
+	return t_count_total;
+}
+
+static int
+_cairo_pdf_surface_update_outline_counts (cairo_array_t *p_outlines)
+{
+	int t_outline_count;
+	
+	t_outline_count = _cairo_array_num_elements(p_outlines);
+	if (t_outline_count == 0)
+		return 0;
+	
+	return _cairo_pdf_surface_update_outline_entry_count (p_outlines, 0);
+}
+
+static cairo_pdf_resource_t
+_cairo_pdf_surface_write_outlines (cairo_pdf_surface_t *surface)
+{
+	cairo_pdf_resource_t outlines;
+	int t_count, t_base_index;
+	
+	t_count = _cairo_pdf_surface_update_outline_counts (&surface->outline_entries);
+	
+	outlines = _cairo_pdf_surface_new_object (surface);
+	if (outlines.id == 0)
+		return outlines;
+	
+	t_base_index = outlines.id + 1;
+	
+	if (t_count > 0)
+	{
+		int t_first, t_last;
+		cairo_pdf_outline_entry_t *t_entry;
+		
+		t_first = 0; t_last = t_first;
+		t_entry = (cairo_pdf_outline_entry_t*)_cairo_array_index(&surface->outline_entries, t_last);
+		while (t_entry->next != -1)
+		{
+			t_last = t_entry->next;
+			t_entry = (cairo_pdf_outline_entry_t*)_cairo_array_index(&surface->outline_entries, t_last);
+		}
+		
+		_cairo_output_stream_printf(surface->output,
+									"%d 0 obj\n"
+									"<< /Type /Outlines\n"
+									"   /First %d 0 R\n"
+									"   /Last %d 0 R\n"
+									"   /Count %d\n"
+									">>\n"
+									"endobj\n",
+									outlines.id,
+									t_base_index + t_first,
+									t_base_index + t_last,
+									t_count);
+		
+		_cairo_pdf_surface_write_outline_entries(surface, t_base_index);
+	}
+	else
+	{
+		_cairo_output_stream_printf(surface->output,
+									"%d 0 obj\n"
+									"<< /Type /Outlines >>\n"
+									"endobj\n",
+									outlines.id);
+	}
+	return outlines;
+}
+
+static cairo_status_t
+_cairo_pdf_surface_write_page_annotations (cairo_pdf_surface_t *surface, cairo_pdf_array_t *p_annotations, cairo_pdf_array_t *p_ids)
+{
+	int i;
+	cairo_pdf_resource_t dest;
+	cairo_pdf_value_t t_ref;
+	cairo_status_t t_status;
+	cairo_pdf_value_t t_action;
+	cairo_pdf_value_t *t_action_ptr;
+	cairo_pdf_resource_t t_action_res;
+	
+	t_status = CAIRO_STATUS_SUCCESS;
+	
+	_cairo_pdf_value_array_clear(p_ids);
+	
+	t_ref.type = CAIRO_PDF_VALUE_TYPE_REFERENCE;
+	t_ref.reference.id = 0;
+	t_ref.reference.generation = 0;
+	
+	for (i = 0; i < p_annotations->size; i++)
+	{
+		if (p_annotations->elements[i].annotation.type == CAIRO_PDF_ANNOTATION_TYPE_LINK &&
+			p_annotations->elements[i].annotation.link.dest == NULL &&
+			p_annotations->elements[i].annotation.link.uri != NULL)
+		{
+			t_action_ptr = _cairo_pdf_surface_find_uri_action(surface, p_annotations->elements[i].annotation.link.uri);
+			if (t_action_ptr == NULL)
+			{
+				t_action_res = _cairo_pdf_surface_new_object(surface);
+				if (t_action_res.id == 0)
+					return CAIRO_STATUS_NO_MEMORY;
+				t_action.type = CAIRO_PDF_VALUE_TYPE_ACTION;
+				t_action.action.type = CAIRO_PDF_ACTION_TYPE_URI;
+				t_action.action.uri.uri = p_annotations->elements[i].annotation.link.uri;
+				t_action.action.uri.is_map = FALSE;
+				
+				t_action.id = t_action_res.id;
+				
+				t_action_ptr = &t_action;
+				
+				_cairo_array_append(&surface->actions, &t_action);
+				
+				_cairo_output_stream_printf(surface->output, "%d 0 obj\n", t_action.id);
+				_cairo_pdf_output_stream_write_object(surface->output, &t_action);
+				_cairo_output_stream_printf(surface->output, "endobj\n");
+			}
+			p_annotations->elements[i].annotation.link.action.id = t_action_ptr->id;
+			p_annotations->elements[i].annotation.link.action.generation = 0;
+		}
+		dest = _cairo_pdf_surface_new_object (surface);
+		if (dest.id == 0)
+			return CAIRO_STATUS_NO_MEMORY;
+		
+		t_ref.reference.id = dest.id;
+		
+		t_status = _cairo_pdf_value_array_append(p_ids, &t_ref);
+		if (t_status != CAIRO_STATUS_SUCCESS)
+			return t_status;
+		
+		_cairo_output_stream_printf(surface->output, "%d 0 obj\n", dest.id);
+		_cairo_pdf_output_stream_write_object(surface->output, &p_annotations->elements[i]);
+		_cairo_output_stream_printf(surface->output, "endobj\n");
+	}
+	
+	return t_status;
+}
+	
+/* end revpdfprinter additions */
+	
 static const cairo_surface_backend_t cairo_pdf_surface_backend = {
     CAIRO_SURFACE_TYPE_PDF,
     _cairo_pdf_surface_finish,

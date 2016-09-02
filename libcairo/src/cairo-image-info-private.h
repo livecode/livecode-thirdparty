@@ -43,6 +43,9 @@ typedef struct _cairo_image_info {
     int		 height;
     int		 num_components;
     int		 bits_per_component;
+	/* begin revpdfprinter additions */
+	int      is_adobe;
+	/* end revpdfprinter additions */
 } cairo_image_info_t;
 
 cairo_private cairo_int_status_t

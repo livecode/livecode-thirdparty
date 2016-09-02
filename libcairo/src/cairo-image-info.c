@@ -67,6 +67,10 @@
 #define SOF14 0xce
 #define SOF15 0xcf
 
+/* begin revpdfprinter additions */
+#define APP0 0xe0
+/* end revpdfprinter additions */
+
 static const unsigned char *
 _jpeg_skip_segment (const unsigned char *p)
 {
@@ -130,6 +134,24 @@ _cairo_image_info_get_jpeg_info (cairo_image_info_t	*info,
 
 	    _jpeg_extract_info (info, p);
 	    return CAIRO_STATUS_SUCCESS;
+		
+	/* begin revpdfprinter additions */
+			
+	/* If the image is from adobe mark it as such as CMYK images
+	   need inverting in that case */
+	case APP0 + 14:
+		if (p + 12 > data + length)
+			return CAIRO_INT_STATUS_UNSUPPORTED;
+		
+		if (strncmp(p + 3, "Adobe", 5) == 0)
+			info -> is_adobe = 1;
+		else
+			info -> is_adobe = 0;
+		
+		p = _jpeg_skip_segment(p);
+		break;
+			
+	/* end revpdfprinter additions */
 
 	default:
 	    if (*p >= RST_begin && *p <= RST_end) {

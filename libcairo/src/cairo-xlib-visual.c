@@ -12,7 +12,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -35,7 +35,12 @@
 
 #include "cairoint.h"
 
+#if !CAIRO_HAS_XLIB_XCB_FUNCTIONS
+
 #include "cairo-xlib-private.h"
+
+#include "cairo-error-private.h"
+#include "cairo-list-inline.h"
 
 /* A perceptual distance metric between two colors. No sqrt needed
  * since the square of the distance is still a valid metric. */
@@ -81,6 +86,7 @@ _cairo_xlib_visual_info_create (Display *dpy,
     if (unlikely (info == NULL))
 	return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
+    cairo_list_init (&info->link);
     info->visualid = visualid;
 
     /* Allocate a gray ramp and a color cube.
@@ -178,8 +184,11 @@ _cairo_xlib_visual_info_create (Display *dpy,
 }
 
 void
-_cairo_xlib_visual_info_destroy (Display *dpy, cairo_xlib_visual_info_t *info)
+_cairo_xlib_visual_info_destroy (cairo_xlib_visual_info_t *info)
 {
     /* No need for XFreeColors() whilst using DefaultColormap */
+    _cairo_list_del (&info->link);
     free (info);
 }
+
+#endif /* !CAIRO_HAS_XLIB_XCB_FUNCTIONS */

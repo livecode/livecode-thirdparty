@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -49,8 +49,6 @@
 #include "cairo-pdf-operators-private.h"
 #include "cairo-path-fixed-private.h"
 
-#include "cairo-pdf-ext-object.h"
-
 typedef struct _cairo_pdf_resource {
     unsigned int id;
 } cairo_pdf_resource_t;
@@ -62,6 +60,7 @@ typedef struct _cairo_pdf_group_resources {
     cairo_array_t alphas;
     cairo_array_t smasks;
     cairo_array_t patterns;
+    cairo_array_t shadings;
     cairo_array_t xobjects;
     cairo_array_t fonts;
 } cairo_pdf_group_resources_t;
@@ -69,14 +68,23 @@ typedef struct _cairo_pdf_group_resources {
 typedef struct _cairo_pdf_source_surface_entry {
     cairo_hash_entry_t base;
     unsigned int id;
+    unsigned char *unique_id;
+    unsigned long unique_id_length;
+    cairo_operator_t operator;
     cairo_bool_t interpolate;
+    cairo_bool_t stencil_mask;
+    cairo_bool_t smask;
     cairo_pdf_resource_t surface_res;
+    cairo_pdf_resource_t smask_res;
     int width;
     int height;
+    cairo_rectangle_int_t extents;
 } cairo_pdf_source_surface_entry_t;
 
 typedef struct _cairo_pdf_source_surface {
+    cairo_pattern_type_t type;
     cairo_surface_t *surface;
+    cairo_pattern_t *raster_pattern;
     cairo_pdf_source_surface_entry_t *hash_entry;
 } cairo_pdf_source_surface_t;
 
@@ -87,6 +95,8 @@ typedef struct _cairo_pdf_pattern {
     cairo_pattern_t *pattern;
     cairo_pdf_resource_t pattern_res;
     cairo_pdf_resource_t gstate_res;
+    cairo_operator_t operator;
+    cairo_bool_t is_shading;
 } cairo_pdf_pattern_t;
 
 typedef enum _cairo_pdf_operation {
@@ -97,10 +107,10 @@ typedef enum _cairo_pdf_operation {
     PDF_SHOW_GLYPHS
 } cairo_pdf_operation_t;
 
-typedef struct _cairo_pdf_smask_group
-{
-    double 		  width;
-    double 		  height;
+typedef struct _cairo_pdf_smask_group {
+    double		  width;
+    double		  height;
+    cairo_rectangle_int_t extents;
     cairo_pdf_resource_t  group_res;
     cairo_pdf_operation_t operation;
     cairo_pattern_t	 *source;
@@ -108,10 +118,10 @@ typedef struct _cairo_pdf_smask_group
     cairo_pattern_t	 *mask;
     cairo_path_fixed_t	  path;
     cairo_fill_rule_t	  fill_rule;
-    cairo_stroke_style_t *style;
+    cairo_stroke_style_t  style;
     cairo_matrix_t	  ctm;
     cairo_matrix_t	  ctm_inverse;
-    char           	 *utf8;
+    char		 *utf8;
     int                   utf8_len;
     cairo_glyph_t	 *glyphs;
     int			  num_glyphs;
@@ -121,20 +131,17 @@ typedef struct _cairo_pdf_smask_group
     cairo_scaled_font_t	 *scaled_font;
 } cairo_pdf_smask_group_t;
 
+typedef struct _cairo_pdf_jbig2_global {
+    unsigned char *id;
+    unsigned long id_length;
+    cairo_pdf_resource_t  res;
+    cairo_bool_t emitted;
+} cairo_pdf_jbig2_global_t;
+
 typedef struct _cairo_pdf_surface cairo_pdf_surface_t;
 
 struct _cairo_pdf_surface {
     cairo_surface_t base;
-
-	cairo_pdf_object_t metadata;
-	cairo_pdf_object_t dests;
-	cairo_pdf_object_t annotations;
-	cairo_pdf_object_t annotation_ids;
-
-	cairo_array_t actions;
-	cairo_array_t outline_entries;
-
-	cairo_bool_t premultiplied_alpha;
 
     /* Prefer the name "output" here to avoid confusion over the
      * structure within a PDF document known as a "stream". */
@@ -153,6 +160,7 @@ struct _cairo_pdf_surface {
     cairo_hash_table_t *all_surfaces;
     cairo_array_t smask_groups;
     cairo_array_t knockout_group;
+    cairo_array_t jbig2_global;
 
     cairo_scaled_font_subsets_t *font_subsets;
     cairo_array_t fonts;
@@ -184,6 +192,7 @@ struct _cairo_pdf_surface {
 	cairo_output_stream_t *mem_stream;
 	cairo_output_stream_t *old_output;
 	cairo_pdf_resource_t   resource;
+	cairo_box_double_t     bbox;
 	cairo_bool_t is_knockout;
     } group_stream;
 

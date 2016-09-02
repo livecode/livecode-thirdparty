@@ -12,7 +12,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -39,22 +39,20 @@
 
 #include "cairo.h"
 
-#include "cairo-pdf-ext-object.h"
-
 #if CAIRO_HAS_PDF_SURFACE
 
 CAIRO_BEGIN_DECLS
 
 /**
  * cairo_pdf_version_t:
- * @CAIRO_PDF_VERSION_1_4: The version 1.4 of the PDF specification.
- * @CAIRO_PDF_VERSION_1_5: The version 1.5 of the PDF specification.
+ * @CAIRO_PDF_VERSION_1_4: The version 1.4 of the PDF specification. (Since 1.10)
+ * @CAIRO_PDF_VERSION_1_5: The version 1.5 of the PDF specification. (Since 1.10)
  *
  * #cairo_pdf_version_t is used to describe the version number of the PDF
  * specification that a generated PDF file will conform to.
  *
- * Since 1.10
- */
+ * Since: 1.10
+ **/
 typedef enum _cairo_pdf_version {
     CAIRO_PDF_VERSION_1_4,
     CAIRO_PDF_VERSION_1_5
@@ -86,41 +84,6 @@ cairo_public void
 cairo_pdf_surface_set_size (cairo_surface_t	*surface,
 			    double		 width_in_points,
 			    double		 height_in_points);
-
-////////////////////////////////////////////////////////////////////////////////
-
-cairo_public void
-cairo_pdf_surface_set_premultiplied_alpha(cairo_surface_t *p_surface,
-										  cairo_bool_t     p_premultiplied);
-
-cairo_public void
-cairo_pdf_surface_set_metadata(cairo_surface_t *	surface,
-							   const char *			key,
-							   cairo_pdf_object_t *	value);
-
-cairo_public void
-cairo_pdf_surface_add_destination(cairo_surface_t *	surface,
-								  const char *		name,
-								  double			x,
-								  double			y);
-
-cairo_public void
-cairo_pdf_surface_add_goto_link(cairo_surface_t * surface,
-								  cairo_rectangle_t area,
-								  const char *		name);
-
-cairo_public void
-cairo_pdf_surface_add_uri_link(cairo_surface_t *	surface,
-								  cairo_rectangle_t area,
-								  const char *		uri);
-
-cairo_public void
-cairo_pdf_surface_add_outline_entry(cairo_surface_t * surface,
-									const char *      title,
-									int               dest_x,
-									int               dest_y,
-									int               depth,
-									int               closed);
 
 CAIRO_END_DECLS
 

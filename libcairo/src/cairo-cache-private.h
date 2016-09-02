@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -43,7 +43,7 @@
 #include "cairo-types-private.h"
 
 /**
- * cairo_cache_entry_t:
+ * _cairo_cache_entry:
  *
  * A #cairo_cache_entry_t contains both a key and a value for
  * #cairo_cache_t. User-derived types for #cairo_cache_entry_t must

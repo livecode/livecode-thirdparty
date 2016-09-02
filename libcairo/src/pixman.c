@@ -28,128 +28,682 @@
 #endif
 #include "pixman-private.h"
 
-/*
- * Operator optimizations based on source or destination opacity
- */
-typedef struct
-{
-    pixman_op_t op;
-    pixman_op_t op_src_dst_opaque;
-    pixman_op_t op_src_opaque;
-    pixman_op_t op_dst_opaque;
-} optimized_operator_info_t;
+#include <stdlib.h>
 
-static const optimized_operator_info_t optimized_operators[] =
+pixman_implementation_t *global_implementation;
+
+#ifdef TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR
+static void __attribute__((constructor))
+pixman_constructor (void)
 {
-    /* Input Operator           SRC&DST Opaque          SRC Opaque              DST Opaque      */
-    { PIXMAN_OP_OVER,           PIXMAN_OP_SRC,          PIXMAN_OP_SRC,          PIXMAN_OP_OVER },
-    { PIXMAN_OP_OVER_REVERSE,   PIXMAN_OP_DST,          PIXMAN_OP_OVER_REVERSE, PIXMAN_OP_DST },
-    { PIXMAN_OP_IN,             PIXMAN_OP_SRC,          PIXMAN_OP_IN,           PIXMAN_OP_SRC },
-    { PIXMAN_OP_IN_REVERSE,     PIXMAN_OP_DST,          PIXMAN_OP_DST,          PIXMAN_OP_IN_REVERSE },
-    { PIXMAN_OP_OUT,            PIXMAN_OP_CLEAR,        PIXMAN_OP_OUT,          PIXMAN_OP_CLEAR },
-    { PIXMAN_OP_OUT_REVERSE,    PIXMAN_OP_CLEAR,        PIXMAN_OP_CLEAR,        PIXMAN_OP_OUT_REVERSE },
-    { PIXMAN_OP_ATOP,           PIXMAN_OP_SRC,          PIXMAN_OP_IN,           PIXMAN_OP_OVER },
-    { PIXMAN_OP_ATOP_REVERSE,   PIXMAN_OP_DST,          PIXMAN_OP_OVER_REVERSE, PIXMAN_OP_IN_REVERSE },
-    { PIXMAN_OP_XOR,            PIXMAN_OP_CLEAR,        PIXMAN_OP_OUT,          PIXMAN_OP_OUT_REVERSE },
-    { PIXMAN_OP_SATURATE,       PIXMAN_OP_DST,          PIXMAN_OP_OVER_REVERSE, PIXMAN_OP_DST },
-    { PIXMAN_OP_NONE }
+    global_implementation = _pixman_choose_implementation ();
+}
+#endif
+
+typedef struct operator_info_t operator_info_t;
+
+struct operator_info_t
+{
+    uint8_t	opaque_info[4];
 };
 
-static pixman_implementation_t *imp;
+#define PACK(neither, src, dest, both)			\
+    {{	    (uint8_t)PIXMAN_OP_ ## neither,		\
+	    (uint8_t)PIXMAN_OP_ ## src,			\
+	    (uint8_t)PIXMAN_OP_ ## dest,		\
+	    (uint8_t)PIXMAN_OP_ ## both		}}
 
-/*
- * Check if the current operator could be optimized
- */
-static const optimized_operator_info_t*
-pixman_operator_can_be_optimized (pixman_op_t op)
+static const operator_info_t operator_table[] =
 {
-    const optimized_operator_info_t *info;
+    /*    Neither Opaque         Src Opaque             Dst Opaque             Both Opaque */
+    PACK (CLEAR,                 CLEAR,                 CLEAR,                 CLEAR),
+    PACK (SRC,                   SRC,                   SRC,                   SRC),
+    PACK (DST,                   DST,                   DST,                   DST),
+    PACK (OVER,                  SRC,                   OVER,                  SRC),
+    PACK (OVER_REVERSE,          OVER_REVERSE,          DST,                   DST),
+    PACK (IN,                    IN,                    SRC,                   SRC),
+    PACK (IN_REVERSE,            DST,                   IN_REVERSE,            DST),
+    PACK (OUT,                   OUT,                   CLEAR,                 CLEAR),
+    PACK (OUT_REVERSE,           CLEAR,                 OUT_REVERSE,           CLEAR),
+    PACK (ATOP,                  IN,                    OVER,                  SRC),
+    PACK (ATOP_REVERSE,          OVER_REVERSE,          IN_REVERSE,            DST),
+    PACK (XOR,                   OUT,                   OUT_REVERSE,           CLEAR),
+    PACK (ADD,                   ADD,                   ADD,                   ADD),
+    PACK (SATURATE,              OVER_REVERSE,          DST,                   DST),
 
-    for (info = optimized_operators; info->op != PIXMAN_OP_NONE; info++)
-    {
-	if (info->op == op)
-	    return info;
-    }
-    return NULL;
-}
+    {{ 0 /* 0x0e */ }},
+    {{ 0 /* 0x0f */ }},
+
+    PACK (CLEAR,                 CLEAR,                 CLEAR,                 CLEAR),
+    PACK (SRC,                   SRC,                   SRC,                   SRC),
+    PACK (DST,                   DST,                   DST,                   DST),
+    PACK (DISJOINT_OVER,         DISJOINT_OVER,         DISJOINT_OVER,         DISJOINT_OVER),
+    PACK (DISJOINT_OVER_REVERSE, DISJOINT_OVER_REVERSE, DISJOINT_OVER_REVERSE, DISJOINT_OVER_REVERSE),
+    PACK (DISJOINT_IN,           DISJOINT_IN,           DISJOINT_IN,           DISJOINT_IN),
+    PACK (DISJOINT_IN_REVERSE,   DISJOINT_IN_REVERSE,   DISJOINT_IN_REVERSE,   DISJOINT_IN_REVERSE),
+    PACK (DISJOINT_OUT,          DISJOINT_OUT,          DISJOINT_OUT,          DISJOINT_OUT),
+    PACK (DISJOINT_OUT_REVERSE,  DISJOINT_OUT_REVERSE,  DISJOINT_OUT_REVERSE,  DISJOINT_OUT_REVERSE),
+    PACK (DISJOINT_ATOP,         DISJOINT_ATOP,         DISJOINT_ATOP,         DISJOINT_ATOP),
+    PACK (DISJOINT_ATOP_REVERSE, DISJOINT_ATOP_REVERSE, DISJOINT_ATOP_REVERSE, DISJOINT_ATOP_REVERSE),
+    PACK (DISJOINT_XOR,          DISJOINT_XOR,          DISJOINT_XOR,          DISJOINT_XOR),
+
+    {{ 0 /* 0x1c */ }},
+    {{ 0 /* 0x1d */ }},
+    {{ 0 /* 0x1e */ }},
+    {{ 0 /* 0x1f */ }},
+
+    PACK (CLEAR,                 CLEAR,                 CLEAR,                 CLEAR),
+    PACK (SRC,                   SRC,                   SRC,                   SRC),
+    PACK (DST,                   DST,                   DST,                   DST),
+    PACK (CONJOINT_OVER,         CONJOINT_OVER,         CONJOINT_OVER,         CONJOINT_OVER),
+    PACK (CONJOINT_OVER_REVERSE, CONJOINT_OVER_REVERSE, CONJOINT_OVER_REVERSE, CONJOINT_OVER_REVERSE),
+    PACK (CONJOINT_IN,           CONJOINT_IN,           CONJOINT_IN,           CONJOINT_IN),
+    PACK (CONJOINT_IN_REVERSE,   CONJOINT_IN_REVERSE,   CONJOINT_IN_REVERSE,   CONJOINT_IN_REVERSE),
+    PACK (CONJOINT_OUT,          CONJOINT_OUT,          CONJOINT_OUT,          CONJOINT_OUT),
+    PACK (CONJOINT_OUT_REVERSE,  CONJOINT_OUT_REVERSE,  CONJOINT_OUT_REVERSE,  CONJOINT_OUT_REVERSE),
+    PACK (CONJOINT_ATOP,         CONJOINT_ATOP,         CONJOINT_ATOP,         CONJOINT_ATOP),
+    PACK (CONJOINT_ATOP_REVERSE, CONJOINT_ATOP_REVERSE, CONJOINT_ATOP_REVERSE, CONJOINT_ATOP_REVERSE),
+    PACK (CONJOINT_XOR,          CONJOINT_XOR,          CONJOINT_XOR,          CONJOINT_XOR),
+
+    {{ 0 /* 0x2c */ }},
+    {{ 0 /* 0x2d */ }},
+    {{ 0 /* 0x2e */ }},
+    {{ 0 /* 0x2f */ }},
+
+    PACK (MULTIPLY,              MULTIPLY,              MULTIPLY,              MULTIPLY),
+    PACK (SCREEN,                SCREEN,                SCREEN,                SCREEN),
+    PACK (OVERLAY,               OVERLAY,               OVERLAY,               OVERLAY),
+    PACK (DARKEN,                DARKEN,                DARKEN,                DARKEN),
+    PACK (LIGHTEN,               LIGHTEN,               LIGHTEN,               LIGHTEN),
+    PACK (COLOR_DODGE,           COLOR_DODGE,           COLOR_DODGE,           COLOR_DODGE),
+    PACK (COLOR_BURN,            COLOR_BURN,            COLOR_BURN,            COLOR_BURN),
+    PACK (HARD_LIGHT,            HARD_LIGHT,            HARD_LIGHT,            HARD_LIGHT),
+    PACK (SOFT_LIGHT,            SOFT_LIGHT,            SOFT_LIGHT,            SOFT_LIGHT),
+    PACK (DIFFERENCE,            DIFFERENCE,            DIFFERENCE,            DIFFERENCE),
+    PACK (EXCLUSION,             EXCLUSION,             EXCLUSION,             EXCLUSION),
+    PACK (HSL_HUE,               HSL_HUE,               HSL_HUE,               HSL_HUE),
+    PACK (HSL_SATURATION,        HSL_SATURATION,        HSL_SATURATION,        HSL_SATURATION),
+    PACK (HSL_COLOR,             HSL_COLOR,             HSL_COLOR,             HSL_COLOR),
+    PACK (HSL_LUMINOSITY,        HSL_LUMINOSITY,        HSL_LUMINOSITY,        HSL_LUMINOSITY),
+};
 
 /*
  * Optimize the current operator based on opacity of source or destination
  * The output operator should be mathematically equivalent to the source.
  */
 static pixman_op_t
-pixman_optimize_operator (pixman_op_t     op,
-                          pixman_image_t *src_image,
-                          pixman_image_t *mask_image,
-                          pixman_image_t *dst_image)
+optimize_operator (pixman_op_t     op,
+		   uint32_t        src_flags,
+		   uint32_t        mask_flags,
+		   uint32_t        dst_flags)
 {
-    pixman_bool_t is_source_opaque;
-    pixman_bool_t is_dest_opaque;
-    const optimized_operator_info_t *info = pixman_operator_can_be_optimized (op);
+    pixman_bool_t is_source_opaque, is_dest_opaque;
 
-    if (!info || mask_image)
-	return op;
+#define OPAQUE_SHIFT 13
+    
+    COMPILE_TIME_ASSERT (FAST_PATH_IS_OPAQUE == (1 << OPAQUE_SHIFT));
+    
+    is_dest_opaque = (dst_flags & FAST_PATH_IS_OPAQUE);
+    is_source_opaque = ((src_flags & mask_flags) & FAST_PATH_IS_OPAQUE);
 
-    is_source_opaque = _pixman_image_is_opaque (src_image);
-    is_dest_opaque = _pixman_image_is_opaque (dst_image);
+    is_dest_opaque >>= OPAQUE_SHIFT - 1;
+    is_source_opaque >>= OPAQUE_SHIFT;
 
-    if (is_source_opaque == FALSE && is_dest_opaque == FALSE)
-	return op;
-
-    if (is_source_opaque && is_dest_opaque)
-	return info->op_src_dst_opaque;
-    else if (is_source_opaque)
-	return info->op_src_opaque;
-    else if (is_dest_opaque)
-	return info->op_dst_opaque;
-
-    return op;
-
+    return operator_table[op].opaque_info[is_dest_opaque | is_source_opaque];
 }
 
-static void
-apply_workaround (pixman_image_t *image,
-		  int16_t *       x,
-		  int16_t *       y,
-		  uint32_t **     save_bits,
-		  int *           save_dx,
-		  int *           save_dy)
+/*
+ * Computing composite region
+ */
+static inline pixman_bool_t
+clip_general_image (pixman_region32_t * region,
+                    pixman_region32_t * clip,
+                    int                 dx,
+                    int                 dy)
 {
-    /* Some X servers generate images that point to the
-     * wrong place in memory, but then set the clip region
-     * to point to the right place. Because of an old bug
-     * in pixman, this would actually work.
-     *
-     * Here we try and undo the damage
+    if (pixman_region32_n_rects (region) == 1 &&
+        pixman_region32_n_rects (clip) == 1)
+    {
+	pixman_box32_t *  rbox = pixman_region32_rectangles (region, NULL);
+	pixman_box32_t *  cbox = pixman_region32_rectangles (clip, NULL);
+	int v;
+
+	if (rbox->x1 < (v = cbox->x1 + dx))
+	    rbox->x1 = v;
+	if (rbox->x2 > (v = cbox->x2 + dx))
+	    rbox->x2 = v;
+	if (rbox->y1 < (v = cbox->y1 + dy))
+	    rbox->y1 = v;
+	if (rbox->y2 > (v = cbox->y2 + dy))
+	    rbox->y2 = v;
+	if (rbox->x1 >= rbox->x2 || rbox->y1 >= rbox->y2)
+	{
+	    pixman_region32_init (region);
+	    return FALSE;
+	}
+    }
+    else if (!pixman_region32_not_empty (clip))
+    {
+	return FALSE;
+    }
+    else
+    {
+	if (dx || dy)
+	    pixman_region32_translate (region, -dx, -dy);
+
+	if (!pixman_region32_intersect (region, region, clip))
+	    return FALSE;
+
+	if (dx || dy)
+	    pixman_region32_translate (region, dx, dy);
+    }
+
+    return pixman_region32_not_empty (region);
+}
+
+static inline pixman_bool_t
+clip_source_image (pixman_region32_t * region,
+                   pixman_image_t *    image,
+                   int                 dx,
+                   int                 dy)
+{
+    /* Source clips are ignored, unless they are explicitly turned on
+     * and the clip in question was set by an X client. (Because if
+     * the clip was not set by a client, then it is a hierarchy
+     * clip and those should always be ignored for sources).
      */
-    int bpp = PIXMAN_FORMAT_BPP (image->bits.format) / 8;
-    pixman_box32_t *extents;
-    uint8_t *t;
-    int dx, dy;
+    if (!image->common.clip_sources || !image->common.client_clip)
+	return TRUE;
 
-    extents = pixman_region32_extents (&(image->common.clip_region));
-    dx = extents->x1;
-    dy = extents->y1;
-
-    *save_bits = image->bits.bits;
-
-    *x -= dx;
-    *y -= dy;
-    pixman_region32_translate (&(image->common.clip_region), -dx, -dy);
-
-    t = (uint8_t *)image->bits.bits;
-    t += dy * image->bits.rowstride * 4 + dx * bpp;
-    image->bits.bits = (uint32_t *)t;
-
-    *save_dx = dx;
-    *save_dy = dy;
+    return clip_general_image (region,
+                               &image->common.clip_region,
+                               dx, dy);
 }
 
-static void
-unapply_workaround (pixman_image_t *image, uint32_t *bits, int dx, int dy)
+/*
+ * returns FALSE if the final region is empty.  Indistinguishable from
+ * an allocation failure, but rendering ignores those anyways.
+ */
+pixman_bool_t
+_pixman_compute_composite_region32 (pixman_region32_t * region,
+				    pixman_image_t *    src_image,
+				    pixman_image_t *    mask_image,
+				    pixman_image_t *    dest_image,
+				    int32_t             src_x,
+				    int32_t             src_y,
+				    int32_t             mask_x,
+				    int32_t             mask_y,
+				    int32_t             dest_x,
+				    int32_t             dest_y,
+				    int32_t             width,
+				    int32_t             height)
 {
-    image->bits.bits = bits;
-    pixman_region32_translate (&image->common.clip_region, dx, dy);
+    region->extents.x1 = dest_x;
+    region->extents.x2 = dest_x + width;
+    region->extents.y1 = dest_y;
+    region->extents.y2 = dest_y + height;
+
+    region->extents.x1 = MAX (region->extents.x1, 0);
+    region->extents.y1 = MAX (region->extents.y1, 0);
+    region->extents.x2 = MIN (region->extents.x2, dest_image->bits.width);
+    region->extents.y2 = MIN (region->extents.y2, dest_image->bits.height);
+
+    region->data = 0;
+
+    /* Check for empty operation */
+    if (region->extents.x1 >= region->extents.x2 ||
+        region->extents.y1 >= region->extents.y2)
+    {
+	region->extents.x1 = 0;
+	region->extents.x2 = 0;
+	region->extents.y1 = 0;
+	region->extents.y2 = 0;
+	return FALSE;
+    }
+
+    if (dest_image->common.have_clip_region)
+    {
+	if (!clip_general_image (region, &dest_image->common.clip_region, 0, 0))
+	    return FALSE;
+    }
+
+    if (dest_image->common.alpha_map)
+    {
+	if (!pixman_region32_intersect_rect (region, region,
+					     dest_image->common.alpha_origin_x,
+					     dest_image->common.alpha_origin_y,
+					     dest_image->common.alpha_map->width,
+					     dest_image->common.alpha_map->height))
+	{
+	    return FALSE;
+	}
+	if (!pixman_region32_not_empty (region))
+	    return FALSE;
+	if (dest_image->common.alpha_map->common.have_clip_region)
+	{
+	    if (!clip_general_image (region, &dest_image->common.alpha_map->common.clip_region,
+				     -dest_image->common.alpha_origin_x,
+				     -dest_image->common.alpha_origin_y))
+	    {
+		return FALSE;
+	    }
+	}
+    }
+
+    /* clip against src */
+    if (src_image->common.have_clip_region)
+    {
+	if (!clip_source_image (region, src_image, dest_x - src_x, dest_y - src_y))
+	    return FALSE;
+    }
+    if (src_image->common.alpha_map && src_image->common.alpha_map->common.have_clip_region)
+    {
+	if (!clip_source_image (region, (pixman_image_t *)src_image->common.alpha_map,
+	                        dest_x - (src_x - src_image->common.alpha_origin_x),
+	                        dest_y - (src_y - src_image->common.alpha_origin_y)))
+	{
+	    return FALSE;
+	}
+    }
+    /* clip against mask */
+    if (mask_image && mask_image->common.have_clip_region)
+    {
+	if (!clip_source_image (region, mask_image, dest_x - mask_x, dest_y - mask_y))
+	    return FALSE;
+
+	if (mask_image->common.alpha_map && mask_image->common.alpha_map->common.have_clip_region)
+	{
+	    if (!clip_source_image (region, (pixman_image_t *)mask_image->common.alpha_map,
+	                            dest_x - (mask_x - mask_image->common.alpha_origin_x),
+	                            dest_y - (mask_y - mask_image->common.alpha_origin_y)))
+	    {
+		return FALSE;
+	    }
+	}
+    }
+
+    return TRUE;
+}
+
+typedef struct box_48_16 box_48_16_t;
+
+struct box_48_16
+{
+    pixman_fixed_48_16_t        x1;
+    pixman_fixed_48_16_t        y1;
+    pixman_fixed_48_16_t        x2;
+    pixman_fixed_48_16_t        y2;
+};
+
+static pixman_bool_t
+compute_transformed_extents (pixman_transform_t   *transform,
+			     const pixman_box32_t *extents,
+			     box_48_16_t          *transformed)
+{
+    pixman_fixed_48_16_t tx1, ty1, tx2, ty2;
+    pixman_fixed_t x1, y1, x2, y2;
+    int i;
+
+    x1 = pixman_int_to_fixed (extents->x1) + pixman_fixed_1 / 2;
+    y1 = pixman_int_to_fixed (extents->y1) + pixman_fixed_1 / 2;
+    x2 = pixman_int_to_fixed (extents->x2) - pixman_fixed_1 / 2;
+    y2 = pixman_int_to_fixed (extents->y2) - pixman_fixed_1 / 2;
+
+    if (!transform)
+    {
+	transformed->x1 = x1;
+	transformed->y1 = y1;
+	transformed->x2 = x2;
+	transformed->y2 = y2;
+
+	return TRUE;
+    }
+
+    tx1 = ty1 = INT64_MAX;
+    tx2 = ty2 = INT64_MIN;
+
+    for (i = 0; i < 4; ++i)
+    {
+	pixman_fixed_48_16_t tx, ty;
+	pixman_vector_t v;
+
+	v.vector[0] = (i & 0x01)? x1 : x2;
+	v.vector[1] = (i & 0x02)? y1 : y2;
+	v.vector[2] = pixman_fixed_1;
+
+	if (!pixman_transform_point (transform, &v))
+	    return FALSE;
+
+	tx = (pixman_fixed_48_16_t)v.vector[0];
+	ty = (pixman_fixed_48_16_t)v.vector[1];
+
+	if (tx < tx1)
+	    tx1 = tx;
+	if (ty < ty1)
+	    ty1 = ty;
+	if (tx > tx2)
+	    tx2 = tx;
+	if (ty > ty2)
+	    ty2 = ty;
+    }
+
+    transformed->x1 = tx1;
+    transformed->y1 = ty1;
+    transformed->x2 = tx2;
+    transformed->y2 = ty2;
+
+    return TRUE;
+}
+
+#define IS_16BIT(x) (((x) >= INT16_MIN) && ((x) <= INT16_MAX))
+#define ABS(f)      (((f) < 0)?  (-(f)) : (f))
+#define IS_16_16(f) (((f) >= pixman_min_fixed_48_16 && ((f) <= pixman_max_fixed_48_16)))
+
+static pixman_bool_t
+analyze_extent (pixman_image_t       *image,
+		const pixman_box32_t *extents,
+		uint32_t             *flags)
+{
+    pixman_transform_t *transform;
+    pixman_fixed_t x_off, y_off;
+    pixman_fixed_t width, height;
+    pixman_fixed_t *params;
+    box_48_16_t transformed;
+    pixman_box32_t exp_extents;
+
+    if (!image)
+	return TRUE;
+
+    /* Some compositing functions walk one step
+     * outside the destination rectangle, so we
+     * check here that the expanded-by-one source
+     * extents in destination space fits in 16 bits
+     */
+    if (!IS_16BIT (extents->x1 - 1)		||
+	!IS_16BIT (extents->y1 - 1)		||
+	!IS_16BIT (extents->x2 + 1)		||
+	!IS_16BIT (extents->y2 + 1))
+    {
+	return FALSE;
+    }
+
+    transform = image->common.transform;
+    if (image->common.type == BITS)
+    {
+	/* During repeat mode calculations we might convert the
+	 * width/height of an image to fixed 16.16, so we need
+	 * them to be smaller than 16 bits.
+	 */
+	if (image->bits.width >= 0x7fff	|| image->bits.height >= 0x7fff)
+	    return FALSE;
+
+	if ((image->common.flags & FAST_PATH_ID_TRANSFORM) == FAST_PATH_ID_TRANSFORM &&
+	    extents->x1 >= 0 &&
+	    extents->y1 >= 0 &&
+	    extents->x2 <= image->bits.width &&
+	    extents->y2 <= image->bits.height)
+	{
+	    *flags |= FAST_PATH_SAMPLES_COVER_CLIP_NEAREST;
+	    return TRUE;
+	}
+
+	switch (image->common.filter)
+	{
+	case PIXMAN_FILTER_CONVOLUTION:
+	    params = image->common.filter_params;
+	    x_off = - pixman_fixed_e - ((params[0] - pixman_fixed_1) >> 1);
+	    y_off = - pixman_fixed_e - ((params[1] - pixman_fixed_1) >> 1);
+	    width = params[0];
+	    height = params[1];
+	    break;
+
+	case PIXMAN_FILTER_SEPARABLE_CONVOLUTION:
+	    params = image->common.filter_params;
+	    x_off = - pixman_fixed_e - ((params[0] - pixman_fixed_1) >> 1);
+	    y_off = - pixman_fixed_e - ((params[1] - pixman_fixed_1) >> 1);
+	    width = params[0];
+	    height = params[1];
+	    break;
+	    
+	case PIXMAN_FILTER_GOOD:
+	case PIXMAN_FILTER_BEST:
+	case PIXMAN_FILTER_BILINEAR:
+	    x_off = - pixman_fixed_1 / 2;
+	    y_off = - pixman_fixed_1 / 2;
+	    width = pixman_fixed_1;
+	    height = pixman_fixed_1;
+	    break;
+
+	case PIXMAN_FILTER_FAST:
+	case PIXMAN_FILTER_NEAREST:
+	    x_off = - pixman_fixed_e;
+	    y_off = - pixman_fixed_e;
+	    width = 0;
+	    height = 0;
+	    break;
+
+	default:
+	    return FALSE;
+	}
+    }
+    else
+    {
+	x_off = 0;
+	y_off = 0;
+	width = 0;
+	height = 0;
+    }
+
+    if (!compute_transformed_extents (transform, extents, &transformed))
+	return FALSE;
+
+    if (image->common.type == BITS)
+    {
+	if (pixman_fixed_to_int (transformed.x1 - pixman_fixed_e) >= 0                &&
+	    pixman_fixed_to_int (transformed.y1 - pixman_fixed_e) >= 0                &&
+	    pixman_fixed_to_int (transformed.x2 - pixman_fixed_e) < image->bits.width &&
+	    pixman_fixed_to_int (transformed.y2 - pixman_fixed_e) < image->bits.height)
+	{
+	    *flags |= FAST_PATH_SAMPLES_COVER_CLIP_NEAREST;
+	}
+
+	if (pixman_fixed_to_int (transformed.x1 - pixman_fixed_1 / 2) >= 0		  &&
+	    pixman_fixed_to_int (transformed.y1 - pixman_fixed_1 / 2) >= 0		  &&
+	    pixman_fixed_to_int (transformed.x2 + pixman_fixed_1 / 2) < image->bits.width &&
+	    pixman_fixed_to_int (transformed.y2 + pixman_fixed_1 / 2) < image->bits.height)
+	{
+	    *flags |= FAST_PATH_SAMPLES_COVER_CLIP_BILINEAR;
+	}
+    }
+
+    /* Check we don't overflow when the destination extents are expanded by one.
+     * This ensures that compositing functions can simply walk the source space
+     * using 16.16 variables without worrying about overflow.
+     */
+    exp_extents = *extents;
+    exp_extents.x1 -= 1;
+    exp_extents.y1 -= 1;
+    exp_extents.x2 += 1;
+    exp_extents.y2 += 1;
+
+    if (!compute_transformed_extents (transform, &exp_extents, &transformed))
+	return FALSE;
+    
+    if (!IS_16_16 (transformed.x1 + x_off - 8 * pixman_fixed_e)	||
+	!IS_16_16 (transformed.y1 + y_off - 8 * pixman_fixed_e)	||
+	!IS_16_16 (transformed.x2 + x_off + 8 * pixman_fixed_e + width)	||
+	!IS_16_16 (transformed.y2 + y_off + 8 * pixman_fixed_e + height))
+    {
+	return FALSE;
+    }
+
+    return TRUE;
+}
+
+/*
+ * Work around GCC bug causing crashes in Mozilla with SSE2
+ *
+ * When using -msse, gcc generates movdqa instructions assuming that
+ * the stack is 16 byte aligned. Unfortunately some applications, such
+ * as Mozilla and Mono, end up aligning the stack to 4 bytes, which
+ * causes the movdqa instructions to fail.
+ *
+ * The __force_align_arg_pointer__ makes gcc generate a prologue that
+ * realigns the stack pointer to 16 bytes.
+ *
+ * On x86-64 this is not necessary because the standard ABI already
+ * calls for a 16 byte aligned stack.
+ *
+ * See https://bugs.freedesktop.org/show_bug.cgi?id=15693
+ */
+#if defined (USE_SSE2) && defined(__GNUC__) && !defined(__x86_64__) && !defined(__amd64__)
+__attribute__((__force_align_arg_pointer__))
+#endif
+PIXMAN_EXPORT void
+pixman_image_composite32 (pixman_op_t      op,
+                          pixman_image_t * src,
+                          pixman_image_t * mask,
+                          pixman_image_t * dest,
+                          int32_t          src_x,
+                          int32_t          src_y,
+                          int32_t          mask_x,
+                          int32_t          mask_y,
+                          int32_t          dest_x,
+                          int32_t          dest_y,
+                          int32_t          width,
+                          int32_t          height)
+{
+    pixman_format_code_t src_format, mask_format, dest_format;
+    pixman_region32_t region;
+    pixman_box32_t extents;
+    pixman_implementation_t *imp;
+    pixman_composite_func_t func;
+    pixman_composite_info_t info;
+    const pixman_box32_t *pbox;
+    int n;
+
+    _pixman_image_validate (src);
+    if (mask)
+	_pixman_image_validate (mask);
+    _pixman_image_validate (dest);
+
+    src_format = src->common.extended_format_code;
+    info.src_flags = src->common.flags;
+
+    if (mask && !(mask->common.flags & FAST_PATH_IS_OPAQUE))
+    {
+	mask_format = mask->common.extended_format_code;
+	info.mask_flags = mask->common.flags;
+    }
+    else
+    {
+	mask_format = PIXMAN_null;
+	info.mask_flags = FAST_PATH_IS_OPAQUE | FAST_PATH_NO_ALPHA_MAP;
+    }
+
+    dest_format = dest->common.extended_format_code;
+    info.dest_flags = dest->common.flags;
+
+    /* Check for pixbufs */
+    if ((mask_format == PIXMAN_a8r8g8b8 || mask_format == PIXMAN_a8b8g8r8) &&
+	(src->type == BITS && src->bits.bits == mask->bits.bits)	   &&
+	(src->common.repeat == mask->common.repeat)			   &&
+	(info.src_flags & info.mask_flags & FAST_PATH_ID_TRANSFORM)	   &&
+	(src_x == mask_x && src_y == mask_y))
+    {
+	if (src_format == PIXMAN_x8b8g8r8)
+	    src_format = mask_format = PIXMAN_pixbuf;
+	else if (src_format == PIXMAN_x8r8g8b8)
+	    src_format = mask_format = PIXMAN_rpixbuf;
+    }
+
+    pixman_region32_init (&region);
+
+    if (!_pixman_compute_composite_region32 (
+	    &region, src, mask, dest,
+	    src_x, src_y, mask_x, mask_y, dest_x, dest_y, width, height))
+    {
+	goto out;
+    }
+
+    extents = *pixman_region32_extents (&region);
+
+    extents.x1 -= dest_x - src_x;
+    extents.y1 -= dest_y - src_y;
+    extents.x2 -= dest_x - src_x;
+    extents.y2 -= dest_y - src_y;
+
+    if (!analyze_extent (src, &extents, &info.src_flags))
+	goto out;
+
+    extents.x1 -= src_x - mask_x;
+    extents.y1 -= src_y - mask_y;
+    extents.x2 -= src_x - mask_x;
+    extents.y2 -= src_y - mask_y;
+
+    if (!analyze_extent (mask, &extents, &info.mask_flags))
+	goto out;
+
+    /* If the clip is within the source samples, and the samples are
+     * opaque, then the source is effectively opaque.
+     */
+#define NEAREST_OPAQUE	(FAST_PATH_SAMPLES_OPAQUE |			\
+			 FAST_PATH_NEAREST_FILTER |			\
+			 FAST_PATH_SAMPLES_COVER_CLIP_NEAREST)
+#define BILINEAR_OPAQUE	(FAST_PATH_SAMPLES_OPAQUE |			\
+			 FAST_PATH_BILINEAR_FILTER |			\
+			 FAST_PATH_SAMPLES_COVER_CLIP_BILINEAR)
+
+    if ((info.src_flags & NEAREST_OPAQUE) == NEAREST_OPAQUE ||
+	(info.src_flags & BILINEAR_OPAQUE) == BILINEAR_OPAQUE)
+    {
+	info.src_flags |= FAST_PATH_IS_OPAQUE;
+    }
+
+    if ((info.mask_flags & NEAREST_OPAQUE) == NEAREST_OPAQUE ||
+	(info.mask_flags & BILINEAR_OPAQUE) == BILINEAR_OPAQUE)
+    {
+	info.mask_flags |= FAST_PATH_IS_OPAQUE;
+    }
+
+    /*
+     * Check if we can replace our operator by a simpler one
+     * if the src or dest are opaque. The output operator should be
+     * mathematically equivalent to the source.
+     */
+    info.op = optimize_operator (op, info.src_flags, info.mask_flags, info.dest_flags);
+
+    _pixman_implementation_lookup_composite (
+	get_implementation (), info.op,
+	src_format, info.src_flags,
+	mask_format, info.mask_flags,
+	dest_format, info.dest_flags,
+	&imp, &func);
+
+    info.src_image = src;
+    info.mask_image = mask;
+    info.dest_image = dest;
+
+    pbox = pixman_region32_rectangles (&region, &n);
+
+    while (n--)
+    {
+	info.src_x = pbox->x1 + src_x - dest_x;
+	info.src_y = pbox->y1 + src_y - dest_y;
+	info.mask_x = pbox->x1 + mask_x - dest_x;
+	info.mask_y = pbox->y1 + mask_y - dest_y;
+	info.dest_x = pbox->x1;
+	info.dest_y = pbox->y1;
+	info.width = pbox->x2 - pbox->x1;
+	info.height = pbox->y2 - pbox->y1;
+
+	func (imp, &info);
+
+	pbox++;
+    }
+
+out:
+    pixman_region32_fini (&region);
 }
 
 PIXMAN_EXPORT void
@@ -166,54 +720,8 @@ pixman_image_composite (pixman_op_t      op,
                         uint16_t         width,
                         uint16_t         height)
 {
-    uint32_t *src_bits;
-    int src_dx, src_dy;
-    uint32_t *mask_bits;
-    int mask_dx, mask_dy;
-    uint32_t *dest_bits;
-    int dest_dx, dest_dy;
-
-    _pixman_image_validate (src);
-    if (mask)
-	_pixman_image_validate (mask);
-    _pixman_image_validate (dest);
-    
-    /*
-     * Check if we can replace our operator by a simpler one
-     * if the src or dest are opaque. The output operator should be
-     * mathematically equivalent to the source.
-     */
-    op = pixman_optimize_operator(op, src, mask, dest);
-    if (op == PIXMAN_OP_DST		||
-	op == PIXMAN_OP_CONJOINT_DST	||
-	op == PIXMAN_OP_DISJOINT_DST)
-    {
-        return;
-    }
-
-    if (!imp)
-	imp = _pixman_choose_implementation ();
-
-    if (src->common.need_workaround)
-	apply_workaround (src, &src_x, &src_y, &src_bits, &src_dx, &src_dy);
-    if (mask && mask->common.need_workaround)
-	apply_workaround (mask, &mask_x, &mask_y, &mask_bits, &mask_dx, &mask_dy);
-    if (dest->common.need_workaround)
-	apply_workaround (dest, &dest_x, &dest_y, &dest_bits, &dest_dx, &dest_dy);
-
-    _pixman_implementation_composite (imp, op,
-                                      src, mask, dest,
-                                      src_x, src_y,
-                                      mask_x, mask_y,
-                                      dest_x, dest_y,
-                                      width, height);
-
-    if (src->common.need_workaround)
-	unapply_workaround (src, src_bits, src_dx, src_dy);
-    if (mask && mask->common.need_workaround)
-	unapply_workaround (mask, mask_bits, mask_dx, mask_dy);
-    if (dest->common.need_workaround)
-	unapply_workaround (dest, dest_bits, dest_dx, dest_dy);
+    pixman_image_composite32 (op, src, mask, dest, src_x, src_y, 
+                              mask_x, mask_y, dest_x, dest_y, width, height);
 }
 
 PIXMAN_EXPORT pixman_bool_t
@@ -225,18 +733,16 @@ pixman_blt (uint32_t *src_bits,
             int       dst_bpp,
             int       src_x,
             int       src_y,
-            int       dst_x,
-            int       dst_y,
+            int       dest_x,
+            int       dest_y,
             int       width,
             int       height)
 {
-    if (!imp)
-	imp = _pixman_choose_implementation ();
-
-    return _pixman_implementation_blt (imp, src_bits, dst_bits, src_stride, dst_stride,
+    return _pixman_implementation_blt (get_implementation(),
+				       src_bits, dst_bits, src_stride, dst_stride,
                                        src_bpp, dst_bpp,
                                        src_x, src_y,
-                                       dst_x, dst_y,
+                                       dest_x, dest_y,
                                        width, height);
 }
 
@@ -248,12 +754,10 @@ pixman_fill (uint32_t *bits,
              int       y,
              int       width,
              int       height,
-             uint32_t xor)
+             uint32_t  filler)
 {
-    if (!imp)
-	imp = _pixman_choose_implementation ();
-
-    return _pixman_implementation_fill (imp, bits, stride, bpp, x, y, width, height, xor);
+    return _pixman_implementation_fill (
+	get_implementation(), bits, stride, bpp, x, y, width, height, filler);
 }
 
 static uint32_t
@@ -267,9 +771,9 @@ color_to_uint32 (const pixman_color_t *color)
 }
 
 static pixman_bool_t
-color_to_pixel (pixman_color_t *     color,
-                uint32_t *           pixel,
-                pixman_format_code_t format)
+color_to_pixel (const pixman_color_t *color,
+                uint32_t *            pixel,
+                pixman_format_code_t  format)
 {
     uint32_t c = color_to_uint32 (color);
 
@@ -279,9 +783,12 @@ color_to_pixel (pixman_color_t *     color,
           format == PIXMAN_x8b8g8r8     ||
           format == PIXMAN_b8g8r8a8     ||
           format == PIXMAN_b8g8r8x8     ||
+          format == PIXMAN_r8g8b8a8     ||
+          format == PIXMAN_r8g8b8x8     ||
           format == PIXMAN_r5g6b5       ||
           format == PIXMAN_b5g6r5       ||
-          format == PIXMAN_a8))
+          format == PIXMAN_a8           ||
+          format == PIXMAN_a1))
     {
 	return FALSE;
     }
@@ -300,12 +807,16 @@ color_to_pixel (pixman_color_t *     color,
 	    ((c & 0x0000ff00) <<  8) |
 	    ((c & 0x000000ff) << 24);
     }
+    if (PIXMAN_FORMAT_TYPE (format) == PIXMAN_TYPE_RGBA)
+	c = ((c & 0xff000000) >> 24) | (c << 8);
 
-    if (format == PIXMAN_a8)
+    if (format == PIXMAN_a1)
+	c = c >> 31;
+    else if (format == PIXMAN_a8)
 	c = c >> 24;
     else if (format == PIXMAN_r5g6b5 ||
              format == PIXMAN_b5g6r5)
-	c = CONVERT_8888_TO_0565 (c);
+	c = convert_8888_to_0565 (c);
 
 #if 0
     printf ("color: %x %x %x %x\n", color->alpha, color->red, color->green, color->blue);
@@ -319,9 +830,48 @@ color_to_pixel (pixman_color_t *     color,
 PIXMAN_EXPORT pixman_bool_t
 pixman_image_fill_rectangles (pixman_op_t                 op,
                               pixman_image_t *            dest,
-                              pixman_color_t *            color,
+			      const pixman_color_t *      color,
                               int                         n_rects,
                               const pixman_rectangle16_t *rects)
+{
+    pixman_box32_t stack_boxes[6];
+    pixman_box32_t *boxes;
+    pixman_bool_t result;
+    int i;
+
+    if (n_rects > 6)
+    {
+        boxes = pixman_malloc_ab (sizeof (pixman_box32_t), n_rects);
+        if (boxes == NULL)
+            return FALSE;
+    }
+    else
+    {
+        boxes = stack_boxes;
+    }
+
+    for (i = 0; i < n_rects; ++i)
+    {
+        boxes[i].x1 = rects[i].x;
+        boxes[i].y1 = rects[i].y;
+        boxes[i].x2 = boxes[i].x1 + rects[i].width;
+        boxes[i].y2 = boxes[i].y1 + rects[i].height;
+    }
+
+    result = pixman_image_fill_boxes (op, dest, color, n_rects, boxes);
+
+    if (boxes != stack_boxes)
+        free (boxes);
+    
+    return result;
+}
+
+PIXMAN_EXPORT pixman_bool_t
+pixman_image_fill_boxes (pixman_op_t           op,
+                         pixman_image_t *      dest,
+                         const pixman_color_t *color,
+                         int                   n_boxes,
+                         const pixman_box32_t *boxes)
 {
     pixman_image_t *solid;
     pixman_color_t c;
@@ -331,71 +881,69 @@ pixman_image_fill_rectangles (pixman_op_t                 op,
     
     if (color->alpha == 0xffff)
     {
-	if (op == PIXMAN_OP_OVER)
-	    op = PIXMAN_OP_SRC;
+        if (op == PIXMAN_OP_OVER)
+            op = PIXMAN_OP_SRC;
     }
 
     if (op == PIXMAN_OP_CLEAR)
     {
-	c.red = 0;
-	c.green = 0;
-	c.blue = 0;
-	c.alpha = 0;
+        c.red = 0;
+        c.green = 0;
+        c.blue = 0;
+        c.alpha = 0;
 
-	color = &c;
+        color = &c;
 
-	op = PIXMAN_OP_SRC;
+        op = PIXMAN_OP_SRC;
     }
 
     if (op == PIXMAN_OP_SRC)
     {
-	uint32_t pixel;
+        uint32_t pixel;
 
-	if (color_to_pixel (color, &pixel, dest->bits.format))
-	{
-	    for (i = 0; i < n_rects; ++i)
-	    {
-		pixman_region32_t fill_region;
-		int n_boxes, j;
-		pixman_box32_t *boxes;
+        if (color_to_pixel (color, &pixel, dest->bits.format))
+        {
+            pixman_region32_t fill_region;
+            int n_rects, j;
+            pixman_box32_t *rects;
 
-		pixman_region32_init_rect (&fill_region, rects[i].x, rects[i].y, rects[i].width, rects[i].height);
+            if (!pixman_region32_init_rects (&fill_region, boxes, n_boxes))
+                return FALSE;
 
-		if (dest->common.have_clip_region)
-		{
-		    if (!pixman_region32_intersect (&fill_region,
-		                                    &fill_region,
-		                                    &dest->common.clip_region))
-			return FALSE;
-		}
+            if (dest->common.have_clip_region)
+            {
+                if (!pixman_region32_intersect (&fill_region,
+                                                &fill_region,
+                                                &dest->common.clip_region))
+                    return FALSE;
+            }
 
-		boxes = pixman_region32_rectangles (&fill_region, &n_boxes);
-		for (j = 0; j < n_boxes; ++j)
-		{
-		    const pixman_box32_t *box = &(boxes[j]);
-		    pixman_fill (dest->bits.bits, dest->bits.rowstride, PIXMAN_FORMAT_BPP (dest->bits.format),
-		                 box->x1, box->y1, box->x2 - box->x1, box->y2 - box->y1,
-		                 pixel);
-		}
+            rects = pixman_region32_rectangles (&fill_region, &n_rects);
+            for (j = 0; j < n_rects; ++j)
+            {
+                const pixman_box32_t *rect = &(rects[j]);
+                pixman_fill (dest->bits.bits, dest->bits.rowstride, PIXMAN_FORMAT_BPP (dest->bits.format),
+                             rect->x1, rect->y1, rect->x2 - rect->x1, rect->y2 - rect->y1,
+                             pixel);
+            }
 
-		pixman_region32_fini (&fill_region);
-	    }
-	    return TRUE;
-	}
+            pixman_region32_fini (&fill_region);
+            return TRUE;
+        }
     }
 
     solid = pixman_image_create_solid_fill (color);
     if (!solid)
-	return FALSE;
+        return FALSE;
 
-    for (i = 0; i < n_rects; ++i)
+    for (i = 0; i < n_boxes; ++i)
     {
-	const pixman_rectangle16_t *rect = &(rects[i]);
+        const pixman_box32_t *box = &(boxes[i]);
 
-	pixman_image_composite (op, solid, NULL, dest,
-	                        0, 0, 0, 0,
-	                        rect->x, rect->y,
-	                        rect->width, rect->height);
+        pixman_image_composite32 (op, solid, NULL, dest,
+                                  0, 0, 0, 0,
+                                  box->x1, box->y1,
+                                  box->x2 - box->x1, box->y2 - box->y1);
     }
 
     pixman_image_unref (solid);
@@ -466,15 +1014,19 @@ pixman_format_supported_source (pixman_format_code_t format)
     case PIXMAN_a2r10g10b10:
     case PIXMAN_x2r10g10b10:
     case PIXMAN_a8r8g8b8:
+    case PIXMAN_a8r8g8b8_sRGB:
     case PIXMAN_x8r8g8b8:
     case PIXMAN_a8b8g8r8:
     case PIXMAN_x8b8g8r8:
     case PIXMAN_b8g8r8a8:
     case PIXMAN_b8g8r8x8:
+    case PIXMAN_r8g8b8a8:
+    case PIXMAN_r8g8b8x8:
     case PIXMAN_r8g8b8:
     case PIXMAN_b8g8r8:
     case PIXMAN_r5g6b5:
     case PIXMAN_b5g6r5:
+    case PIXMAN_x14r6g6b6:
     /* 16 bpp formats */
     case PIXMAN_a1r5g5b5:
     case PIXMAN_x1r5g5b5:
@@ -541,3 +1093,36 @@ pixman_format_supported_destination (pixman_format_code_t format)
     return pixman_format_supported_source (format);
 }
 
+PIXMAN_EXPORT pixman_bool_t
+pixman_compute_composite_region (pixman_region16_t * region,
+                                 pixman_image_t *    src_image,
+                                 pixman_image_t *    mask_image,
+                                 pixman_image_t *    dest_image,
+                                 int16_t             src_x,
+                                 int16_t             src_y,
+                                 int16_t             mask_x,
+                                 int16_t             mask_y,
+                                 int16_t             dest_x,
+                                 int16_t             dest_y,
+                                 uint16_t            width,
+                                 uint16_t            height)
+{
+    pixman_region32_t r32;
+    pixman_bool_t retval;
+
+    pixman_region32_init (&r32);
+
+    retval = _pixman_compute_composite_region32 (
+	&r32, src_image, mask_image, dest_image,
+	src_x, src_y, mask_x, mask_y, dest_x, dest_y,
+	width, height);
+
+    if (retval)
+    {
+	if (!pixman_region16_copy_from_region32 (region, &r32))
+	    retval = FALSE;
+    }
+
+    pixman_region32_fini (&r32);
+    return retval;
+}

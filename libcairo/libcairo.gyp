@@ -427,7 +427,7 @@
 							'src/pixman-region32.c',
 							'src/pixman-solid-fill.c',
 							'src/pixman-sse2.c',
-							'src/pixman-ssse3.c',
+							#'src/pixman-ssse3.c',
 							'src/pixman-timer.c',
 							'src/pixman-trap.c',
 							'src/pixman-utils.c',

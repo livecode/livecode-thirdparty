@@ -434,6 +434,7 @@ _cairo_pdf_value_init(cairo_pdf_value_t *p_object, cairo_pdf_value_type_t p_type
 	{
 	case CAIRO_PDF_VALUE_TYPE_ARRAY:
 		_cairo_pdf_value_array_init(&p_object->array);
+		break;
 	case CAIRO_PDF_VALUE_TYPE_DICTIONARY:
 		_cairo_pdf_value_dictionary_init(&p_object->dictionary);
 		break;

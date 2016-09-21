@@ -336,39 +336,39 @@ _cairo_pdf_output_stream_write_dest(cairo_output_stream_t *p_stream, const cairo
 }
 
 void
-_cairo_pdf_output_stream_write_object(cairo_output_stream_t *p_stream, const cairo_pdf_object_t *p_object)
+_cairo_pdf_output_stream_write_object(cairo_output_stream_t *p_stream, const cairo_pdf_value_t *p_object)
 {
 	if (p_object != NULL)
 	{
 		switch (p_object->type)
 		{
-		case CAIRO_PDF_OBJECT_TYPE_STRING:
+		case CAIRO_PDF_VALUE_TYPE_STRING:
 			_cairo_pdf_output_stream_write_string(p_stream, &p_object->string);
 			break;
-		case CAIRO_PDF_OBJECT_TYPE_NAME:
+		case CAIRO_PDF_VALUE_TYPE_NAME:
 			_cairo_pdf_output_stream_write_name(p_stream, p_object->name);
 			break;
-		case CAIRO_PDF_OBJECT_TYPE_ARRAY:
+		case CAIRO_PDF_VALUE_TYPE_ARRAY:
 			_cairo_pdf_output_stream_write_array(p_stream, &p_object->array);
 			break;
-		case CAIRO_PDF_OBJECT_TYPE_DICTIONARY:
+		case CAIRO_PDF_VALUE_TYPE_DICTIONARY:
 			_cairo_pdf_output_stream_write_dictionary(p_stream, &p_object->dictionary);
 			break;
 
-		case CAIRO_PDF_OBJECT_TYPE_REFERENCE:
+		case CAIRO_PDF_VALUE_TYPE_REFERENCE:
 			_cairo_pdf_output_stream_write_reference(p_stream, &p_object->reference);
 			break;
 
-		case CAIRO_PDF_OBJECT_TYPE_ACTION:
+		case CAIRO_PDF_VALUE_TYPE_ACTION:
 			_cairo_pdf_output_stream_write_action(p_stream, &p_object->action);
 			break;
-		case CAIRO_PDF_OBJECT_TYPE_ANNOTATION:
+		case CAIRO_PDF_VALUE_TYPE_ANNOTATION:
 			_cairo_pdf_output_stream_write_annotation(p_stream, &p_object->annotation);
 			break;
-		case CAIRO_PDF_OBJECT_TYPE_DATE:
+		case CAIRO_PDF_VALUE_TYPE_DATE:
 			_cairo_pdf_output_stream_write_date(p_stream, &p_object->date);
 			break;
-		case CAIRO_PDF_OBJECT_TYPE_DEST:
+		case CAIRO_PDF_VALUE_TYPE_DEST:
 			_cairo_pdf_output_stream_write_dest(p_stream, &p_object->dest);
 			break;
 		default:
@@ -384,7 +384,7 @@ _cairo_pdf_output_stream_write_object(cairo_output_stream_t *p_stream, const cai
 //
 
 void
-_cairo_pdf_object_string_init(cairo_pdf_string_t *p_string)
+_cairo_pdf_value_string_init(cairo_pdf_string_t *p_string)
 {
 	p_string->_buffer = NULL;
 	p_string->data = NULL;
@@ -392,20 +392,20 @@ _cairo_pdf_object_string_init(cairo_pdf_string_t *p_string)
 }
 
 void
-_cairo_pdf_object_name_init(cairo_pdf_name_t *p_name)
+_cairo_pdf_value_name_init(cairo_pdf_name_t *p_name)
 {
 	*p_name = NULL;
 }
 
 void
-_cairo_pdf_object_array_init(cairo_pdf_array_t *p_array)
+_cairo_pdf_value_array_init(cairo_pdf_array_t *p_array)
 {
 	p_array->elements = NULL;
 	p_array->size = 0;
 }
 
 void
-_cairo_pdf_object_dictionary_init(cairo_pdf_dictionary_t *p_dict)
+_cairo_pdf_value_dictionary_init(cairo_pdf_dictionary_t *p_dict)
 {
 	p_dict->keys = NULL;
 	p_dict->elements = NULL;
@@ -413,12 +413,12 @@ _cairo_pdf_object_dictionary_init(cairo_pdf_dictionary_t *p_dict)
 }
 
 void
-_cairo_pdf_object_outline_entry_init(cairo_pdf_outline_entry_t *p_entry)
+_cairo_pdf_value_outline_entry_init(cairo_pdf_outline_entry_t *p_entry)
 {
 	p_entry->depth = 1;
 	p_entry->closed = FALSE;
-	_cairo_pdf_object_string_init(&p_entry->title);
-	_cairo_pdf_object_dest_set_xyz(&p_entry->destination, 0, 0, 0, 0);
+	_cairo_pdf_value_string_init(&p_entry->title);
+	_cairo_pdf_value_dest_set_xyz(&p_entry->destination, 0, 0, 0, 0);
 	p_entry->parent = -1;
 	p_entry->prev = -1;
 	p_entry->next = -1;
@@ -427,15 +427,16 @@ _cairo_pdf_object_outline_entry_init(cairo_pdf_outline_entry_t *p_entry)
 }
 
 void
-_cairo_pdf_object_init(cairo_pdf_object_t *p_object, cairo_pdf_object_type_t p_type)
+_cairo_pdf_value_init(cairo_pdf_value_t *p_object, cairo_pdf_value_type_t p_type)
 {
 	p_object->type = p_type;
 	switch (p_type)
 	{
-	case CAIRO_PDF_OBJECT_TYPE_ARRAY:
-		_cairo_pdf_object_array_init(&p_object->array);
-	case CAIRO_PDF_OBJECT_TYPE_DICTIONARY:
-		_cairo_pdf_object_dictionary_init(&p_object->dictionary);
+	case CAIRO_PDF_VALUE_TYPE_ARRAY:
+		_cairo_pdf_value_array_init(&p_object->array);
+		break;
+	case CAIRO_PDF_VALUE_TYPE_DICTIONARY:
+		_cairo_pdf_value_dictionary_init(&p_object->dictionary);
 		break;
 	default:
 		assert(0);
@@ -448,26 +449,26 @@ _cairo_pdf_object_init(cairo_pdf_object_t *p_object, cairo_pdf_object_type_t p_t
 //
 
 void
-_cairo_pdf_object_array_finish(cairo_pdf_array_t *p_array)
+_cairo_pdf_value_array_finish(cairo_pdf_array_t *p_array)
 {
 	free(p_array->elements);
 }
 
 void
-_cairo_pdf_object_dictionary_finish(cairo_pdf_dictionary_t *p_dict)
+_cairo_pdf_value_dictionary_finish(cairo_pdf_dictionary_t *p_dict)
 {
 	free(p_dict->keys);
 	free(p_dict->elements);
 }
 
 void
-_cairo_pdf_object_outline_entry_finish(cairo_pdf_outline_entry_t *p_entry)
+_cairo_pdf_value_outline_entry_finish(cairo_pdf_outline_entry_t *p_entry)
 {
-	_cairo_pdf_object_string_finish(&p_entry->title);
+	_cairo_pdf_value_string_finish(&p_entry->title);
 }
 
 void
-_cairo_pdf_object_string_finish(cairo_pdf_string_t *p_string)
+_cairo_pdf_value_string_finish(cairo_pdf_string_t *p_string)
 {
 	if (p_string->_buffer != NULL)
 		free(p_string->_buffer);
@@ -479,7 +480,7 @@ _cairo_pdf_object_string_finish(cairo_pdf_string_t *p_string)
 //
 
 cairo_private void
-_cairo_pdf_object_dest_set(cairo_pdf_dest_t *p_dest, cairo_pdf_dest_type_t p_type, int p_page, double p_left, double p_top, double p_right, double p_bottom, double p_zoom)
+_cairo_pdf_value_dest_set(cairo_pdf_dest_t *p_dest, cairo_pdf_dest_type_t p_type, int p_page, double p_left, double p_top, double p_right, double p_bottom, double p_zoom)
 {
 	p_dest->type = p_type;
 	p_dest->page = p_page;
@@ -491,9 +492,9 @@ _cairo_pdf_object_dest_set(cairo_pdf_dest_t *p_dest, cairo_pdf_dest_type_t p_typ
 }
 
 cairo_private void
-_cairo_pdf_object_dest_set_xyz(cairo_pdf_dest_t *p_dest, int p_page, double p_left, double p_top, double p_zoom)
+_cairo_pdf_value_dest_set_xyz(cairo_pdf_dest_t *p_dest, int p_page, double p_left, double p_top, double p_zoom)
 {
-	_cairo_pdf_object_dest_set(p_dest, CAIRO_PDF_DEST_TYPE_XYZ, p_page, p_left, p_top, 0, 0, p_zoom);
+	_cairo_pdf_value_dest_set(p_dest, CAIRO_PDF_DEST_TYPE_XYZ, p_page, p_left, p_top, 0, 0, p_zoom);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -502,7 +503,7 @@ _cairo_pdf_object_dest_set_xyz(cairo_pdf_dest_t *p_dest, int p_page, double p_le
 //
 
 cairo_status_t
-_cairo_pdf_object_string_copy_text(cairo_pdf_string_t *p_dest, const char *p_text)
+_cairo_pdf_value_string_copy_text(cairo_pdf_string_t *p_dest, const char *p_text)
 {
 	int t_is_unicode = FALSE;
 	const unsigned char *t_str_ptr;
@@ -564,17 +565,17 @@ _cairo_pdf_object_string_copy_text(cairo_pdf_string_t *p_dest, const char *p_tex
 //
 
 int
-_cairo_pdf_object_array_reserve(cairo_pdf_array_t *p_dict, int32_t p_count)
+_cairo_pdf_value_array_reserve(cairo_pdf_array_t *p_dict, int32_t p_count)
 {
-	p_dict->elements = (cairo_pdf_object_t*) realloc(p_dict->elements, sizeof(cairo_pdf_object_t) * (p_dict->size + p_count));
+	p_dict->elements = (cairo_pdf_value_t*) realloc(p_dict->elements, sizeof(cairo_pdf_value_t) * (p_dict->size + p_count));
 
 	return (p_dict->elements != NULL);
 }
 
 cairo_status_t
-_cairo_pdf_object_array_append(cairo_pdf_array_t *p_array, const cairo_pdf_object_t *p_value)
+_cairo_pdf_value_array_append(cairo_pdf_array_t *p_array, const cairo_pdf_value_t *p_value)
 {
-	if (!_cairo_pdf_object_array_reserve(p_array, 1))
+	if (!_cairo_pdf_value_array_reserve(p_array, 1))
 		return CAIRO_STATUS_NO_MEMORY;
 	p_array->elements[p_array->size] = *p_value;
 	p_array->size += 1;
@@ -582,7 +583,7 @@ _cairo_pdf_object_array_append(cairo_pdf_array_t *p_array, const cairo_pdf_objec
 }
 
 void
-_cairo_pdf_object_array_clear(cairo_pdf_array_t *p_array)
+_cairo_pdf_value_array_clear(cairo_pdf_array_t *p_array)
 {
 	free(p_array->elements);
 	p_array->elements = NULL;
@@ -595,7 +596,7 @@ _cairo_pdf_object_array_clear(cairo_pdf_array_t *p_array)
 //
 
 int
-_cairo_pdf_object_dictionary_index_of(cairo_pdf_dictionary_t *p_dict, const char *p_key, int32_t *r_index)
+_cairo_pdf_value_dictionary_index_of(cairo_pdf_dictionary_t *p_dict, const char *p_key, int32_t *r_index)
 {
 	uint32_t i;
 
@@ -609,27 +610,27 @@ _cairo_pdf_object_dictionary_index_of(cairo_pdf_dictionary_t *p_dict, const char
 }
 
 int
-_cairo_pdf_object_dictionary_reserve(cairo_pdf_dictionary_t *p_dict, int32_t p_count)
+_cairo_pdf_value_dictionary_reserve(cairo_pdf_dictionary_t *p_dict, int32_t p_count)
 {
 	p_dict->keys = (const char **) realloc(p_dict->keys, sizeof(char *) * (p_dict->size + p_count));
-	p_dict->elements = (cairo_pdf_object_t*) realloc(p_dict->elements, sizeof(cairo_pdf_object_t) * (p_dict->size + p_count));
+	p_dict->elements = (cairo_pdf_value_t*) realloc(p_dict->elements, sizeof(cairo_pdf_value_t) * (p_dict->size + p_count));
 
 	return (p_dict->keys != NULL && p_dict->elements != NULL);
 }
 
 cairo_status_t
-_cairo_pdf_object_dictionary_set(cairo_pdf_dictionary_t *p_dict, const char *p_key, const cairo_pdf_object_t *p_value)
+_cairo_pdf_value_dictionary_set(cairo_pdf_dictionary_t *p_dict, const char *p_key, const cairo_pdf_value_t *p_value)
 {
 	int32_t t_index;
 
-	if (_cairo_pdf_object_dictionary_index_of(p_dict, p_key, &t_index))
+	if (_cairo_pdf_value_dictionary_index_of(p_dict, p_key, &t_index))
 	{
 		p_dict->elements[t_index] = *p_value;
 		return CAIRO_STATUS_SUCCESS;
 	}
 	else
 	{
-		if (!_cairo_pdf_object_dictionary_reserve(p_dict, 1))
+		if (!_cairo_pdf_value_dictionary_reserve(p_dict, 1))
 			return CAIRO_STATUS_NO_MEMORY;
 		p_dict->keys[p_dict->size] = p_key;
 		p_dict->elements[p_dict->size] = *p_value;

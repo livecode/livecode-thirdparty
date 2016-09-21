@@ -26,41 +26,6 @@
 #endif
 #include "pixman-private.h"
 
-static void
-solid_fill_get_scanline_32 (pixman_image_t *image,
-                            int             x,
-                            int             y,
-                            int             width,
-                            uint32_t *      buffer,
-                            const uint32_t *mask,
-                            uint32_t        mask_bits)
-{
-    uint32_t *end = buffer + width;
-    register uint32_t color = ((solid_fill_t *)image)->color;
-
-    while (buffer < end)
-	*(buffer++) = color;
-
-    return;
-}
-
-static source_image_class_t
-solid_fill_classify (pixman_image_t *image,
-                     int             x,
-                     int             y,
-                     int             width,
-                     int             height)
-{
-    return (image->source.class = SOURCE_IMAGE_CLASS_HORIZONTAL);
-}
-
-static void
-solid_fill_property_changed (pixman_image_t *image)
-{
-    image->common.get_scanline_32 = solid_fill_get_scanline_32;
-    image->common.get_scanline_64 = _pixman_image_get_scanline_generic_64;
-}
-
 static uint32_t
 color_to_uint32 (const pixman_color_t *color)
 {
@@ -71,8 +36,21 @@ color_to_uint32 (const pixman_color_t *color)
         (color->blue >> 8);
 }
 
+static argb_t
+color_to_float (const pixman_color_t *color)
+{
+    argb_t result;
+
+    result.a = pixman_unorm_to_float (color->alpha, 16);
+    result.r = pixman_unorm_to_float (color->red, 16);
+    result.g = pixman_unorm_to_float (color->green, 16);
+    result.b = pixman_unorm_to_float (color->blue, 16);
+
+    return result;
+}
+
 PIXMAN_EXPORT pixman_image_t *
-pixman_image_create_solid_fill (pixman_color_t *color)
+pixman_image_create_solid_fill (const pixman_color_t *color)
 {
     pixman_image_t *img = _pixman_image_allocate ();
 
@@ -80,11 +58,9 @@ pixman_image_create_solid_fill (pixman_color_t *color)
 	return NULL;
 
     img->type = SOLID;
-    img->solid.color = color_to_uint32 (color);
-
-    img->source.class = SOURCE_IMAGE_CLASS_UNKNOWN;
-    img->common.classify = solid_fill_classify;
-    img->common.property_changed = solid_fill_property_changed;
+    img->solid.color = *color;
+    img->solid.color_32 = color_to_uint32 (color);
+    img->solid.color_float = color_to_float (color);
 
     return img;
 }

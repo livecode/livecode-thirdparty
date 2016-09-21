@@ -12,7 +12,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -37,11 +37,12 @@
 #include "cairoint.h"
 
 #include "cairo-output-stream-private.h"
+
+#include "cairo-array-private.h"
+#include "cairo-error-private.h"
 #include "cairo-compiler-private.h"
 
 #include <stdio.h>
-#include <locale.h>
-#include <ctype.h>
 #include <errno.h>
 
 /* Numbers printed with %f are printed with this number of significant
@@ -301,7 +302,6 @@ _cairo_output_stream_write_hex_string (cairo_output_stream_t *stream,
 static void
 _cairo_dtostr (char *buffer, size_t size, double d, cairo_bool_t limited_precision)
 {
-    struct lconv *locale_data;
     const char *decimal_point;
     int decimal_point_len;
     char *p;
@@ -312,8 +312,7 @@ _cairo_dtostr (char *buffer, size_t size, double d, cairo_bool_t limited_precisi
     if (d == 0.0)
 	d = 0.0;
 
-    locale_data = localeconv ();
-    decimal_point = locale_data->decimal_point;
+    decimal_point = cairo_get_locale_decimal_point ();
     decimal_point_len = strlen (decimal_point);
 
     assert (decimal_point_len != 0);
@@ -341,7 +340,7 @@ _cairo_dtostr (char *buffer, size_t size, double d, cairo_bool_t limited_precisi
 	    if (*p == '+' || *p == '-')
 		p++;
 
-	    while (isdigit (*p))
+	    while (_cairo_isdigit (*p))
 		p++;
 
 	    if (strncmp (p, decimal_point, decimal_point_len) == 0)
@@ -362,7 +361,7 @@ _cairo_dtostr (char *buffer, size_t size, double d, cairo_bool_t limited_precisi
     if (*p == '+' || *p == '-')
 	p++;
 
-    while (isdigit (*p))
+    while (_cairo_isdigit (*p))
 	p++;
 
     if (strncmp (p, decimal_point, decimal_point_len) == 0) {
@@ -434,7 +433,7 @@ _cairo_output_stream_vprintf (cairo_output_stream_t *stream,
 	    f++;
         }
 
-	while (isdigit (*f))
+	while (_cairo_isdigit (*f))
 	    f++;
 
 	length_modifier = 0;
@@ -526,6 +525,45 @@ _cairo_output_stream_printf (cairo_output_stream_t *stream,
     _cairo_output_stream_vprintf (stream, fmt, ap);
 
     va_end (ap);
+}
+
+/* Matrix elements that are smaller than the value of the largest element * MATRIX_ROUNDING_TOLERANCE
+ * are rounded down to zero. */
+#define MATRIX_ROUNDING_TOLERANCE 1e-12
+
+void
+_cairo_output_stream_print_matrix (cairo_output_stream_t *stream,
+				   const cairo_matrix_t  *matrix)
+{
+    cairo_matrix_t m;
+    double s, e;
+
+    m = *matrix;
+    s = fabs (m.xx);
+    if (fabs (m.xy) > s)
+	s = fabs (m.xy);
+    if (fabs (m.yx) > s)
+	s = fabs (m.yx);
+    if (fabs (m.yy) > s)
+	s = fabs (m.yy);
+
+    e = s * MATRIX_ROUNDING_TOLERANCE;
+    if (fabs(m.xx) < e)
+	m.xx = 0;
+    if (fabs(m.xy) < e)
+	m.xy = 0;
+    if (fabs(m.yx) < e)
+	m.yx = 0;
+    if (fabs(m.yy) < e)
+	m.yy = 0;
+    if (fabs(m.x0) < e)
+	m.x0 = 0;
+    if (fabs(m.y0) < e)
+	m.y0 = 0;
+
+    _cairo_output_stream_printf (stream,
+				 "%f %f %f %f %f %f",
+				 m.xx, m.yx, m.xy, m.yy, m.x0, m.y0);
 }
 
 long
@@ -690,7 +728,7 @@ _cairo_memory_stream_create (void)
 cairo_status_t
 _cairo_memory_stream_destroy (cairo_output_stream_t *abstract_stream,
 			      unsigned char **data_out,
-			      unsigned int *length_out)
+			      unsigned long *length_out)
 {
     memory_stream_t *stream;
     cairo_status_t status;

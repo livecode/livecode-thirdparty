@@ -40,7 +40,15 @@
 
 #if CAIRO_HAS_QUARTZ_SURFACE
 
-#include <ApplicationServices/ApplicationServices.h>
+#include <TargetConditionals.h>
+
+#if TARGET_OS_IPHONE
+#  include <CoreGraphics/CoreGraphics.h>
+#  include <CoreText/CoreText.h>
+#  define ATSUFontID uint32_t
+#else
+#  include <ApplicationServices/ApplicationServices.h>
+#endif
 
 CAIRO_BEGIN_DECLS
 

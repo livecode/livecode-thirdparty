@@ -416,7 +416,7 @@
 							'src/pixman-implementation.c',
 							'src/pixman-linear-gradient.c',
 							'src/pixman-matrix.c',
-							'src/pixman-mips-dspr2.c',
+							#'src/pixman-mips-dspr2.c',
 							'src/pixman-mips.c',
 							'src/pixman-mmx.c',
 							'src/pixman-noop.c',
@@ -431,7 +431,7 @@
 							'src/pixman-timer.c',
 							'src/pixman-trap.c',
 							'src/pixman-utils.c',
-							'src/pixman-vmx.c',
+							#'src/pixman-vmx.c',
 							'src/pixman-x86.c',
 							'src/pixman.c',
 							

@@ -416,7 +416,7 @@
 							'src/pixman-implementation.c',
 							'src/pixman-linear-gradient.c',
 							'src/pixman-matrix.c',
-							#'src/pixman-mips-dspr2.c',
+							'src/pixman-mips-dspr2.c',
 							'src/pixman-mips.c',
 							'src/pixman-mmx.c',
 							'src/pixman-noop.c',
@@ -427,11 +427,11 @@
 							'src/pixman-region32.c',
 							'src/pixman-solid-fill.c',
 							'src/pixman-sse2.c',
-							#'src/pixman-ssse3.c',
+							'src/pixman-ssse3.c',
 							'src/pixman-timer.c',
 							'src/pixman-trap.c',
 							'src/pixman-utils.c',
-							#'src/pixman-vmx.c',
+							'src/pixman-vmx.c',
 							'src/pixman-x86.c',
 							'src/pixman.c',
 							
@@ -447,6 +447,8 @@
 						[
 							['exclude', '^src/cairo-(wgl|tee|egl|gl|directfb|eagle|ft|os2|png|ps|qt|quartz|skia|script|svg|vg|win32|xcb|xlib|xml|cogl|drm).*\\.c(pp)?$'],
 							['exclude', '^src/pixman-(vmx).*\\.c$'],
+							['exclude', '^src/pixman-ssse3\\.c$'],
+							['exclude', '^src/pixman-mips-dspr2\\.c$']
 						],
 						
 						# These files don't compile and aren't needed, seemingly

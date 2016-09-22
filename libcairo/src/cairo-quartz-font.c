@@ -93,7 +93,7 @@ static int (*CGFontGetDescentPtr) (CGFontRef fontRef) = NULL;
 static int (*CGFontGetLeadingPtr) (CGFontRef fontRef) = NULL;
 
 /* Not public anymore in 64-bits nor in 10.7 */
-static ATSFontRef (*FMGetATSFontRefFromFontPtr) (FMFont iFont) = NULL;
+static ATSFontRef (*FMGetATSFontRefFromFontPtr) (ATSUFontID iFont) = NULL;
 
 static cairo_bool_t _cairo_quartz_font_symbol_lookup_done = FALSE;
 static cairo_bool_t _cairo_quartz_font_symbols_present = FALSE;

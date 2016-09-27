@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -46,6 +46,14 @@
 
 #include "cairo-win32-private.h"
 
+#include "cairo-array-private.h"
+#include "cairo-error-private.h"
+#include "cairo-image-surface-private.h"
+#include "cairo-pattern-private.h"
+#include "cairo-scaled-font-subsets-private.h"
+
+#include <wchar.h>
+
 #ifndef SPI_GETFONTSMOOTHINGTYPE
 #define SPI_GETFONTSMOOTHINGTYPE 0x200a
 #endif
@@ -60,6 +68,25 @@
 #endif
 
 #define CMAP_TAG 0x70616d63
+
+/**
+ * SECTION:cairo-win32-fonts
+ * @Title: Win32 Fonts
+ * @Short_Description: Font support for Microsoft Windows
+ * @See_Also: #cairo_font_face_t
+ *
+ * The Microsoft Windows font backend is primarily used to render text on
+ * Microsoft Windows systems.
+ **/
+
+/**
+ * CAIRO_HAS_WIN32_FONT:
+ *
+ * Defined if the Microsoft Windows font backend is available.
+ * This macro can be used to conditionally compile backend-specific code.
+ *
+ * Since: 1.8
+ **/
 
 const cairo_scaled_font_backend_t _cairo_win32_scaled_font_backend;
 
@@ -111,6 +138,8 @@ typedef struct {
     cairo_bool_t is_bitmap;
     cairo_bool_t is_type1;
     cairo_bool_t delete_scaled_hfont;
+    cairo_bool_t has_type1_notdef_index;
+    unsigned long type1_notdef_index;
 } cairo_win32_scaled_font_t;
 
 static cairo_status_t
@@ -205,13 +234,15 @@ _compute_transform (cairo_win32_scaled_font_t *scaled_font,
 	if (status)
 	    return status;
 
-	scaled_font->logical_size = _cairo_lround (WIN32_FONT_LOGICAL_SCALE *
-                                                   scaled_font->y_scale);
-	scaled_font->logical_scale = WIN32_FONT_LOGICAL_SCALE * scaled_font->y_scale;
+	scaled_font->logical_size =
+	    _cairo_lround (WIN32_FONT_LOGICAL_SCALE * scaled_font->y_scale);
+	scaled_font->logical_scale =
+	    WIN32_FONT_LOGICAL_SCALE * scaled_font->y_scale;
     }
 
     cairo_matrix_scale (&scaled_font->logical_to_device,
-			1.0 / scaled_font->logical_scale, 1.0 / scaled_font->logical_scale);
+			1.0 / scaled_font->logical_scale,
+			1.0 / scaled_font->logical_scale);
 
     scaled_font->device_to_logical = scaled_font->logical_to_device;
 
@@ -314,9 +345,12 @@ _win32_scaled_font_create (LOGFONTW                   *logfont,
 	    f->quality = NONANTIALIASED_QUALITY;
 	    break;
 	case CAIRO_ANTIALIAS_GRAY:
+	case CAIRO_ANTIALIAS_FAST:
+	case CAIRO_ANTIALIAS_GOOD:
 	    f->quality = ANTIALIASED_QUALITY;
 	    break;
 	case CAIRO_ANTIALIAS_SUBPIXEL:
+	case CAIRO_ANTIALIAS_BEST:
 	    if (_have_cleartype_quality ())
 		f->quality = CLEARTYPE_QUALITY;
 	    else
@@ -330,6 +364,7 @@ _win32_scaled_font_create (LOGFONTW                   *logfont,
     f->em_square = 0;
     f->scaled_hfont = NULL;
     f->unscaled_hfont = NULL;
+    f->has_type1_notdef_index = FALSE;
 
     if (f->quality == logfont->lfQuality ||
         (logfont->lfQuality == DEFAULT_QUALITY &&
@@ -751,14 +786,11 @@ _cairo_win32_scaled_font_text_to_glyphs (void		*abstract_font,
 	goto FAIL1;
 
     while (TRUE) {
-	if (glyph_indices) {
-	    free (glyph_indices);
-	    glyph_indices = NULL;
-	}
-	if (dx) {
-	    free (dx);
-	    dx = NULL;
-	}
+	free (glyph_indices);
+	glyph_indices = NULL;
+
+	free (dx);
+	dx = NULL;
 
 	glyph_indices = _cairo_malloc_ab (buffer_size, sizeof (WCHAR));
 	dx = _cairo_malloc_ab (buffer_size, sizeof (int));
@@ -811,10 +843,8 @@ _cairo_win32_scaled_font_text_to_glyphs (void		*abstract_font,
     }
 
  FAIL2:
-    if (glyph_indices)
-	free (glyph_indices);
-    if (dx)
-	free (dx);
+    free (glyph_indices);
+    free (dx);
 
     cairo_win32_scaled_font_done_font (&scaled_font->base);
 
@@ -859,7 +889,7 @@ _cairo_win32_scaled_font_set_metrics (cairo_win32_scaled_font_t *scaled_font)
     cairo_status_t status;
     cairo_font_extents_t extents;
 
-    TEXTMETRIC metrics;
+    TEXTMETRIC metrics = {0};
     HDC hdc;
 
     hdc = _get_global_font_dc ();
@@ -872,8 +902,14 @@ _cairo_win32_scaled_font_set_metrics (cairo_win32_scaled_font_t *scaled_font)
 	status = cairo_win32_scaled_font_select_font (&scaled_font->base, hdc);
 	if (status)
 	    return status;
-	GetTextMetrics (hdc, &metrics);
+
+	if (!GetTextMetrics (hdc, &metrics)) {
+	    status = _cairo_win32_print_gdi_error ("_cairo_win32_scaled_font_set_metrics:GetTextMetrics");
+	}
+
 	cairo_win32_scaled_font_done_font (&scaled_font->base);
+	if (status)
+	    return status;
 
 	extents.ascent = metrics.tmAscent / scaled_font->logical_scale;
 	extents.descent = metrics.tmDescent / scaled_font->logical_scale;
@@ -966,7 +1002,7 @@ _cairo_win32_scaled_font_init_glyph_metrics (cairo_win32_scaled_font_t *scaled_f
 	extents.height = scaled_font->base.ctm.yy * (font_extents.ascent + font_extents.descent) / scaled_font->y_scale;
 	extents.x_advance = extents.width;
 	extents.y_advance = 0;
-    } else if (scaled_font->preserve_axes && scaled_font->base.options.hint_style != CAIRO_HINT_METRICS_OFF) {
+    } else if (scaled_font->preserve_axes && scaled_font->base.options.hint_metrics != CAIRO_HINT_METRICS_OFF) {
 	/* If we aren't rotating / skewing the axes, then we get the metrics
 	 * from the GDI in device space and convert to font space.
 	 */
@@ -978,6 +1014,19 @@ _cairo_win32_scaled_font_init_glyph_metrics (cairo_win32_scaled_font_t *scaled_f
 			      GGO_METRICS | GGO_GLYPH_INDEX,
 			      &metrics, 0, NULL, &matrix) == GDI_ERROR) {
 	    memset (&metrics, 0, sizeof (GLYPHMETRICS));
+	} else {
+	    if (metrics.gmBlackBoxX > 0 && scaled_font->base.options.antialias != CAIRO_ANTIALIAS_NONE) {
+		/* The bounding box reported by Windows supposedly contains the glyph's "black" area;
+		 * however, antialiasing (especially with ClearType) means that the actual image that
+		 * needs to be rendered may "bleed" into the adjacent pixels, mainly on the right side.
+		 * To avoid clipping the glyphs when drawn by _cairo_surface_fallback_show_glyphs,
+		 * for example, or other code that uses glyph extents to determine the area to update,
+		 * we add a pixel of "slop" to left side of the nominal "black" area returned by GDI,
+		 * and two pixels to the right (as tests show some glyphs bleed into this column).
+		 */
+		metrics.gmptGlyphOrigin.x -= 1;
+		metrics.gmBlackBoxX += 3;
+	    }
 	}
 	cairo_win32_scaled_font_done_font (&scaled_font->base);
 
@@ -1006,7 +1055,6 @@ _cairo_win32_scaled_font_init_glyph_metrics (cairo_win32_scaled_font_t *scaled_f
 	    extents.y_bearing = (- extents.y_bearing - extents.height);
 	    extents.y_advance = - extents.y_advance;
 	}
-
     } else {
 	/* For all other transformations, we use the design metrics
 	 * of the font.
@@ -1252,72 +1300,6 @@ _draw_glyphs_on_surface (cairo_win32_surface_t     *surface,
     return status;
 }
 
-/* Duplicate the green channel of a 4-channel mask in the alpha channel, then
- * invert the whole mask.
- */
-static void
-_compute_argb32_mask_alpha (cairo_win32_surface_t *mask_surface)
-{
-    cairo_image_surface_t *image = (cairo_image_surface_t *)mask_surface->image;
-    int i, j;
-
-    for (i = 0; i < image->height; i++) {
-	uint32_t *p = (uint32_t *) (image->data + i * image->stride);
-	for (j = 0; j < image->width; j++) {
-	    *p = 0xffffffff ^ (*p | ((*p & 0x0000ff00) << 16));
-	    p++;
-	}
-    }
-}
-
-/* Invert a mask
- */
-static void
-_invert_argb32_mask (cairo_win32_surface_t *mask_surface)
-{
-    cairo_image_surface_t *image = (cairo_image_surface_t *)mask_surface->image;
-    int i, j;
-
-    for (i = 0; i < image->height; i++) {
-	uint32_t *p = (uint32_t *) (image->data + i * image->stride);
-	for (j = 0; j < image->width; j++) {
-	    *p = 0xffffffff ^ *p;
-	    p++;
-	}
-    }
-}
-
-/* Compute an alpha-mask from a monochrome RGB24 image
- */
-static cairo_surface_t *
-_compute_a8_mask (cairo_win32_surface_t *mask_surface)
-{
-    cairo_image_surface_t *image24 = (cairo_image_surface_t *)mask_surface->image;
-    cairo_image_surface_t *image8;
-    int i, j;
-
-    if (image24->base.status)
-	return cairo_surface_reference (&image24->base);
-
-    image8 = (cairo_image_surface_t *)cairo_image_surface_create (CAIRO_FORMAT_A8,
-								  image24->width, image24->height);
-    if (image8->base.status)
-	return &image8->base;
-
-    for (i = 0; i < image24->height; i++) {
-	uint32_t *p = (uint32_t *) (image24->data + i * image24->stride);
-	unsigned char *q = (unsigned char *) (image8->data + i * image8->stride);
-
-	for (j = 0; j < image24->width; j++) {
-	    *q = 255 - ((*p & 0x0000ff00) >> 8);
-	    p++;
-	    q++;
-	}
-    }
-
-    return &image8->base;
-}
-
 static cairo_int_status_t
 _cairo_win32_scaled_font_glyph_init (void		       *abstract_font,
 				     cairo_scaled_glyph_t      *scaled_glyph,
@@ -1348,131 +1330,6 @@ _cairo_win32_scaled_font_glyph_init (void		       *abstract_font,
 }
 
 static cairo_int_status_t
-_cairo_win32_scaled_font_show_glyphs (void			*abstract_font,
-				      cairo_operator_t		 op,
-				      const cairo_pattern_t	*pattern,
-				      cairo_surface_t		*generic_surface,
-				      int			 source_x,
-				      int			 source_y,
-				      int			 dest_x,
-				      int			 dest_y,
-				      unsigned int		 width,
-				      unsigned int		 height,
-				      cairo_glyph_t		*glyphs,
-				      int			 num_glyphs,
-				      cairo_region_t		*clip_region,
-				      int			*remaining_glyphs)
-{
-    cairo_win32_scaled_font_t *scaled_font = abstract_font;
-    cairo_win32_surface_t *surface = (cairo_win32_surface_t *)generic_surface;
-    cairo_status_t status;
-
-    if (width == 0 || height == 0)
-	return CAIRO_STATUS_SUCCESS;
-
-    if (_cairo_surface_is_win32 (generic_surface) &&
-	surface->format == CAIRO_FORMAT_RGB24 &&
-	op == CAIRO_OPERATOR_OVER &&
-	_cairo_pattern_is_opaque_solid (pattern)) {
-
-	cairo_solid_pattern_t *solid_pattern = (cairo_solid_pattern_t *)pattern;
-
-	/* When compositing OVER on a GDI-understood surface, with a
-	 * solid opaque color, we can just call ExtTextOut directly.
-	 */
-	COLORREF new_color;
-
-	status = _cairo_win32_surface_set_clip_region (surface, clip_region);
-	if (unlikely (status))
-	    return status;
-
-	new_color = RGB (((int)solid_pattern->color.red_short) >> 8,
-			 ((int)solid_pattern->color.green_short) >> 8,
-			 ((int)solid_pattern->color.blue_short) >> 8);
-
-	return _draw_glyphs_on_surface (surface, scaled_font, new_color,
-					0, 0,
-					glyphs, num_glyphs);
-    } else {
-	/* Otherwise, we need to draw using software fallbacks. We create a mask
-	 * surface by drawing the the glyphs onto a DIB, black-on-white then
-	 * inverting. GDI outputs gamma-corrected images so inverted black-on-white
-	 * is very different from white-on-black. We favor the more common
-	 * case where the final output is dark-on-light.
-	 */
-	cairo_win32_surface_t *tmp_surface;
-	cairo_surface_t *mask_surface;
-	cairo_surface_pattern_t mask;
-	RECT r;
-
-	tmp_surface = (cairo_win32_surface_t *)cairo_win32_surface_create_with_dib (CAIRO_FORMAT_ARGB32, width, height);
-	if (tmp_surface->base.status)
-	    return tmp_surface->base.status;
-
-	r.left = 0;
-	r.top = 0;
-	r.right = width;
-	r.bottom = height;
-	FillRect (tmp_surface->dc, &r, GetStockObject (WHITE_BRUSH));
-
-	status = _draw_glyphs_on_surface (tmp_surface,
-		                          scaled_font, RGB (0, 0, 0),
-					  dest_x, dest_y,
-					  glyphs, num_glyphs);
-	if (status) {
-	    cairo_surface_destroy (&tmp_surface->base);
-	    return status;
-	}
-
-	if (scaled_font->quality == CLEARTYPE_QUALITY) {
-	    /* For ClearType, we need a 4-channel mask. If we are compositing on
-	     * a surface with alpha, we need to compute the alpha channel of
-	     * the mask (we just copy the green channel). But for a destination
-	     * surface without alpha the alpha channel of the mask is ignored
-	     */
-
-	    if (surface->format != CAIRO_FORMAT_RGB24)
-		_compute_argb32_mask_alpha (tmp_surface);
-	    else
-		_invert_argb32_mask (tmp_surface);
-
-	    mask_surface = &tmp_surface->base;
-
-	    /* XXX: Hacky, should expose this in cairo_image_surface */
-	    pixman_image_set_component_alpha (((cairo_image_surface_t *)tmp_surface->image)->pixman_image, TRUE);
-
-	} else {
-	    mask_surface = _compute_a8_mask (tmp_surface);
-	    cairo_surface_destroy (&tmp_surface->base);
-	    status = mask_surface->status;
-	    if (status)
-		return status;
-	}
-
-	/* For op == OVER, no-cleartype, a possible optimization here is to
-	 * draw onto an intermediate ARGB32 surface and alpha-blend that with the
-	 * destination
-	 */
-	_cairo_pattern_init_for_surface (&mask, mask_surface);
-
-	status = _cairo_surface_composite (op, pattern,
-					   &mask.base,
-					   &surface->base,
-					   source_x, source_y,
-					   0, 0,
-					   dest_x, dest_y,
-					   width, height,
-					   clip_region);
-
-	_cairo_pattern_fini (&mask.base);
-
-	cairo_surface_destroy (mask_surface);
-
-	return status;
-    }
-}
-
-static cairo_int_status_t
 _cairo_win32_scaled_font_load_truetype_table (void	       *abstract_font,
                                              unsigned long      tag,
                                              long               offset,
@@ -1482,6 +1339,7 @@ _cairo_win32_scaled_font_load_truetype_table (void	       *abstract_font,
     cairo_win32_scaled_font_t *scaled_font = abstract_font;
     HDC hdc;
     cairo_status_t status;
+    DWORD ret;
 
     hdc = _get_global_font_dc ();
     assert (hdc != NULL);
@@ -1491,9 +1349,11 @@ _cairo_win32_scaled_font_load_truetype_table (void	       *abstract_font,
     if (status)
 	return status;
 
-    *length = GetFontData (hdc, tag, offset, buffer, *length);
-    if (*length == GDI_ERROR)
+    ret = GetFontData (hdc, tag, offset, buffer, *length);
+    if (ret == GDI_ERROR || (buffer && ret != *length))
         status = CAIRO_INT_STATUS_UNSUPPORTED;
+    else
+	*length = ret;
 
     cairo_win32_scaled_font_done_font (&scaled_font->base);
 
@@ -1581,15 +1441,151 @@ _cairo_win32_scaled_font_index_to_ucs4 (void		*abstract_font,
     }
 
 exit2:
-    if (glyph_indices)
-	free (glyph_indices);
-    if (utf16)
-	free (utf16);
+    free (glyph_indices);
+    free (utf16);
     free (glyph_set);
 exit1:
     cairo_win32_scaled_font_done_font (&scaled_font->base);
 
     return status;
+}
+
+static cairo_bool_t
+_cairo_win32_scaled_font_is_synthetic (void	       *abstract_font)
+{
+    cairo_win32_scaled_font_t *scaled_font = abstract_font;
+    cairo_status_t status;
+    int	weight;
+    cairo_bool_t bold;
+    cairo_bool_t italic;
+
+    status = _cairo_truetype_get_style (&scaled_font->base,
+					&weight,
+					&bold,
+					&italic);
+    /* If this doesn't work assume it is not synthetic to avoid
+     * unnecessary subsetting fallbacks. */
+    if (status != CAIRO_STATUS_SUCCESS)
+	return FALSE;
+
+    if (scaled_font->logfont.lfWeight != weight ||
+	scaled_font->logfont.lfItalic != italic)
+	return TRUE;
+
+    return FALSE;
+}
+
+static cairo_int_status_t
+_cairo_win32_scaled_font_index_to_glyph_name (void		*abstract_font,
+					      char             **glyph_names,
+					      int		 num_glyph_names,
+					      unsigned long      glyph_index,
+					      unsigned long     *glyph_array_index)
+{
+    cairo_win32_scaled_font_t *scaled_font = abstract_font;
+    int i;
+
+    /* Windows puts .notdef at index 0 then numbers the remaining
+     * glyphs starting from 1 in the order they appear in the font. */
+
+    /* Find the position of .notdef in the list of glyph names. We
+     * only need to do this once per scaled font. */
+    if (! scaled_font->has_type1_notdef_index) {
+	for (i = 0; i < num_glyph_names; i++) {
+	    if (strcmp (glyph_names[i], ".notdef") == 0) {
+		scaled_font->type1_notdef_index = i;
+		scaled_font->has_type1_notdef_index = TRUE;
+		break;
+	    }
+	}
+	if (! scaled_font->has_type1_notdef_index)
+	    return CAIRO_INT_STATUS_UNSUPPORTED;
+    }
+
+    /* Once we know the position of .notdef the position of any glyph
+     * in the font can easily be obtained. */
+    if (glyph_index == 0)
+	*glyph_array_index = scaled_font->type1_notdef_index;
+    else if (glyph_index <= scaled_font->type1_notdef_index)
+	*glyph_array_index = glyph_index - 1;
+    else if (glyph_index < (unsigned long)num_glyph_names)
+	*glyph_array_index = glyph_index;
+    else
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+
+    return CAIRO_STATUS_SUCCESS;
+}
+
+static cairo_int_status_t
+_cairo_win32_scaled_font_load_type1_data (void	            *abstract_font,
+					  long               offset,
+					  unsigned char     *buffer,
+					  unsigned long     *length)
+{
+    cairo_win32_scaled_font_t *scaled_font = abstract_font;
+
+    if (! scaled_font->is_type1)
+	return CAIRO_INT_STATUS_UNSUPPORTED;
+
+    /* Using the tag 0 retrieves the entire font file. This works with
+     * Type 1 fonts as well as TTF/OTF fonts. */
+    return _cairo_win32_scaled_font_load_truetype_table (scaled_font,
+							 0,
+							 offset,
+							 buffer,
+							 length);
+}
+
+static cairo_surface_t *
+_compute_mask (cairo_surface_t *surface,
+	       int quality)
+{
+    cairo_image_surface_t *glyph;
+    cairo_image_surface_t *mask;
+    int i, j;
+
+    glyph = (cairo_image_surface_t *)cairo_surface_map_to_image (surface, NULL);
+    if (unlikely (glyph->base.status))
+	return &glyph->base;
+
+    if (quality == CLEARTYPE_QUALITY) {
+	/* Duplicate the green channel of a 4-channel mask into the
+	 * alpha channel, then invert the whole mask.
+	 */
+	mask = (cairo_image_surface_t *)
+	    cairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+					glyph->width, glyph->height);
+	if (likely (mask->base.status == CAIRO_STATUS_SUCCESS)) {
+	    for (i = 0; i < glyph->height; i++) {
+		uint32_t *p = (uint32_t *) (glyph->data + i * glyph->stride);
+		uint32_t *q = (uint32_t *) (mask->data + i * mask->stride);
+
+		for (j = 0; j < glyph->width; j++) {
+		    *q++ = 0xffffffff ^ (*p | ((*p & 0x0000ff00) << 16));
+		    p++;
+		}
+	    }
+	}
+    } else {
+	/* Compute an alpha-mask from a using the green channel of a
+	 * (presumed monochrome) RGB24 image.
+	 */
+	mask = (cairo_image_surface_t *)
+	    cairo_image_surface_create (CAIRO_FORMAT_A8,
+					glyph->width, glyph->height);
+	if (likely (mask->base.status == CAIRO_STATUS_SUCCESS)) {
+	    for (i = 0; i < glyph->height; i++) {
+		uint32_t *p = (uint32_t *) (glyph->data + i * glyph->stride);
+		uint8_t *q = (uint8_t *) (mask->data + i * mask->stride);
+
+		for (j = 0; j < glyph->width; j++)
+		    *q++ = 255 - ((*p++ & 0x0000ff00) >> 8);
+	    }
+	}
+    }
+
+    cairo_surface_unmap_image (surface, &glyph->base);
+    return &mask->base;
 }
 
 static cairo_status_t
@@ -1598,8 +1594,7 @@ _cairo_win32_scaled_font_init_glyph_surface (cairo_win32_scaled_font_t *scaled_f
 {
     cairo_status_t status;
     cairo_glyph_t glyph;
-    cairo_win32_surface_t *surface;
-    cairo_t *cr;
+    cairo_surface_t *surface;
     cairo_surface_t *image;
     int width, height;
     int x1, y1, x2, y2;
@@ -1611,28 +1606,23 @@ _cairo_win32_scaled_font_init_glyph_surface (cairo_win32_scaled_font_t *scaled_f
     width = x2 - x1;
     height = y2 - y1;
 
-    surface = (cairo_win32_surface_t *)
-	cairo_win32_surface_create_with_dib (CAIRO_FORMAT_RGB24, width, height);
-
-    cr = cairo_create (&surface->base);
-    cairo_set_source_rgb (cr, 1, 1, 1);
-    cairo_paint (cr);
-    status = cairo_status (cr);
-    cairo_destroy(cr);
+    surface = cairo_win32_surface_create_with_dib (CAIRO_FORMAT_RGB24,
+						   width, height);
+    status = _cairo_surface_paint (surface, CAIRO_OPERATOR_SOURCE,
+				   &_cairo_pattern_white.base, NULL);
     if (status)
 	goto FAIL;
 
     glyph.index = _cairo_scaled_glyph_index (scaled_glyph);
     glyph.x = -x1;
     glyph.y = -y1;
-    status = _draw_glyphs_on_surface (surface, scaled_font, RGB(0,0,0),
+    status = _draw_glyphs_on_surface (to_win32_surface (surface),
+				      scaled_font, RGB(0,0,0),
                                       0, 0, &glyph, 1);
     if (status)
 	goto FAIL;
 
-    GdiFlush();
-
-    image = _compute_a8_mask (surface);
+    image = _compute_mask (surface, scaled_font->quality);
     status = image->status;
     if (status)
 	goto FAIL;
@@ -1643,7 +1633,7 @@ _cairo_win32_scaled_font_init_glyph_surface (cairo_win32_scaled_font_t *scaled_f
                                      (cairo_image_surface_t *) image);
 
   FAIL:
-    cairo_surface_destroy (&surface->base);
+    cairo_surface_destroy (surface);
 
     return status;
 }
@@ -1837,9 +1827,11 @@ const cairo_scaled_font_backend_t _cairo_win32_scaled_font_backend = {
     _cairo_win32_scaled_font_glyph_init,
     NULL, /* _cairo_win32_scaled_font_text_to_glyphs, FIXME */
     _cairo_win32_scaled_font_ucs4_to_index,
-    _cairo_win32_scaled_font_show_glyphs,
     _cairo_win32_scaled_font_load_truetype_table,
     _cairo_win32_scaled_font_index_to_ucs4,
+    _cairo_win32_scaled_font_is_synthetic,
+    _cairo_win32_scaled_font_index_to_glyph_name,
+    _cairo_win32_scaled_font_load_type1_data
 };
 
 /* #cairo_win32_font_face_t */
@@ -1857,12 +1849,133 @@ struct _cairo_win32_font_face {
     HFONT hfont;
 };
 
-/* implement the platform-specific interface */
+/* We maintain a hash table from LOGFONT,HFONT => #cairo_font_face_t.
+ * The primary purpose of this mapping is to provide unique
+ * #cairo_font_face_t values so that our cache and mapping from
+ * #cairo_font_face_t => #cairo_scaled_font_t works. Once the
+ * corresponding #cairo_font_face_t objects fall out of downstream
+ * caches, we don't need them in this hash table anymore.
+ *
+ * Modifications to this hash table are protected by
+ * _cairo_win32_font_face_mutex.
+ */
+
+static cairo_hash_table_t *cairo_win32_font_face_hash_table = NULL;
+
+static int
+_cairo_win32_font_face_keys_equal (const void *key_a,
+				   const void *key_b);
 
 static void
+_cairo_win32_font_face_hash_table_destroy (void)
+{
+    cairo_hash_table_t *hash_table;
+
+    /* We manually acquire the lock rather than calling
+     * _cairo_win32_font_face_hash_table_lock simply to avoid creating
+     * the table only to destroy it again. */
+    CAIRO_MUTEX_LOCK (_cairo_win32_font_face_mutex);
+    hash_table = cairo_win32_font_face_hash_table;
+    cairo_win32_font_face_hash_table = NULL;
+    CAIRO_MUTEX_UNLOCK (_cairo_win32_font_face_mutex);
+
+    if (hash_table != NULL)
+	_cairo_hash_table_destroy (hash_table);
+}
+
+static cairo_hash_table_t *
+_cairo_win32_font_face_hash_table_lock (void)
+{
+    CAIRO_MUTEX_LOCK (_cairo_win32_font_face_mutex);
+
+    if (unlikely (cairo_win32_font_face_hash_table == NULL))
+    {
+	cairo_win32_font_face_hash_table =
+	_cairo_hash_table_create (_cairo_win32_font_face_keys_equal);
+
+	if (unlikely (cairo_win32_font_face_hash_table == NULL)) {
+	    CAIRO_MUTEX_UNLOCK (_cairo_win32_font_face_mutex);
+	    _cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
+	    return NULL;
+	}
+    }
+
+    return cairo_win32_font_face_hash_table;
+}
+
+static void
+_cairo_win32_font_face_hash_table_unlock (void)
+{
+    CAIRO_MUTEX_UNLOCK (_cairo_win32_font_face_mutex);
+}
+
+static cairo_bool_t
 _cairo_win32_font_face_destroy (void *abstract_face)
 {
+    cairo_win32_font_face_t *font_face = abstract_face;
+    cairo_hash_table_t *hash_table;
+
+    hash_table = _cairo_win32_font_face_hash_table_lock ();
+    /* All created objects must have been mapped in the hash table. */
+    assert (hash_table != NULL);
+
+    if (! _cairo_reference_count_dec_and_test (&font_face->base.ref_count)) {
+	/* somebody recreated the font whilst we waited for the lock */
+	_cairo_win32_font_face_hash_table_unlock ();
+	return FALSE;
+    }
+
+    /* Font faces in SUCCESS status are guaranteed to be in the
+     * hashtable. Font faces in an error status are removed from the
+     * hashtable if they are found during a lookup, thus they should
+     * only be removed if they are in the hashtable. */
+    if (likely (font_face->base.status == CAIRO_STATUS_SUCCESS) ||
+	_cairo_hash_table_lookup (hash_table, &font_face->base.hash_entry) == font_face)
+	_cairo_hash_table_remove (hash_table, &font_face->base.hash_entry);
+
+    _cairo_win32_font_face_hash_table_unlock ();
+    return TRUE;
 }
+
+static void
+_cairo_win32_font_face_init_key (cairo_win32_font_face_t *key,
+				 LOGFONTW                *logfont,
+				 HFONT                    font)
+{
+    unsigned long hash = _CAIRO_HASH_INIT_VALUE;
+
+    key->logfont = *logfont;
+    key->hfont = font;
+
+    hash = _cairo_hash_bytes (0, logfont->lfFaceName, 2*wcslen(logfont->lfFaceName));
+    hash = _cairo_hash_bytes (hash, &logfont->lfWeight, sizeof(logfont->lfWeight));
+    hash = _cairo_hash_bytes (hash, &logfont->lfItalic, sizeof(logfont->lfItalic));
+
+    key->base.hash_entry.hash = hash;
+}
+
+static int
+_cairo_win32_font_face_keys_equal (const void *key_a,
+				   const void *key_b)
+{
+    const cairo_win32_font_face_t *face_a = key_a;
+    const cairo_win32_font_face_t *face_b = key_b;
+
+    if (face_a->logfont.lfWeight         == face_b->logfont.lfWeight &&
+	face_a->logfont.lfItalic         == face_b->logfont.lfItalic &&
+	face_a->logfont.lfUnderline      == face_b->logfont.lfUnderline &&
+	face_a->logfont.lfStrikeOut      == face_b->logfont.lfStrikeOut &&
+	face_a->logfont.lfCharSet        == face_b->logfont.lfCharSet &&
+	face_a->logfont.lfOutPrecision   == face_b->logfont.lfOutPrecision &&
+	face_a->logfont.lfClipPrecision  == face_b->logfont.lfClipPrecision &&
+	face_a->logfont.lfPitchAndFamily == face_b->logfont.lfPitchAndFamily &&
+	(wcscmp (face_a->logfont.lfFaceName, face_b->logfont.lfFaceName) == 0))
+	return TRUE;
+    else
+	return FALSE;
+}
+
+/* implement the platform-specific interface */
 
 static cairo_bool_t
 _is_scale (const cairo_matrix_t *matrix, double scale)
@@ -1923,24 +2036,60 @@ const cairo_font_face_backend_t _cairo_win32_font_face_backend = {
  *
  * Return value: a newly created #cairo_font_face_t. Free with
  *  cairo_font_face_destroy() when you are done using it.
+ *
+ * Since: 1.6
  **/
 cairo_font_face_t *
 cairo_win32_font_face_create_for_logfontw_hfont (LOGFONTW *logfont, HFONT font)
 {
-    cairo_win32_font_face_t *font_face;
+    cairo_win32_font_face_t *font_face, key;
+    cairo_hash_table_t *hash_table;
+    cairo_status_t status;
 
+    hash_table = _cairo_win32_font_face_hash_table_lock ();
+    if (unlikely (hash_table == NULL)) {
+        _cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
+	return (cairo_font_face_t *)&_cairo_font_face_nil;
+    }
+
+    _cairo_win32_font_face_init_key (&key, logfont, font);
+
+    /* Return existing unscaled font if it exists in the hash table. */
+    font_face = _cairo_hash_table_lookup (hash_table,
+					 &key.base.hash_entry);
+    if (font_face != NULL) {
+	if (font_face->base.status == CAIRO_STATUS_SUCCESS) {
+	    cairo_font_face_reference (&font_face->base);
+	    _cairo_win32_font_face_hash_table_unlock ();
+	    return &font_face->base;
+	}
+
+	/* remove the bad font from the hash table */
+	_cairo_hash_table_remove (hash_table, &font_face->base.hash_entry);
+    }
+
+    /* Otherwise create it and insert into hash table. */
     font_face = malloc (sizeof (cairo_win32_font_face_t));
     if (!font_face) {
         _cairo_error_throw (CAIRO_STATUS_NO_MEMORY);
-        return (cairo_font_face_t *)&_cairo_font_face_nil;
+	goto FAIL;
     }
 
-    font_face->logfont = *logfont;
-    font_face->hfont = font;
-
+    _cairo_win32_font_face_init_key (font_face, logfont, font);
     _cairo_font_face_init (&font_face->base, &_cairo_win32_font_face_backend);
 
+    assert (font_face->base.hash_entry.hash == key.base.hash_entry.hash);
+    status = _cairo_hash_table_insert (hash_table,
+				       &font_face->base.hash_entry);
+    if (unlikely (status))
+	goto FAIL;
+
+    _cairo_win32_font_face_hash_table_unlock ();
     return &font_face->base;
+
+FAIL:
+    _cairo_win32_font_face_hash_table_unlock ();
+    return (cairo_font_face_t *)&_cairo_font_face_nil;
 }
 
 /**
@@ -1958,6 +2107,8 @@ cairo_win32_font_face_create_for_logfontw_hfont (LOGFONTW *logfont, HFONT font)
  *
  * Return value: a newly created #cairo_font_face_t. Free with
  *  cairo_font_face_destroy() when you are done using it.
+ *
+ * Since: 1.0
  **/
 cairo_font_face_t *
 cairo_win32_font_face_create_for_logfontw (LOGFONTW *logfont)
@@ -1978,6 +2129,8 @@ cairo_win32_font_face_create_for_logfontw (LOGFONTW *logfont)
  *
  * Return value: a newly created #cairo_font_face_t. Free with
  *  cairo_font_face_destroy() when you are done using it.
+ *
+ * Since: 1.2
  **/
 cairo_font_face_t *
 cairo_win32_font_face_create_for_hfont (HFONT font)
@@ -2004,7 +2157,7 @@ _cairo_scaled_font_is_win32 (cairo_scaled_font_t *scaled_font)
 /**
  * cairo_win32_scaled_font_select_font:
  * @scaled_font: A #cairo_scaled_font_t from the Win32 font backend. Such an
- *   object can be created with cairo_win32_scaled_font_create_for_logfontw().
+ *   object can be created with cairo_win32_font_face_create_for_logfontw().
  * @hdc: a device context
  *
  * Selects the font into the given device context and changes the
@@ -2024,6 +2177,8 @@ _cairo_scaled_font_is_win32 (cairo_scaled_font_t *scaled_font)
  * Return value: %CAIRO_STATUS_SUCCESS if the operation succeeded.
  *   otherwise an error such as %CAIRO_STATUS_NO_MEMORY and
  *   the device context is unchanged.
+ *
+ * Since: 1.0
  **/
 cairo_status_t
 cairo_win32_scaled_font_select_font (cairo_scaled_font_t *scaled_font,
@@ -2073,6 +2228,8 @@ cairo_win32_scaled_font_select_font (cairo_scaled_font_t *scaled_font,
  * @scaled_font: A scaled font from the Win32 font backend.
  *
  * Releases any resources allocated by cairo_win32_scaled_font_select_font()
+ *
+ * Since: 1.0
  **/
 void
 cairo_win32_scaled_font_done_font (cairo_scaled_font_t *scaled_font)
@@ -2093,6 +2250,8 @@ cairo_win32_scaled_font_done_font (cairo_scaled_font_t *scaled_font)
  *
  * Return value: factor to multiply logical units by to get font space
  *               coordinates.
+ *
+ * Since: 1.0
  **/
 double
 cairo_win32_scaled_font_get_metrics_factor (cairo_scaled_font_t *scaled_font)
@@ -2148,4 +2307,10 @@ cairo_win32_scaled_font_get_device_to_logical (cairo_scaled_font_t *scaled_font,
 	return;
     }
     *device_to_logical = win_font->device_to_logical;
+}
+
+void
+_cairo_win32_font_reset_static_data (void)
+{
+    _cairo_win32_font_face_hash_table_destroy ();
 }

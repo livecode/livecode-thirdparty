@@ -47,53 +47,53 @@
 #include "cairo-pdf-ext-object.h"
 
 cairo_private void
-_cairo_pdf_object_init(cairo_pdf_object_t *p_object, cairo_pdf_object_type_t p_type);
+_cairo_pdf_value_init(cairo_pdf_value_t *p_object, cairo_pdf_value_type_t p_type);
 
 cairo_private void
-_cairo_pdf_object_array_init(cairo_pdf_array_t *p_object);
+_cairo_pdf_value_array_init(cairo_pdf_array_t *p_object);
 
 cairo_private void
-_cairo_pdf_object_array_finish(cairo_pdf_array_t *p_object);
+_cairo_pdf_value_array_finish(cairo_pdf_array_t *p_object);
 
 cairo_private void
-_cairo_pdf_object_array_clear(cairo_pdf_array_t *p_object);
+_cairo_pdf_value_array_clear(cairo_pdf_array_t *p_object);
 
 cairo_private cairo_status_t
-_cairo_pdf_object_array_append(cairo_pdf_array_t *p_array, const cairo_pdf_object_t *p_value);
+_cairo_pdf_value_array_append(cairo_pdf_array_t *p_array, const cairo_pdf_value_t *p_value);
 
 cairo_private void
-_cairo_pdf_object_dictionary_init(cairo_pdf_dictionary_t *p_object);
+_cairo_pdf_value_dictionary_init(cairo_pdf_dictionary_t *p_object);
 
 cairo_private void
-_cairo_pdf_object_dictionary_finish(cairo_pdf_dictionary_t *p_object);
+_cairo_pdf_value_dictionary_finish(cairo_pdf_dictionary_t *p_object);
 
 cairo_private cairo_status_t
-_cairo_pdf_object_dictionary_set(cairo_pdf_dictionary_t *p_object, const char *p_key, const cairo_pdf_object_t *p_value);
+_cairo_pdf_value_dictionary_set(cairo_pdf_dictionary_t *p_object, const char *p_key, const cairo_pdf_value_t *p_value);
 
 cairo_private void
-_cairo_pdf_object_dest_set(cairo_pdf_dest_t *p_dest, cairo_pdf_dest_type_t p_type, int p_page, double p_left, double p_top, double p_right, double p_bottom, double p_zoom);
+_cairo_pdf_value_dest_set(cairo_pdf_dest_t *p_dest, cairo_pdf_dest_type_t p_type, int p_page, double p_left, double p_top, double p_right, double p_bottom, double p_zoom);
 
 cairo_private void
-_cairo_pdf_object_dest_set_xyz(cairo_pdf_dest_t *p_dest, int p_page, double p_left, double p_top, double p_zoom);
+_cairo_pdf_value_dest_set_xyz(cairo_pdf_dest_t *p_dest, int p_page, double p_left, double p_top, double p_zoom);
 
 cairo_private void
-_cairo_pdf_object_string_init(cairo_pdf_string_t *p_string);
+_cairo_pdf_value_string_init(cairo_pdf_string_t *p_string);
 
 cairo_private cairo_status_t
-_cairo_pdf_object_string_copy_text(cairo_pdf_string_t *p_dest, const char *p_text);
+_cairo_pdf_value_string_copy_text(cairo_pdf_string_t *p_dest, const char *p_text);
 
 cairo_private void
-_cairo_pdf_object_string_finish(cairo_pdf_string_t *p_string);
+_cairo_pdf_value_string_finish(cairo_pdf_string_t *p_string);
 
 cairo_private void
-_cairo_pdf_object_outline_entry_init(cairo_pdf_outline_entry_t *p_entry);
+_cairo_pdf_value_outline_entry_init(cairo_pdf_outline_entry_t *p_entry);
 
 cairo_private void
-_cairo_pdf_object_outline_entry_finish(cairo_pdf_outline_entry_t *p_entry);
+_cairo_pdf_value_outline_entry_finish(cairo_pdf_outline_entry_t *p_entry);
 
 
 cairo_private void
-_cairo_pdf_output_stream_write_object(cairo_output_stream_t *p_stream, const cairo_pdf_object_t *p_object);
+_cairo_pdf_output_stream_write_object(cairo_output_stream_t *p_stream, const cairo_pdf_value_t *p_object);
 
 cairo_private void
 _cairo_pdf_output_stream_write_string(cairo_output_stream_t *p_stream, const cairo_pdf_string_t *p_string);

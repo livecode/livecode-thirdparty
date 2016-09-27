@@ -14,7 +14,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -39,12 +39,37 @@
  */
 
 #include "cairoint.h"
+#include "cairo-error-private.h"
+
+/**
+ * SECTION:cairo-font-face
+ * @Title: cairo_font_face_t
+ * @Short_Description: Base class for font faces
+ * @See_Also: #cairo_scaled_font_t
+ *
+ * #cairo_font_face_t represents a particular font at a particular weight,
+ * slant, and other characteristic but no size, transformation, or size.
+ *
+ * Font faces are created using <firstterm>font-backend</firstterm>-specific
+ * constructors, typically of the form
+ * <function>cairo_<emphasis>backend</emphasis>_font_face_create(<!-- -->)</function>,
+ * or implicitly using the <firstterm>toy</firstterm> text API by way of
+ * cairo_select_font_face().  The resulting face can be accessed using
+ * cairo_get_font_face().
+ **/
 
 /* #cairo_font_face_t */
 
 const cairo_font_face_t _cairo_font_face_nil = {
     { 0 },				/* hash_entry */
     CAIRO_STATUS_NO_MEMORY,		/* status */
+    CAIRO_REFERENCE_COUNT_INVALID,	/* ref_count */
+    { 0, 0, 0, NULL },			/* user_data */
+    NULL
+};
+const cairo_font_face_t _cairo_font_face_nil_file_not_found = {
+    { 0 },				/* hash_entry */
+    CAIRO_STATUS_FILE_NOT_FOUND,	/* status */
     CAIRO_REFERENCE_COUNT_INVALID,	/* ref_count */
     { 0, 0, 0, NULL },			/* user_data */
     NULL
@@ -90,12 +115,14 @@ _cairo_font_face_init (cairo_font_face_t               *font_face,
  * cairo_font_face_get_reference_count().
  *
  * Return value: the referenced #cairo_font_face_t.
+ *
+ * Since: 1.0
  **/
 cairo_font_face_t *
 cairo_font_face_reference (cairo_font_face_t *font_face)
 {
     if (font_face == NULL ||
-	    CAIRO_REFERENCE_COUNT_IS_INVALID (&font_face->ref_count))
+	CAIRO_REFERENCE_COUNT_IS_INVALID (&font_face->ref_count))
 	return font_face;
 
     /* We would normally assert that we have a reference here but we
@@ -108,6 +135,28 @@ cairo_font_face_reference (cairo_font_face_t *font_face)
 }
 slim_hidden_def (cairo_font_face_reference);
 
+static inline cairo_bool_t
+__put(cairo_reference_count_t *v)
+{
+    int c, old;
+
+    c = CAIRO_REFERENCE_COUNT_GET_VALUE(v);
+    while (c != 1 && (old = _cairo_atomic_int_cmpxchg_return_old(&v->ref_count, c, c - 1)) != c)
+	c = old;
+
+    return c != 1;
+}
+
+cairo_bool_t
+_cairo_font_face_destroy (void *abstract_face)
+{
+#if 0 /* Nothing needs to be done, we can just drop the last reference */
+    cairo_font_face_t *font_face = abstract_face;
+    return _cairo_reference_count_dec_and_test (&font_face->ref_count);
+#endif
+    return TRUE;
+}
+
 /**
  * cairo_font_face_destroy:
  * @font_face: a #cairo_font_face_t
@@ -115,27 +164,26 @@ slim_hidden_def (cairo_font_face_reference);
  * Decreases the reference count on @font_face by one. If the result
  * is zero, then @font_face and all associated resources are freed.
  * See cairo_font_face_reference().
+ *
+ * Since: 1.0
  **/
 void
 cairo_font_face_destroy (cairo_font_face_t *font_face)
 {
     if (font_face == NULL ||
-	    CAIRO_REFERENCE_COUNT_IS_INVALID (&font_face->ref_count))
+	CAIRO_REFERENCE_COUNT_IS_INVALID (&font_face->ref_count))
 	return;
 
     assert (CAIRO_REFERENCE_COUNT_HAS_REFERENCE (&font_face->ref_count));
-
-    if (! _cairo_reference_count_dec_and_test (&font_face->ref_count))
-	return;
-
-    if (font_face->backend->destroy)
-	font_face->backend->destroy (font_face);
 
     /* We allow resurrection to deal with some memory management for the
      * FreeType backend where cairo_ft_font_face_t and cairo_ft_unscaled_font_t
      * need to effectively mutually reference each other
      */
-    if (CAIRO_REFERENCE_COUNT_HAS_REFERENCE (&font_face->ref_count))
+    if (__put (&font_face->ref_count))
+	return;
+
+    if (! font_face->backend->destroy (font_face))
 	return;
 
     _cairo_user_data_array_fini (&font_face->user_data);
@@ -179,7 +227,7 @@ unsigned int
 cairo_font_face_get_reference_count (cairo_font_face_t *font_face)
 {
     if (font_face == NULL ||
-	    CAIRO_REFERENCE_COUNT_IS_INVALID (&font_face->ref_count))
+	CAIRO_REFERENCE_COUNT_IS_INVALID (&font_face->ref_count))
 	return 0;
 
     return CAIRO_REFERENCE_COUNT_GET_VALUE (&font_face->ref_count);
@@ -194,6 +242,8 @@ cairo_font_face_get_reference_count (cairo_font_face_t *font_face)
  *
  * Return value: %CAIRO_STATUS_SUCCESS or another error such as
  *   %CAIRO_STATUS_NO_MEMORY.
+ *
+ * Since: 1.0
  **/
 cairo_status_t
 cairo_font_face_status (cairo_font_face_t *font_face)
@@ -212,6 +262,8 @@ cairo_font_face_status (cairo_font_face_t *font_face)
  * function returns %NULL.
  *
  * Return value: the user data previously attached or %NULL.
+ *
+ * Since: 1.0
  **/
 void *
 cairo_font_face_get_user_data (cairo_font_face_t	   *font_face,
@@ -237,6 +289,8 @@ slim_hidden_def (cairo_font_face_get_user_data);
  *
  * Return value: %CAIRO_STATUS_SUCCESS or %CAIRO_STATUS_NO_MEMORY if a
  * slot could not be allocated for the user data.
+ *
+ * Since: 1.0
  **/
 cairo_status_t
 cairo_font_face_set_user_data (cairo_font_face_t	   *font_face,
@@ -281,10 +335,11 @@ _cairo_unscaled_font_destroy (cairo_unscaled_font_t *unscaled_font)
 
     assert (CAIRO_REFERENCE_COUNT_HAS_REFERENCE (&unscaled_font->ref_count));
 
-    if (! _cairo_reference_count_dec_and_test (&unscaled_font->ref_count))
+    if (__put (&unscaled_font->ref_count))
 	return;
 
-    unscaled_font->backend->destroy (unscaled_font);
+    if (! unscaled_font->backend->destroy (unscaled_font))
+	return;
 
     free (unscaled_font);
 }

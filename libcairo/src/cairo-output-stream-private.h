@@ -12,7 +12,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -135,6 +135,11 @@ _cairo_output_stream_printf (cairo_output_stream_t *stream,
 			     const char *fmt,
 			     ...) CAIRO_PRINTF_FORMAT (2, 3);
 
+/* Print matrix element values with rounding of insignificant digits. */
+cairo_private void
+_cairo_output_stream_print_matrix (cairo_output_stream_t *stream,
+				   const cairo_matrix_t  *matrix);
+
 cairo_private long
 _cairo_output_stream_get_position (cairo_output_stream_t *stream);
 
@@ -175,7 +180,7 @@ _cairo_memory_stream_length (cairo_output_stream_t *stream);
 cairo_private cairo_status_t
 _cairo_memory_stream_destroy (cairo_output_stream_t *abstract_stream,
 			      unsigned char **data_out,
-			      unsigned int *length_out);
+			      unsigned long *length_out);
 
 cairo_private cairo_output_stream_t *
 _cairo_null_stream_create (void);

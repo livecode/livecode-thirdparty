@@ -1,5 +1,3 @@
-#ifdef __arm__
-
 /* -----------------------------------------------------------------*-C-*-
    libffi 3.2.1 - Copyright (c) 2011, 2014 Anthony Green
                     - Copyright (c) 1996-2003, 2007, 2008 Red Hat, Inc.
@@ -314,7 +312,7 @@ size_t ffi_java_raw_size (ffi_cif *cif);
 __declspec(align(8))
 #endif
 typedef struct {
-#if 1
+#if 0
   void *trampoline_table;
   void *trampoline_table_entry;
 #else
@@ -352,7 +350,7 @@ ffi_prep_closure_loc (ffi_closure*,
 # pragma pack 8
 #endif
 typedef struct {
-#if 1
+#if 0
   void *trampoline_table;
   void *trampoline_table_entry;
 #else
@@ -377,7 +375,7 @@ typedef struct {
 } ffi_raw_closure;
 
 typedef struct {
-#if 1
+#if 0
   void *trampoline_table;
   void *trampoline_table_entry;
 #else
@@ -485,8 +483,5 @@ void ffi_call(ffi_cif *cif,
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-
 
 #endif

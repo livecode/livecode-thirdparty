@@ -1,5 +1,3 @@
-#ifdef __arm64__
-
 /* fficonfig.h.  Generated from fficonfig.h.in by configure.  */
 /* fficonfig.h.in.  Generated from configure.ac by autoheader.  */
 
@@ -28,6 +26,7 @@
 
 /* Cannot use malloc on this target, so, we revert to alternative means */
 #define FFI_MMAP_EXEC_WRIT 1
+#define FFI_MMAP_EXEC_SELINUX 0
 
 /* Define this if you do not want support for the raw API. */
 /* #undef FFI_NO_RAW_API */
@@ -68,7 +67,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Define if __attribute__((visibility("hidden"))) is supported. */
-/* #undef HAVE_HIDDEN_VISIBILITY_ATTRIBUTE */
+#define HAVE_HIDDEN_VISIBILITY_ATTRIBUTE 1
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
@@ -95,7 +94,7 @@
 #define HAVE_MMAP_ANON 1
 
 /* Define if mmap of /dev/zero works. */
-/* #undef HAVE_MMAP_DEV_ZERO */
+#define HAVE_MMAP_DEV_ZERO 1
 
 /* Define if read-only mmap of a plain file works. */
 #define HAVE_MMAP_FILE 1
@@ -162,7 +161,7 @@
 #define SIZEOF_LONG_DOUBLE 8
 
 /* The size of `size_t', as computed by sizeof. */
-#define SIZEOF_SIZE_T 8
+#define SIZEOF_SIZE_T 4
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
@@ -176,7 +175,7 @@
 #define STDC_HEADERS 1
 
 /* Define if symbols are underscored. */
-#define SYMBOL_UNDERSCORE 1
+/* #undef SYMBOL_UNDERSCORE */
 
 /* Define this if you are using Purify and want to suppress spurious messages.
    */
@@ -215,6 +214,3 @@
 #endif
 #endif
 
-
-
-#endif

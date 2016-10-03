@@ -1,5 +1,3 @@
-#ifdef __arm64__
-
 /* Copyright (c) 2009, 2010, 2011, 2012 ARM Ltd.
 
 Permission is hereby granted, free of charge, to any person obtaining
@@ -61,8 +59,5 @@ typedef enum ffi_abi
 #define AARCH64_N_XREG 32
 #define AARCH64_N_VREG 32
 #define AARCH64_CALL_CONTEXT_SIZE (AARCH64_N_XREG * 8 + AARCH64_N_VREG * 16)
-
-#endif
-
 
 #endif

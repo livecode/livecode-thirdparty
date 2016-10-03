@@ -1,5 +1,3 @@
-#ifdef __x86_64__
-
 /* fficonfig.h.  Generated from fficonfig.h.in by configure.  */
 /* fficonfig.h.in.  Generated from configure.ac by autoheader.  */
 
@@ -74,7 +72,7 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define if you have the long double type and it is bigger than a double */
-#define HAVE_LONG_DOUBLE 1
+/* #undef HAVE_LONG_DOUBLE */
 
 /* Define if you support more than one size of the long double type */
 /* #undef HAVE_LONG_DOUBLE_VARIANT */
@@ -159,7 +157,7 @@
 #define SIZEOF_DOUBLE 8
 
 /* The size of `long double', as computed by sizeof. */
-#define SIZEOF_LONG_DOUBLE 16
+#define SIZEOF_LONG_DOUBLE 8
 
 /* The size of `size_t', as computed by sizeof. */
 #define SIZEOF_SIZE_T 8
@@ -213,8 +211,4 @@
 #else
 #define FFI_HIDDEN
 #endif
-#endif
-
-
-
 #endif

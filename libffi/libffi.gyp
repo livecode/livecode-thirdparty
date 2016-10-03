@@ -32,9 +32,19 @@
 			'./include_linux/x86_64',
 		],
 		
-		'libffi_public_headers_android_dir':
+		'libffi_public_headers_linux_aarch64_dir':
 		[
-			'./include_android',
+			'./include_linux/aarch64',
+		],
+		
+		'libffi_public_headers_linux_armv6_dir':
+		[
+			'./include_linux/armv6',
+		],
+		
+		'libffi_public_headers_linux_armv7_dir':
+		[
+			'./include_linux/armv7',
 		],
 
 		'libffi_generic_sources':
@@ -105,6 +115,12 @@
 			'src/arm/sysv.S',
 			'src/arm/trampoline.S',
 		],
+		
+		'libffi_linux_arm64_source_files':
+		[
+			'src/aarch64/ffi.c',
+			'src/aarch64/sysv.S',
+		]
 	},
 	
 	'targets':
@@ -240,11 +256,11 @@
 					},
 				],
 				[
-					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv7a")',
+					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6")',
 					{
 						'platform_include_dirs':
 						[
-							'<@(libffi_public_headers_android_dir)',
+							'<@(libffi_public_headers_linux_armv6_dir)',
 						],
 						
 						'sources':
@@ -258,7 +274,7 @@
 						'conditions':
 						[
 							[
-								'toolset_os == "android" and toolset_arch == "armv6" and toolset_abi != "gnueabihf"',
+								'toolset_os == "android" and toolset_abi != "gnueabihf"',
 								{
 									'cflags':
 									[
@@ -266,6 +282,36 @@
 									],
 								}
 							],
+						],
+					},
+				],
+				[
+					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv7a")',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_armv7_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_linux_arm_source_files)',
+							'<@(libffi_generic_sources)',
+						],
+					},
+				],
+				[
+					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "arm64-v8a")',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_aarch64_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_linux_arm64_source_files)',
+							'<@(libffi_generic_sources)',
 						],
 					},
 				],

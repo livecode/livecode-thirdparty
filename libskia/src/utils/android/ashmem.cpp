@@ -66,13 +66,19 @@ int ashmem_set_prot_region(int fd, int prot)
 
 int ashmem_pin_region(int fd, size_t offset, size_t len)
 {
-    struct ashmem_pin pin = { offset, len };
+    if (offset > INT32_MAX || len > INT32_MAX)
+        return -1;
+
+    struct ashmem_pin pin = { uint32_t(offset), uint32_t(len) };
     return ioctl(fd, ASHMEM_PIN, &pin);
 }
 
 int ashmem_unpin_region(int fd, size_t offset, size_t len)
 {
-    struct ashmem_pin pin = { offset, len };
+    if (offset > INT32_MAX || len > INT32_MAX)
+        return -1;
+    
+    struct ashmem_pin pin = { uint32_t(offset), uint32_t(len) };
     return ioctl(fd, ASHMEM_UNPIN, &pin);
 }
 

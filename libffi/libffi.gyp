@@ -127,10 +127,12 @@
 						{
 							'toolset_os': '<(host_os)',
 							'toolset_arch': '<(host_arch)',
+							'toolset_abi': '<(host_abi)',
 						},
 						{
 							'toolset_os': '<(OS)',
 							'toolset_arch': '<(target_arch)',
+							'toolset_abi': '<(target_abi)',
 						},
 					],
 				],
@@ -238,7 +240,7 @@
 					},
 				],
 				[
-					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv6hf")',
+					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv7a")',
 					{
 						'platform_include_dirs':
 						[
@@ -251,10 +253,19 @@
 							'<@(libffi_generic_sources)'
 						],
 						
-						# Disable VFP
-						'cflags':
+						# Disable VFP for ARMv6 Android builds (this is mis-
+						# detected by the libffi headers)
+						'conditions':
 						[
-							'-U__ARM_EABI__',
+							[
+								'toolset_os == "android" and toolset_arch == "armv6" and toolset_abi != "gnueabihf"',
+								{
+									'cflags':
+									[
+										'-U__ARM_EABI__',
+									],
+								}
+							],
 						],
 					},
 				],

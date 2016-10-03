@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the LGPL along with this library
  * in the file COPYING-LGPL-2.1; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA
  * You should have received a copy of the MPL along with this library
  * in the file COPYING-MPL-1.1
  *
@@ -28,7 +28,7 @@
  *
  * The Original Code is the cairo graphics library.
  *
- * The Initial Developer of the Original Code is Mozilla Corporation
+ * The Initial Developer of the Original Code is Mozilla Foundation
  *
  * Contributor(s):
  *	Vladimir Vukicevic <vladimir@pobox.com>
@@ -50,7 +50,7 @@ typedef cairo_int128_t	cairo_fixed_64_64_t;
 typedef cairo_int128_t	cairo_fixed_96_32_t;
 
 /* Eventually, we should allow changing this, but I think
- * there are some assumptions in the tesselator about the
+ * there are some assumptions in the tessellator about the
  * size of a fixed type.  For now, it must be 32.
  */
 #define CAIRO_FIXED_BITS	32

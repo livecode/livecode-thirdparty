@@ -70,7 +70,7 @@
 #define N_BITS  4
 #define RASTERIZE_EDGES rasterize_edges_4
 
-#ifndef WORDS_BIG_ENDIAN
+#ifndef WORDS_BIGENDIAN
 #define SHIFT_4(o)      ((o) << 2)
 #else
 #define SHIFT_4(o)      ((1 - (o)) << 2)
@@ -374,6 +374,7 @@ pixman_rasterize_edges (pixman_image_t *image,
                         pixman_fixed_t  b)
 {
     return_if_fail (image->type == BITS);
+    return_if_fail (PIXMAN_FORMAT_TYPE (image->bits.format) == PIXMAN_TYPE_A);
     
     if (image->bits.read_func || image->bits.write_func)
 	pixman_rasterize_edges_accessors (image, l, r, t, b);

@@ -36,6 +36,7 @@
 						'defines':
 						[
 							'LIBXML_STATIC_FOR_DLL=1',
+							'TRIO_HAVE_CONFIG_H=1',
 						],
 						
 						'sources':

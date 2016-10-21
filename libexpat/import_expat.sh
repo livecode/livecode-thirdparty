@@ -8,7 +8,7 @@ if [ "$1" = "" ]; then
 fi
 
 echo "Extracting $1"
-tar --extract --ungzip --strip-components=1 --file $1
+tar --extract --strip-components=1 --file $1
 
 echo "Saving COPYING to NOTICE"
 touch MODULE_LICENSE_BSD_LIKE
@@ -22,7 +22,7 @@ rm MANIFEST
 rm Makefile.in
 rm aclocal.m4
 rm configure
-rm configure.in
+rm configure.ac
 rm examples/elements.dsp
 rm examples/outline.dsp
 rm expat.dsw
@@ -45,7 +45,10 @@ rm tests/benchmark/benchmark.dsw
 rm -rf amiga
 rm -rf bcb5
 rm -rf conftools
+rm -rf doc
+rm -rf examples
 rm -rf m4
+rm -rf tests
 rm -rf vms
 rm -rf win32
 rm -rf xmlwf

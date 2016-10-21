@@ -40,6 +40,7 @@
 							'src/gif_font.c',
 							'src/gif_hash.c',
 							'src/gifalloc.c',
+							'src/openbsd-reallocarray.c',
 							'src/quantize.c',
 						],
 						

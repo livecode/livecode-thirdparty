@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains internal functions for comparing and finding the length
 of strings for different data item sizes. */
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

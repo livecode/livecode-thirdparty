@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 /* This module contains an internal function that is used to match an extended
 class. It is used by both pcre_exec() and pcre_def_exec(). */
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

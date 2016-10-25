@@ -43,8 +43,6 @@ character tables for PCRE in the current locale. The file is compiled on its
 own as part of the PCRE library. However, it is also included in the
 compilation of dftables.c, in which case the macro DFTABLES is defined. */
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
 
 #ifndef DFTABLES
 #  ifdef HAVE_CONFIG_H

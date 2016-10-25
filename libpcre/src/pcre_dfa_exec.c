@@ -71,8 +71,6 @@ Overall, I concluded that the gains in some cases did not outweigh the losses
 in others, so I abandoned this code. */
 
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

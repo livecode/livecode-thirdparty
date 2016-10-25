@@ -20,10 +20,6 @@ and dead code stripping is activated. This leads to link errors. Pulling in the
 header ensures that the array gets flagged as "someone outside this compilation
 unit might reference this" and so it will always be supplied to the linker. */
 
-
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

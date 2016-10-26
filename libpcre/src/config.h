@@ -1,6 +1,7 @@
 /* config.h.  Generated from config.h.in by configure.  */
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+
 /* PCRE is written in Standard C, but there are a few non-standard things it
 can cope with, allowing it to run on SunOS4 and other "close to standard"
 systems.
@@ -217,9 +218,6 @@ sure both macros are undefined; an emulation function will then be used. */
 #define NEWLINE 10
 #endif
 
-/* Define to 1 if your C compiler doesn't accept -c and -o together. */
-/* #undef NO_MINUS_C_MINUS_O */
-
 /* PCRE uses recursive function calls to handle backtracking while matching.
    This can sometimes be a problem on systems that have stacks of limited
    size. Define NO_RECURSE to any value to get a version that doesn't use
@@ -227,7 +225,7 @@ sure both macros are undefined; an emulation function will then be used. */
    steam using pcre_recurse_malloc() to obtain memory from the heap. For more
    detail, see the comments and other stuff just above the match() function.
    */
-#define NO_RECURSE 1
+#define NO_RECURSE /**/
 
 /* Name of package */
 #define PACKAGE "pcre"
@@ -239,7 +237,7 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_NAME "PCRE"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "PCRE 8.33"
+#define PACKAGE_STRING "PCRE 8.39"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "pcre"
@@ -248,7 +246,18 @@ sure both macros are undefined; an emulation function will then be used. */
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "8.33"
+#define PACKAGE_VERSION "8.39"
+
+/* The value of PARENS_NEST_LIMIT specifies the maximum depth of nested
+   parentheses (of any kind) in a pattern. This limits the amount of system
+   stack that is used while compiling a pattern. */
+#define PARENS_NEST_LIMIT 250
+
+/* to make a symbol visible */
+#define PCRECPP_EXP_DECL extern __attribute__ ((visibility ("default")))
+
+/* to make a symbol visible */
+#define PCRECPP_EXP_DEFN __attribute__ ((visibility ("default")))
 
 /* The value of PCREGREP_BUFSIZE determines the size of buffer used by
    pcregrep to hold parts of the file it is searching. This is also the
@@ -258,6 +267,12 @@ sure both macros are undefined; an emulation function will then be used. */
 #ifndef PCREGREP_BUFSIZE
 #define PCREGREP_BUFSIZE 20480
 #endif
+
+/* to make a symbol visible */
+#define PCREPOSIX_EXP_DECL extern __attribute__ ((visibility ("default")))
+
+/* to make a symbol visible */
+#define PCREPOSIX_EXP_DEFN extern __attribute__ ((visibility ("default")))
 
 /* If you are compiling for a system other than a Unix-like system or
    Win32, and it needs some magic to be inserted before the definition
@@ -314,34 +329,31 @@ sure both macros are undefined; an emulation function will then be used. */
 
 // SN-2014-01-14: [[ libpcre update ]] now handles unicode-encoded input
 /* Define to any value to enable the 16 bit PCRE library. */
-#define SUPPORT_PCRE16 1
+#define SUPPORT_PCRE16 /**/
 
 /* Define to any value to enable the 32 bit PCRE library. */
 /* #undef SUPPORT_PCRE32 */
 
 /* Define to any value to enable the 8 bit PCRE library. */
 /* #undef SUPPORT_PCRE8 */
-//#define SUPPORT_PCRE8 1
 
 /* Define to any value to enable JIT support in pcregrep. */
 /* #undef SUPPORT_PCREGREP_JIT */
 
 /* Define to any value to enable support for Unicode properties. */
-/* #undef SUPPORT_UCP */
-#define SUPPORT_UCP 1
+#define SUPPORT_UCP /**/
 
 /* Define to any value to enable support for the UTF-8/16/32 Unicode encoding.
    This will work even in an EBCDIC environment, but it is incompatible with
    the EBCDIC macro. That is, PCRE can support *either* EBCDIC code *or*
    ASCII/UTF-8/16/32, but not both at once. */
-/* #undef SUPPORT_UTF */
-#define SUPPORT_UTF 1
+#define SUPPORT_UTF /**/
 
 /* Define to any value for valgrind support to find invalid memory reads. */
 /* #undef SUPPORT_VALGRIND */
 
 /* Version number of package */
-#define VERSION "8.33"
+#define VERSION "8.39"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */

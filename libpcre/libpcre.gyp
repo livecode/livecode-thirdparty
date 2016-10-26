@@ -30,6 +30,7 @@
 						'defines':
 						[
 							'HAVE_CONFIG_H=1',
+							'PCRE_STATIC=1',
 						],
 						
 						'sources':

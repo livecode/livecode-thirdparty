@@ -42,9 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 information about a compiled pattern. */
 
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -233,6 +230,10 @@ switch (what)
   case PCRE_INFO_RECURSIONLIMIT:
   if ((re->flags & PCRE_RLSET) == 0) return PCRE_ERROR_UNSET;
   *((pcre_uint32 *)where) = re->limit_recursion;
+  break;
+
+  case PCRE_INFO_MATCH_EMPTY:
+  *((int *)where) = (re->flags & PCRE_MATCH_EMPTY) != 0;
   break;
 
   default: return PCRE_ERROR_BADOPTION;

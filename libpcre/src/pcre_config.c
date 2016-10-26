@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 /* This module contains the external function pcre_config(). */
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -161,6 +159,10 @@ switch (what)
 
   case PCRE_CONFIG_POSIX_MALLOC_THRESHOLD:
   *((int *)where) = POSIX_MALLOC_THRESHOLD;
+  break;
+
+  case PCRE_CONFIG_PARENS_LIMIT:
+  *((unsigned long int *)where) = PARENS_NEST_LIMIT;
   break;
 
   case PCRE_CONFIG_MATCH_LIMIT:

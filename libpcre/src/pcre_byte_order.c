@@ -6,7 +6,7 @@
 and semantics are as close as possible to those of the Perl 5 language.
 
                        Written by Philip Hazel
-           Copyright (c) 1997-2013 University of Cambridge
+           Copyright (c) 1997-2014 University of Cambridge
 
 -----------------------------------------------------------------------------
 Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 see if it was compiled with the opposite endianness. If so, it uses an
 auxiliary local function to flip the appropriate bytes. */
 
-// TDZ-2013-09-10: [[ Avoid using -DHAVE_CONFIG_H as flag compiler ]]
-#define HAVE_CONFIG_H   1
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -313,9 +311,9 @@ while(TRUE)
   ptr++;
   }
 /* Control should never reach here in 16/32 bit mode. */
-#endif /* !COMPILE_PCRE8 */
-
+#else  /* In 8-bit mode, the pattern does not need to be processed. */
 return 0;
+#endif /* !COMPILE_PCRE8 */
 }
 
 /* End of pcre_byte_order.c */

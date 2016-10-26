@@ -1,4 +1,4 @@
-Files in this folder are based on pcre-8.33 (previously pcre-6.7)
+Files in this folder are based on pcre-8.39
 
 Original source archives are available from <http://www.pcre.org/>
 
@@ -6,5 +6,8 @@ Note that it is important that NO_RECURSE is defined in PCRE's
 config.h (via --disable-stack-for-recursion) in order to avoid a
 regression of bug 16.
 
-// TDZ-2013-09-09: [[ libpcre_8_33 ]]
-copy pcre-8.33/pcre.h.in  in libpcre/src/pcre.h
+The following configuration options were used to generate config.h:
+./configure --enable-utf --enable-unicode-properties --disable-pcre8 \
+   --enable-pcre16 --enable-static --disable-shared \
+   --disable-stack-for-recursion
+

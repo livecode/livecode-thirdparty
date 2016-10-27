@@ -3121,6 +3121,7 @@ xmlSchemaPSimpleTypeErr(xmlSchemaParserCtxtPtr ctxt,
 			const xmlChar *str2)
 {
     xmlChar *msg = NULL;
+	xmlChar *expectedEscaped = NULL;
 
     xmlSchemaFormatNodeForError(&msg, ACTXT_CAST ctxt, node);
     if (message == NULL) {
@@ -3169,7 +3170,7 @@ xmlSchemaPSimpleTypeErr(xmlSchemaParserCtxtPtr ctxt,
 	}
 	if (expected) {
 	    msg = xmlStrcat(msg, BAD_CAST " Expected is '");
-	    xmlChar *expectedEscaped = xmlCharStrdup(expected);
+	    expectedEscaped = xmlCharStrdup(expected);
 	    msg = xmlStrcat(msg, xmlEscapeFormatString(&expectedEscaped));
 	    FREE_AND_NULL(expectedEscaped);
 	    msg = xmlStrcat(msg, BAD_CAST "'.\n");

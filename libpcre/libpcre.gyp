@@ -67,6 +67,10 @@
 						
 						'direct_dependent_settings':
 						{
+							'defines':
+							[
+								'PCRE_STATIC=1',
+							],
 							'include_dirs':
 							[
 								'include',

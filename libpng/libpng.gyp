@@ -39,9 +39,9 @@
 							'include/pngdebug.h',
 							'include/pnginfo.h',
 							'include/pnglibconf.h',
-							'include/pngpriv.h',
 							'include/pngstruct.h',
 							
+							'src/pngpriv.h',
 							'src/png.c',
 							'src/pngerror.c',
 							'src/pngget.c',

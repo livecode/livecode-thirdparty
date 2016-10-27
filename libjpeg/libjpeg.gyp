@@ -34,9 +34,7 @@
 							'include/jmorecfg.h',
 							'include/jpeglib.h',
 							
-							'src/jchuff.h',
 							'src/jdct.h',
-							'src/jdhuff.h',
 							'src/jinclude.h',
 							'src/jmemsys.h',
 							'src/jpegint.h',

@@ -20,6 +20,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// IM-2016-10-28: [[ libgif ]] limits.h is needed to define SIZE_MAX on Android.
+#include <limits.h>
+
 /*
  * This is sqrt(SIZE_MAX+1), as s1*s2 <= SIZE_MAX
  * if both s1 < MUL_NO_OVERFLOW and s2 < MUL_NO_OVERFLOW

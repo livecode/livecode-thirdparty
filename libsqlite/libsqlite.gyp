@@ -31,8 +31,9 @@
 						'defines':
 						[
 							'SQLITE_ENABLE_FTS3',
-							'SQLITE_ENABLE_FTS4',
 							'SQLITE_ENABLE_FTS3_PARENTHESIS',
+							'SQLITE_ENABLE_FTS4',
+							'SQLITE_ENABLE_FTS5',
 							'SQLITE_ENABLE_RTREE',
 						],
 						

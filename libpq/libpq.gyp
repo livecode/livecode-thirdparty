@@ -20,6 +20,9 @@
 						{
 							'library_for_module': 1,
 							'silence_warnings': 1,
+
+							# OpenSSL 1.0.1 API
+							'openssl_api_compat': '0x10000100L',
 						},
                         
 						'dependencies':

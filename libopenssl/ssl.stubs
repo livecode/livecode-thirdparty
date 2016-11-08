@@ -1,17 +1,13 @@
 crypto revsecurity.so revsecurity.dylib revsecurity.dll
-	OpenSSL_add_all_ciphers: () -> ()
-	OPENSSL_add_all_algorithms_noconf: () -> ()
 	OPENSSL_config: (pointer) -> ()
+	OPENSSL_init_crypto: (integer, pointer) -> (integer)
 
 	EVP_CipherInit: (pointer, pointer, pointer, pointer, integer) -> (integer)
 	EVP_CipherUpdate: (pointer, pointer, pointer, pointer, integer) -> (integer)
 	EVP_CipherFinal: (pointer, pointer, pointer) -> (integer)
-	EVP_CIPHER_CTX_init: (pointer) -> ()
-	EVP_CIPHER_CTX_cleanup: (pointer) -> (integer)
 	EVP_CIPHER_CTX_set_key_length: (pointer, integer) -> (integer) 
 	EVP_BytesToKey: (pointer, pointer, pointer, pointer, integer, integer, pointer, pointer) -> (integer)
 	EVP_get_cipherbyname: (pointer) -> (pointer)
-	EVP_cleanup: () -> ()
 	EVP_md5: () -> (pointer)
 	EVP_PKEY_free: (pointer) -> ()
 	EVP_PKEY_get1_RSA: (pointer) -> (pointer)
@@ -20,9 +16,6 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	ERR_error_string_n: (integer, pointer, integer) -> ()
 	ERR_get_error: () -> (integer)
 	ERR_get_error_line_data: (pointer, pointer) -> (integer)
-	ERR_free_strings: () -> ()
-	ERR_load_ERR_strings: () -> ()
-	ERR_load_crypto_strings: () -> ()
 	ERR_print_errors_fp: (pointer) -> ()
 	ERR_reason_error_string: (integer) -> (pointer)
 	ERR_remove_state: (integer) -> ()
@@ -101,12 +94,12 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	PKCS7_set_type: (pointer, integer) -> (pointer)
 	PKCS7_free: (pointer) -> ()
 
-	sk_num: (pointer) -> (integer)
-	sk_value: (pointer, integer) -> (pointer)
-	sk_new: (pointer) -> (pointer)
-	sk_free: (pointer) -> ()
-	sk_push: (pointer, pointer) -> (integer)
-	sk_pop: (pointer) -> (pointer)
+	OPENSSL_sk_num: (pointer) -> (integer)
+	OPENSSL_sk_value: (pointer, integer) -> (pointer)
+	OPENSSL_sk_new: (pointer) -> (pointer)
+	OPENSSL_sk_free: (pointer) -> ()
+	OPENSSL_sk_push: (pointer, pointer) -> (integer)
+	OPENSSL_sk_pop: (pointer) -> (pointer)
 	
 	BIO_new_file: (pointer, pointer) -> (pointer)
 	BIO_read: (pointer, pointer, integer) -> (integer)
@@ -123,9 +116,6 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	
 	CRYPTO_malloc: (integer) -> (pointer)
 	CRYPTO_free: (pointer) -> ()
-	CRYPTO_num_locks: () -> (integer)
-	CRYPTO_set_id_callback: (pointer) -> ()
-	CRYPTO_set_locking_callback: (pointer) -> ()
 	
 	ASN1_item_d2i: (pointer, pointer, integer, pointer) -> (pointer)
 	ASN1_item_i2d: (pointer, pointer, pointer) -> (integer)
@@ -138,6 +128,7 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	ASN1_STRING_data: (pointer) -> (pointer)
 	ASN1_STRING_set: (pointer, pointer, integer) -> (integer)
 	ASN1_STRING_free: (pointer) -> ()
+	ASN1_STRING_get0_data: (pointer) -> (pointer)
 	
 	ASN1_OCTET_STRING_new: () -> (pointer)
 	ASN1_OCTET_STRING_set: (pointer, pointer, integer) -> (integer)
@@ -159,11 +150,13 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	ASN1_NULL_it: () -> (pointer)
 	
 	BN_new: () -> (pointer)
+	BN_free: (pointer) -> ()
 	BN_set_word: (pointer, integer) -> (integer)
 	BN_bin2bn: (pointer, integer, pointer) -> (pointer)
 	
 	DH_free: (pointer) -> ()
 	DH_new: () -> (pointer)
+	DH_set0_pqg: (pointer, pointer, pointer, pointer) -> (integer)
 
 	EVP_rc4: () -> (pointer)
 	EVP_sha1: () -> (pointer)
@@ -178,11 +171,20 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	EVP_PKEY_new: () -> (pointer)
 	EVP_PKEY_assign: (pointer, integer, pointer) -> (pointer)
 	
-	? EVP_CIPHER_key_length: (pointer) -> (integer)
-	? EVP_CIPHER_CTX_key_length: (pointer) -> (integer)
-	? EVP_CIPHER_CTX_block_size: (pointer) -> (integer)
+	EVP_CIPHER_key_length: (pointer) -> (integer)
+	EVP_CIPHER_CTX_new: () -> (pointer)
+	EVP_CIPHER_CTX_free: (pointer) -> ()
+	EVP_CIPHER_CTX_key_length: (pointer) -> (integer)
+	EVP_CIPHER_CTX_block_size: (pointer) -> (integer)
+	EVP_CIPHER_CTX_reset: (pointer) -> ()
+
+	EVP_MD_CTX_new: () -> (pointer)
+	EVP_MD_CTX_free: (pointer) -> ()
 	
 	RSA_new: () -> (pointer)
+	RSA_set0_crt_params: (pointer, pointer, pointer, pointer) -> (integer)
+	RSA_set0_factors: (pointer, pointer, pointer) -> (integer)
+	RSA_set0_key: (pointer, pointer, pointer, pointer) -> (integer)
 	
 	GENERAL_NAMES_free: (pointer) -> ()
 
@@ -193,6 +195,9 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	ENGINE_load_private_key: (pointer, pointer, pointer, pointer)-> (pointer)
 
 ssl revsecurity.so revsecurity.dylib revsecurity.dll
+
+	OPENSSL_init_ssl: (integer, pointer) -> (integer)
+
 	SSL_new: (pointer) -> (pointer)
 	SSL_free: (pointer) -> ()
 	SSL_accept: (pointer) -> (integer)
@@ -204,9 +209,7 @@ ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_set_fd: (pointer, integer) -> (integer)
 	SSL_shutdown: (pointer) -> (integer)
 	SSL_set_connect_state: (pointer) -> ()
-	SSL_library_init: () -> (integer)
 	SSL_set_accept_state: (pointer) -> ()
-	SSL_load_error_strings: () -> ()
 	SSL_get_peer_certificate: (pointer) -> (pointer)
 	SSL_get_verify_result: (pointer) -> (integer)
 
@@ -220,7 +223,7 @@ ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_CTX_free: (pointer) -> ()
 	SSL_CTX_get_cert_store: (pointer) -> (pointer)
 	
-	SSLv23_method: () -> (pointer)
+	TLS_method: () -> (pointer)
 
 	TLSv1_client_method: () -> (pointer)
 	TLSv1_server_method: () -> (pointer)
@@ -238,7 +241,8 @@ ssl revsecurity.so revsecurity.dylib revsecurity.dll
 	SSL_get_shared_ciphers: (pointer, pointer, integer) -> (pointer)
 	SSL_pending: (pointer) -> (integer)
 	SSL_set_quiet_shutdown: (pointer, integer) -> ()
-
+	SSL_CTX_set_options: (pointer, integer) -> (integer)
+	SSL_set_options: (pointer, integer) -> (integer)
 	SSL_CTX_use_certificate_chain_file: (pointer, pointer) -> (integer)
 	SSL_check_private_key: (pointer) -> (integer)
 	SSL_ctrl: (pointer, integer, integer, pointer) -> (integer)

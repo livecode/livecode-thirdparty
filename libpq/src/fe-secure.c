@@ -950,7 +950,7 @@ init_ssl_system(PGconn *conn)
 		if (ssl_open_connections++ == 0)
 		{
 			/* These are only required for threaded libcrypto applications */
-			CRYPTO_set_id_callback(pq_threadidcallback);
+			CRYPTO_THREADID_set_callback(pq_threadidcallback);
 			CRYPTO_set_locking_callback(pq_lockingcallback);
 		}
 	}
@@ -1030,7 +1030,7 @@ destroy_ssl_system(void)
 	{
 		/* No connections left, unregister libcrypto callbacks */
 		CRYPTO_set_locking_callback(NULL);
-		CRYPTO_set_id_callback(NULL);
+		CRYPTO_THREADID_set_callback(NULL);
 
 		/*
 		 * We don't free the lock array or the SSL_context. If we get another

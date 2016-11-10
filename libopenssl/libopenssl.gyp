@@ -15,11 +15,6 @@
 				'library_for_module': 1,
 			},
 			
-                        'dependencies':
-                        [
-                                '../../prebuilt/libopenssl.gyp:libopenssl',
-                        ],
-                        
 			'sources':
 			[
 				'<(INTERMEDIATE_DIR)/src/ssl.<(OS).stubs.cpp',

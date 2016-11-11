@@ -87,6 +87,16 @@
 						'conditions':
 						[
 							[
+								'OS == "mac"',
+								{
+									'sources!':
+									[
+										# OSX supplies strlcpy
+										'src/strlcpy.c',
+									],
+								}
+							],
+							[
 								'OS == "win"',
 								{
 									'include_dirs':

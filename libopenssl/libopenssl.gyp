@@ -46,9 +46,20 @@
 
 			'direct_dependent_settings':
 			{
+				'variables':
+				{
+					# Default to using the OpenSSL 1.1.0 API
+					'openssl_api_compat%': '0x10100000L',
+				},
+				
 				'include_dirs':
 				[
-					'include',
+					'../../prebuilt/include',
+				],
+
+				'defines':
+				[
+					'OPENSSL_API_COMPAT=>(openssl_api_compat)',
 				],
 			},
 		},

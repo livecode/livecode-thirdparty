@@ -40,13 +40,14 @@ static DH *get_dh512(void)
   DH *dh;
   if ((dh=DH_new()))
   {
-    dh->p=BN_bin2bn(dh512_p,sizeof(dh512_p),NULL);
-    dh->g=BN_bin2bn(dh512_g,sizeof(dh512_g),NULL);
-    if (! dh->p || ! dh->g)
+    BIGNUM* dhp=BN_bin2bn(dh512_p,sizeof(dh512_p),NULL);
+    BIGNUM* dhg=BN_bin2bn(dh512_g,sizeof(dh512_g),NULL);
+    if (! dhp || ! dhg)
     {
       DH_free(dh);
       dh=0;
     }
+    DH_set0_pqg(dh,dhp,NULL,dhg);
   }
   return(dh);
 }
@@ -152,10 +153,10 @@ vio_verify_callback(int ok, X509_STORE_CTX *ctx)
     if (verify_depth >= depth)
       ok= 1;
   }
-  switch (ctx->error)
+  switch (X509_STORE_CTX_get_error(ctx))
   {
   case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
-    X509_NAME_oneline(X509_get_issuer_name(ctx->current_cert), buf, 256);
+    X509_NAME_oneline(X509_get_issuer_name(X509_STORE_CTX_get_current_cert(ctx)), buf, 256);
     DBUG_PRINT("info",("issuer= %s\n", buf));
     break;
   case X509_V_ERR_CERT_NOT_YET_VALID:

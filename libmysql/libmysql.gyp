@@ -190,6 +190,13 @@
 							[
 								'OS == "win"',
 								{
+									'defines':
+									[
+										# libmysql doesn't expect Win32 to supply struct timespec
+										'_CRT_NO_TIME_T',
+										'time_t=__time32_t',
+									],
+									
 									'link_settings':
 									{
 										'libraries':

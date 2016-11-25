@@ -203,7 +203,7 @@ win32_langinfo(const char *ctype)
 {
 	char	   *r = NULL;
 
-#if (_MSC_VER >= 1700)
+#if (_MSC_VER == 1700)
 	_locale_t	loct = NULL;
 
 	loct = _create_locale(LC_CTYPE, ctype);

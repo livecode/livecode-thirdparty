@@ -167,6 +167,11 @@
 /* Define to 1 if you have the `rand_r' function. */
 #define HAVE_RAND_R 1
 
+// [[ Bug 18886 ]] rand_r is not defined on android
+#if defined(TARGET_SUBPLATFORM_ANDROID)
+#undef HAVE_RAND_R
+#endif
+
 /* Define to 1 if you have the <resolv.h> header file. */
 #define HAVE_RESOLV_H 1
 

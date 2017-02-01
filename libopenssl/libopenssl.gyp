@@ -52,9 +52,26 @@
 					'openssl_api_compat%': '0x10100000L',
 				},
 				
-				'include_dirs':
+				'conditions':
 				[
-					'../../prebuilt/include',
+					[
+						'OS == "win"',
+						{
+							'include_dirs':
+							[
+								'../../prebuilt/unpacked/openssl/<(target_arch)-win32-$(PlatformToolset)_static_$(ConfigurationName)/include',
+							],
+						},
+					],
+					[
+						'OS != "win"',
+						{
+							'include_dirs':
+							[
+								'../../prebuilt/include',
+							],
+						},
+					],
 				],
 
 				'defines':
@@ -114,7 +131,7 @@
 								'action_name': 'libopenssl_symbol_list',
 								'inputs':
 								[
-									'../../util/list_stub_symbols.pl'
+									'../../util/list_stub_symbols.pl',
 									'ssl.stubs',
 								],
 								'outputs':
@@ -196,6 +213,8 @@
 						'dependencies':
 						[
 							'../../prebuilt/libopenssl.gyp:libopenssl',
+							'libopenssl_symbol_list_win',
+
 						],
 						
 						'sources':
@@ -216,7 +235,7 @@
 						{
 							'VCLinkerTool':
 							{
-								'ModuleDefinitionFile': '$(ProjectDir)..\\..\\..\\..\\prebuilt\\lib\\win32\\x86\\revsecurity.def',
+								'ModuleDefinitionFile': '<(SHARED_INTERMEDIATE_DIR)/src/revsecurity.def',
 								'SubSystem': '1',
 							},
 							
@@ -234,6 +253,36 @@
 								'dist_files': [ '<(PRODUCT_DIR)/<(_product_name)>(lib_suffix)' ],
 							},
 						},
+					},
+					{
+						'target_name': 'libopenssl_symbol_list_win',
+						'type': 'none',
+						
+						'actions':
+						[
+							{
+								'action_name': 'libopenssl_symbol_list_win',
+								'inputs':
+								[
+									'../../util/list_stub_symbols.pl',
+									'ssl.stubs',
+								],
+								'outputs':
+								[
+									'<(SHARED_INTERMEDIATE_DIR)/src/revsecurity.def',
+								],
+								
+								'action':
+								[
+									'<@(perl)',
+									'../../util/list_stub_symbols.pl',
+									'',
+									'ssl.stubs',
+									'<@(_outputs)',
+									'--exportdef=REVSECURITY',
+								],
+							},
+						],
 					},
 				],
 			}

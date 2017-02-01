@@ -42,6 +42,11 @@
 
 #ifndef _WINDOWS
 #include <unistd.h>
+#else
+// A bug in the MSVS2015 CRT means that when _CRT_DISABLE_PERFCRIT_LOCKS is
+// set, this function binds incorrectly.
+#undef putc
+#define putc fputc
 #endif
 
 #include <sys/types.h>

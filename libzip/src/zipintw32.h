@@ -15,7 +15,6 @@ typedef unsigned short mode_t;
 
 #define fseeko fseek
 #define strcasecmp _stricmp
-#define snprintf _snprintf
 #define fdopen _fdopen
 #define strdup _strdup
 #define fileno _fileno

@@ -111,6 +111,7 @@
 										'src/system.c',
 										'src/win32.c',
 										'src/win32setlocale.c',
+										'src/win32error.c',
 									],
 									
 									'link_settings':

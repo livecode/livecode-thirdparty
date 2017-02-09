@@ -113,11 +113,26 @@ G_BEGIN_DECLS
 #define g_get_tmp_dir g_get_tmp_dir_utf8
 #endif
 
+typedef enum {
+   G_USER_DIRECTORY_DESKTOP,
+   G_USER_DIRECTORY_DOCUMENTS,
+   G_USER_DIRECTORY_DOWNLOAD,
+   G_USER_DIRECTORY_MUSIC,
+   G_USER_DIRECTORY_PICTURES,
+   G_USER_DIRECTORY_PUBLIC_SHARE,
+   G_USER_DIRECTORY_TEMPLATES,
+   G_USER_DIRECTORY_VIDEOS,
+ 
+   G_USER_N_DIRECTORIES
+} GUserDirectory;
+
+
 G_CONST_RETURN gchar* g_get_user_name        (void);
 G_CONST_RETURN gchar* g_get_real_name        (void);
 G_CONST_RETURN gchar* g_get_home_dir         (void);
 G_CONST_RETURN gchar* g_get_tmp_dir          (void);
 G_CONST_RETURN gchar* g_get_host_name	     (void);
+G_CONST_RETURN gchar* g_get_user_special_dir (GUserDirectory);
 gchar*                g_get_prgname          (void);
 void                  g_set_prgname          (const gchar *prgname);
 G_CONST_RETURN gchar* g_get_application_name (void);

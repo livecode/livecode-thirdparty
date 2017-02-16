@@ -1,4 +1,4 @@
-crypto revsecurity.so revsecurity.dylib revsecurity.dll
+crypto ./revsecurity ./revsecurity ./revsecurity
 	OPENSSL_config: (pointer) -> ()
 	OPENSSL_init_crypto: (integer, pointer) -> (integer)
 
@@ -194,7 +194,7 @@ crypto revsecurity.so revsecurity.dylib revsecurity.dll
 	ENGINE_init: (pointer) -> (integer)
 	ENGINE_load_private_key: (pointer, pointer, pointer, pointer)-> (pointer)
 
-ssl revsecurity.so revsecurity.dylib revsecurity.dll
+ssl ./revsecurity ./revsecurity ./revsecurity
 
 	OPENSSL_init_ssl: (integer, pointer) -> (integer)
 

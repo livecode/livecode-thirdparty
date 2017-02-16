@@ -1,4 +1,4 @@
-cef libcef.so libcef.dylib libcef.dll
+cef ./CEF/libcef ./CEF/libcef ./CEF/libcef
 	cef_add_cross_origin_whitelist_entry: (pointer,pointer,pointer,integer) -> (integer)
 	cef_add_web_plugin_directory: (pointer) -> ()
 	cef_add_web_plugin_path: (pointer) -> ()

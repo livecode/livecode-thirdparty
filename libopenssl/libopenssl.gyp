@@ -63,8 +63,18 @@
 				],
 			},
 		},
-	],
-	
+        
+        {
+            'target_name': 'revsecurity_built',
+            'type': 'none',
+
+            'dependencies':
+            [
+                'revsecurity',
+            ],
+        },
+    ],
+
 	'conditions':
 	[
 		[

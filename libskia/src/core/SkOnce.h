@@ -32,10 +32,10 @@
 #ifdef SK_USE_POSIX_THREADS
 #  define SK_ONCE_INIT { false, { PTHREAD_MUTEX_INITIALIZER } }
 #else
-#  define SK_ONCE_INIT { false, SkBaseMutex() }
+#  define SK_ONCE_INIT {}
 #endif
 
-#define SK_DECLARE_STATIC_ONCE(name) static SkOnceFlag name = SK_ONCE_INIT
+#define SK_DECLARE_STATIC_ONCE(name) static SkOnceFlag name SK_ONCE_INIT
 
 struct SkOnceFlag;  // If manually created, initialize with SkOnceFlag once = SK_ONCE_INIT
 
@@ -45,6 +45,7 @@ inline void SkOnce(SkOnceFlag* once, Func f, Arg arg);
 //  ----------------------  Implementation details below here. -----------------------------
 
 struct SkOnceFlag {
+	SkOnceFlag() : done(false), mutex() {}
     bool done;
     SkBaseMutex mutex;
 };

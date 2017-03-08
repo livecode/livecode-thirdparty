@@ -17,14 +17,8 @@
 // number of bytes (on the stack) to receive the printf result
 static const size_t kBufferSize = 1024;
 
-#ifdef SK_BUILD_FOR_WIN
-    #define VSNPRINTF(buffer, size, format, args) \
-        _vsnprintf_s(buffer, size, _TRUNCATE, format, args)
-    #define SNPRINTF    _snprintf
-#else
-    #define VSNPRINTF   vsnprintf
-    #define SNPRINTF    snprintf
-#endif
+#define VSNPRINTF   vsnprintf
+#define SNPRINTF    snprintf
 
 #define ARGS_TO_BUFFER(format, buffer, size)        \
     do {                                            \

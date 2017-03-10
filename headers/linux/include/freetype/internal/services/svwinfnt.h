@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  svpsinfo.h                                                             */
+/*  svwinfnt.h                                                             */
 /*                                                                         */
-/*    The FreeType PostScript info service (specification).                */
+/*    The FreeType Windows FNT/FONT service (specification).               */
 /*                                                                         */
-/*  Copyright 2003, 2004 by                                                */
+/*  Copyright 2003-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,36 +16,26 @@
 /***************************************************************************/
 
 
-#ifndef __SVPSINFO_H__
-#define __SVPSINFO_H__
+#ifndef SVWINFNT_H_
+#define SVWINFNT_H_
 
 #include FT_INTERNAL_SERVICE_H
-#include FT_INTERNAL_TYPE1_TYPES_H
+#include FT_WINFONTS_H
 
 
 FT_BEGIN_HEADER
 
 
-#define FT_SERVICE_ID_POSTSCRIPT_INFO  "postscript-info"
-
-
-  typedef FT_Error
-  (*PS_GetFontInfoFunc)( FT_Face          face,
-                         PS_FontInfoRec*  afont_info );
-
-  typedef FT_Int
-  (*PS_HasGlyphNamesFunc)( FT_Face   face );
+#define FT_SERVICE_ID_WINFNT  "winfonts"
 
   typedef FT_Error
-  (*PS_GetFontPrivateFunc)( FT_Face         face,
-                            PS_PrivateRec*  afont_private );
+  (*FT_WinFnt_GetHeaderFunc)( FT_Face               face,
+                              FT_WinFNT_HeaderRec  *aheader );
 
 
-  FT_DEFINE_SERVICE( PsInfo )
+  FT_DEFINE_SERVICE( WinFnt )
   {
-    PS_GetFontInfoFunc     ps_get_font_info;
-    PS_HasGlyphNamesFunc   ps_has_glyph_names;
-    PS_GetFontPrivateFunc  ps_get_font_private;
+    FT_WinFnt_GetHeaderFunc  get_header;
   };
 
   /* */
@@ -54,7 +44,7 @@ FT_BEGIN_HEADER
 FT_END_HEADER
 
 
-#endif /* __SVPSINFO_H__ */
+#endif /* SVWINFNT_H_ */
 
 
 /* END */

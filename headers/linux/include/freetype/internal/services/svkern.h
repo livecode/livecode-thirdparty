@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  svbdf.h                                                                */
+/*  svkern.h                                                               */
 /*                                                                         */
-/*    The FreeType BDF services (specification).                           */
+/*    The FreeType Kerning service (specification).                        */
 /*                                                                         */
-/*  Copyright 2003 by                                                      */
+/*  Copyright 2006-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,33 +16,27 @@
 /***************************************************************************/
 
 
-#ifndef __SVBDF_H__
-#define __SVBDF_H__
+#ifndef SVKERN_H_
+#define SVKERN_H_
 
-#include FT_BDF_H
 #include FT_INTERNAL_SERVICE_H
+#include FT_TRUETYPE_TABLES_H
 
 
 FT_BEGIN_HEADER
 
+#define FT_SERVICE_ID_KERNING  "kerning"
 
-#define FT_SERVICE_ID_BDF  "bdf"
 
   typedef FT_Error
-  (*FT_BDF_GetCharsetIdFunc)( FT_Face       face,
-                              const char*  *acharset_encoding,
-                              const char*  *acharset_registry );
+  (*FT_Kerning_TrackGetFunc)( FT_Face    face,
+                              FT_Fixed   point_size,
+                              FT_Int     degree,
+                              FT_Fixed*  akerning );
 
-  typedef FT_Error
-  (*FT_BDF_GetPropertyFunc)( FT_Face           face,
-                             const char*       prop_name,
-                             BDF_PropertyRec  *aproperty );
-
-
-  FT_DEFINE_SERVICE( BDF )
+  FT_DEFINE_SERVICE( Kerning )
   {
-    FT_BDF_GetCharsetIdFunc  get_charset_id;
-    FT_BDF_GetPropertyFunc   get_property;
+    FT_Kerning_TrackGetFunc  get_track;
   };
 
   /* */
@@ -51,7 +45,7 @@ FT_BEGIN_HEADER
 FT_END_HEADER
 
 
-#endif /* __SVBDF_H__ */
+#endif /* SVKERN_H_ */
 
 
 /* END */

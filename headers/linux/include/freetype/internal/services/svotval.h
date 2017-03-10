@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  svxf86nm.h                                                             */
+/*  svotval.h                                                              */
 /*                                                                         */
-/*    The FreeType XFree86 services (specification only).                  */
+/*    The FreeType OpenType validation service (specification).            */
 /*                                                                         */
-/*  Copyright 2003 by                                                      */
+/*  Copyright 2004-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,40 +16,40 @@
 /***************************************************************************/
 
 
-#ifndef __SVXF86NM_H__
-#define __SVXF86NM_H__
+#ifndef SVOTVAL_H_
+#define SVOTVAL_H_
 
-#include FT_INTERNAL_SERVICE_H
-
+#include FT_OPENTYPE_VALIDATE_H
+#include FT_INTERNAL_VALIDATE_H
 
 FT_BEGIN_HEADER
 
 
-  /*
-   *  A trivial service used to return the name of a face's font driver,
-   *  according to the XFree86 nomenclature.  Note that the service data
-   *  is a simple constant string pointer.
-   */
+#define FT_SERVICE_ID_OPENTYPE_VALIDATE  "opentype-validate"
 
-#define FT_SERVICE_ID_XF86_NAME  "xf86-driver-name"
 
-#define FT_XF86_FORMAT_TRUETYPE  "TrueType"
-#define FT_XF86_FORMAT_TYPE_1    "Type 1"
-#define FT_XF86_FORMAT_BDF       "BDF"
-#define FT_XF86_FORMAT_PCF       "PCF"
-#define FT_XF86_FORMAT_TYPE_42   "Type 42"
-#define FT_XF86_FORMAT_CID       "CID Type 1"
-#define FT_XF86_FORMAT_CFF       "CFF"
-#define FT_XF86_FORMAT_PFR       "PFR"
-#define FT_XF86_FORMAT_WINFNT    "Windows FNT"
+  typedef FT_Error
+  (*otv_validate_func)( FT_Face volatile  face,
+                        FT_UInt           ot_flags,
+                        FT_Bytes         *base,
+                        FT_Bytes         *gdef,
+                        FT_Bytes         *gpos,
+                        FT_Bytes         *gsub,
+                        FT_Bytes         *jstf );
+
+
+  FT_DEFINE_SERVICE( OTvalidate )
+  {
+    otv_validate_func  validate;
+  };
 
   /* */
 
- 
+
 FT_END_HEADER
 
 
-#endif /* __SVXF86NM_H__ */
+#endif /* SVOTVAL_H_ */
 
 
 /* END */

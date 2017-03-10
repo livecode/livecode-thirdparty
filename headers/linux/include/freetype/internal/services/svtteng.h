@@ -1,10 +1,10 @@
 /***************************************************************************/
 /*                                                                         */
-/*  svpostnm.h                                                             */
+/*  svtteng.h                                                              */
 /*                                                                         */
-/*    The FreeType PostScript name services (specification).               */
+/*    The FreeType TrueType engine query service (specification).          */
 /*                                                                         */
-/*  Copyright 2003 by                                                      */
+/*  Copyright 2006-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
 /*                                                                         */
 /*  This file is part of the FreeType project, and may only be used,       */
@@ -16,34 +16,29 @@
 /***************************************************************************/
 
 
-#ifndef __SVPOSTNM_H__
-#define __SVPOSTNM_H__
+#ifndef SVTTENG_H_
+#define SVTTENG_H_
 
 #include FT_INTERNAL_SERVICE_H
+#include FT_MODULE_H
 
 
 FT_BEGIN_HEADER
 
+
   /*
-   *  A trivial service used to retrieve the PostScript name of a given
-   *  font when available.  The `get_name' field should never be NULL.
-   *
-   *  The correponding function can return NULL to indicate that the
-   *  PostScript name is not available.
-   *
-   *  The name is owned by the face and will be destroyed with it.
+   *  SFNT table loading service.
    */
 
-#define FT_SERVICE_ID_POSTSCRIPT_FONT_NAME  "postscript-font-name"
+#define FT_SERVICE_ID_TRUETYPE_ENGINE  "truetype-engine"
 
+  /*
+   * Used to implement FT_Get_TrueType_Engine_Type
+   */
 
-  typedef const char*
-  (*FT_PsName_GetFunc)( FT_Face  face );
-
-
-  FT_DEFINE_SERVICE( PsFontName )
+  FT_DEFINE_SERVICE( TrueTypeEngine )
   {
-    FT_PsName_GetFunc  get_ps_font_name;
+    FT_TrueTypeEngineType  engine_type;
   };
 
   /* */
@@ -52,7 +47,7 @@ FT_BEGIN_HEADER
 FT_END_HEADER
 
 
-#endif /* __SVPOSTNM_H__ */
+#endif /* SVTTENG_H_ */
 
 
 /* END */

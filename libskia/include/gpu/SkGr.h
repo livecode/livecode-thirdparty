@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2010 Google Inc.
  *
@@ -6,53 +5,26 @@
  * found in the LICENSE file.
  */
 
-
-
 #ifndef SkGr_DEFINED
 #define SkGr_DEFINED
 
-#include <stddef.h>
+#include "GrColor.h"
+#include "GrSamplerParams.h"
+#include "SkColor.h"
+#include "SkColorPriv.h"
+#include "SkFilterQuality.h"
+#include "SkImageInfo.h"
 
-// Gr headers
-#include "GrTypes.h"
-#include "GrContext.h"
-#include "GrFontScaler.h"
-
-// skia headers
-#include "SkBitmap.h"
-#include "SkPath.h"
-#include "SkPoint.h"
-#include "SkRegion.h"
-#include "SkClipStack.h"
+class GrCaps;
+class GrColorSpaceXform;
+class GrContext;
+class GrTexture;
+class SkBitmap;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Sk to Gr Type conversions
 
-GR_STATIC_ASSERT((int)kZero_GrBlendCoeff == (int)SkXfermode::kZero_Coeff);
-GR_STATIC_ASSERT((int)kOne_GrBlendCoeff  == (int)SkXfermode::kOne_Coeff);
-GR_STATIC_ASSERT((int)kSC_GrBlendCoeff   == (int)SkXfermode::kSC_Coeff);
-GR_STATIC_ASSERT((int)kISC_GrBlendCoeff  == (int)SkXfermode::kISC_Coeff);
-GR_STATIC_ASSERT((int)kDC_GrBlendCoeff   == (int)SkXfermode::kDC_Coeff);
-GR_STATIC_ASSERT((int)kIDC_GrBlendCoeff  == (int)SkXfermode::kIDC_Coeff);
-GR_STATIC_ASSERT((int)kSA_GrBlendCoeff   == (int)SkXfermode::kSA_Coeff);
-GR_STATIC_ASSERT((int)kISA_GrBlendCoeff  == (int)SkXfermode::kISA_Coeff);
-GR_STATIC_ASSERT((int)kDA_GrBlendCoeff   == (int)SkXfermode::kDA_Coeff);
-GR_STATIC_ASSERT((int)kIDA_GrBlendCoeff  == (int)SkXfermode::kIDA_Coeff);
-
-#define sk_blend_to_grblend(X) ((GrBlendCoeff)(X))
-
-///////////////////////////////////////////////////////////////////////////////
-
-#include "SkColorPriv.h"
-
-/**
- *  Convert the SkBitmap::Config to the corresponding PixelConfig, or
- *  kUnknown_PixelConfig if the conversion cannot be done.
- */
-GrPixelConfig SkBitmapConfig2GrPixelConfig(SkBitmap::Config);
-bool GrPixelConfig2ColorType(GrPixelConfig, SkColorType*);
-
-static inline GrColor SkColor2GrColor(SkColor c) {
+static inline GrColor SkColorToPremulGrColor(SkColor c) {
     SkPMColor pm = SkPreMultiplyColor(c);
     unsigned r = SkGetPackedR32(pm);
     unsigned g = SkGetPackedG32(pm);
@@ -61,38 +33,69 @@ static inline GrColor SkColor2GrColor(SkColor c) {
     return GrColorPackRGBA(r, g, b, a);
 }
 
+static inline GrColor SkColorToUnpremulGrColor(SkColor c) {
+    unsigned r = SkColorGetR(c);
+    unsigned g = SkColorGetG(c);
+    unsigned b = SkColorGetB(c);
+    unsigned a = SkColorGetA(c);
+    return GrColorPackRGBA(r, g, b, a);
+}
+
+/** Transform an SkColor (sRGB bytes) to GrColor4f for the specified color space. */
+GrColor4f SkColorToPremulGrColor4f(SkColor c, SkColorSpace* dstColorSpace);
+GrColor4f SkColorToUnpremulGrColor4f(SkColor c, SkColorSpace* dstColorSpace);
+
+/**
+ * As above, but with explicit control over the linearization and gamut xform steps.
+ * Typically used when you have easy access to a pre-computed xform.
+ */
+GrColor4f SkColorToPremulGrColor4f(SkColor c, bool gammaCorrect, GrColorSpaceXform* gamutXform);
+GrColor4f SkColorToUnpremulGrColor4f(SkColor c, bool gammaCorrect, GrColorSpaceXform* gamutXform);
+
+static inline GrColor SkColorToOpaqueGrColor(SkColor c) {
+    unsigned r = SkColorGetR(c);
+    unsigned g = SkColorGetG(c);
+    unsigned b = SkColorGetB(c);
+    return GrColorPackRGBA(r, g, b, 0xFF);
+}
+
+/** Replicates the SkColor's alpha to all four channels of the GrColor. */
+static inline GrColor SkColorAlphaToGrColor(SkColor c) {
+    U8CPU a = SkColorGetA(c);
+    return GrColorPackRGBA(a, a, a, a);
+}
+
+static inline SkPMColor GrColorToSkPMColor(GrColor c) {
+    GrColorIsPMAssert(c);
+    return SkPackARGB32(GrColorUnpackA(c), GrColorUnpackR(c), GrColorUnpackG(c), GrColorUnpackB(c));
+}
+
+static inline GrColor SkPMColorToGrColor(SkPMColor c) {
+    return GrColorPackRGBA(SkGetPackedR32(c), SkGetPackedG32(c), SkGetPackedB32(c),
+                           SkGetPackedA32(c));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
+/** Returns a texture representing the bitmap that is compatible with the GrSamplerParams. The
+    texture is inserted into the cache (unless the bitmap is marked volatile) and can be
+    retrieved again via this function. */
+GrTexture* GrRefCachedBitmapTexture(GrContext*, const SkBitmap&, const GrSamplerParams&,
+                                    SkDestinationSurfaceColorMode);
 
-bool GrIsBitmapInCache(const GrContext*, const SkBitmap&, const GrTextureParams*);
+sk_sp<GrTexture> GrMakeCachedBitmapTexture(GrContext*, const SkBitmap&, const GrSamplerParams&,
+                                           SkDestinationSurfaceColorMode);
 
-GrTexture* GrLockAndRefCachedBitmapTexture(GrContext*, const SkBitmap&, const GrTextureParams*);
+// TODO: Move SkImageInfo2GrPixelConfig to SkGrPriv.h (requires cleanup to SkWindow its subclasses).
+GrPixelConfig SkImageInfo2GrPixelConfig(SkColorType, SkAlphaType, const SkColorSpace*,
+                                        const GrCaps&);
 
-void GrUnlockAndUnrefCachedBitmapTexture(GrTexture*);
+static inline GrPixelConfig SkImageInfo2GrPixelConfig(const SkImageInfo& info, const GrCaps& caps) {
+    return SkImageInfo2GrPixelConfig(info.colorType(), info.alphaType(), info.colorSpace(), caps);
+}
 
-////////////////////////////////////////////////////////////////////////////////
-// Classes
-
-class SkGlyphCache;
-
-class SkGrFontScaler : public GrFontScaler {
-public:
-    explicit SkGrFontScaler(SkGlyphCache* strike);
-    virtual ~SkGrFontScaler();
-
-    // overrides
-    virtual const GrKey* getKey();
-    virtual GrMaskFormat getMaskFormat();
-    virtual bool getPackedGlyphBounds(GrGlyph::PackedID, SkIRect* bounds);
-    virtual bool getPackedGlyphImage(GrGlyph::PackedID, int width, int height,
-                                     int rowBytes, void* image);
-    virtual bool getGlyphPath(uint16_t glyphID, SkPath*);
-
-private:
-    SkGlyphCache* fStrike;
-    GrKey*  fKey;
-//    DECLARE_INSTANCE_COUNTER(SkGrFontScaler);
-};
-
-////////////////////////////////////////////////////////////////////////////////
+GrSamplerParams::FilterMode GrSkFilterQualityToGrFilterMode(SkFilterQuality paintFilterQuality,
+                                                            const SkMatrix& viewM,
+                                                            const SkMatrix& localM,
+                                                            bool* doBicubic);
 
 #endif

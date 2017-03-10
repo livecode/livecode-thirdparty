@@ -12,17 +12,22 @@
 
 class SK_API SkComposeImageFilter : public SkImageFilter {
 public:
-    SkComposeImageFilter(SkImageFilter* outer, SkImageFilter* inner) : INHERITED(outer, inner) {}
-    virtual ~SkComposeImageFilter();
+    static sk_sp<SkImageFilter> Make(sk_sp<SkImageFilter> outer, sk_sp<SkImageFilter> inner);
 
+    SkRect computeFastBounds(const SkRect& src) const override;
+
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkComposeImageFilter)
 
 protected:
-    explicit SkComposeImageFilter(SkFlattenableReadBuffer& buffer);
-
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
-                               SkBitmap* result, SkIPoint* loc) SK_OVERRIDE;
-    virtual bool onFilterBounds(const SkIRect&, const SkMatrix&, SkIRect*) SK_OVERRIDE;
+    explicit SkComposeImageFilter(sk_sp<SkImageFilter> inputs[2]) : INHERITED(inputs, 2, nullptr) {
+        SkASSERT(inputs[0].get());
+        SkASSERT(inputs[1].get());
+    }
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
+    SkIRect onFilterBounds(const SkIRect&, const SkMatrix&, MapDirection) const override;
+    bool onCanHandleComplexCTM() const override { return true; }
 
 private:
     typedef SkImageFilter INHERITED;

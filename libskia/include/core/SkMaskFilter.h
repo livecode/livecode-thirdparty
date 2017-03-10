@@ -10,14 +10,23 @@
 #ifndef SkMaskFilter_DEFINED
 #define SkMaskFilter_DEFINED
 
+#include "SkBlurTypes.h"
 #include "SkFlattenable.h"
 #include "SkMask.h"
 #include "SkPaint.h"
+#include "SkStrokeRec.h"
 
+class GrClip;
 class GrContext;
+class GrRenderTargetContext;
+class GrPaint;
+class GrFragmentProcessor;
+class GrRenderTarget;
+class GrTexture;
+class GrTextureProvider;
 class SkBitmap;
 class SkBlitter;
-class SkBounder;
+class SkCachedData;
 class SkMatrix;
 class SkPath;
 class SkRasterClip;
@@ -36,10 +45,6 @@ class SkRRect;
 */
 class SK_API SkMaskFilter : public SkFlattenable {
 public:
-    SK_DECLARE_INST_COUNT(SkMaskFilter)
-
-    SkMaskFilter() {}
-
     /** Returns the format of the resulting mask that this subclass will return
         when its filterMask() method is called.
     */
@@ -63,53 +68,83 @@ public:
 
 #if SK_SUPPORT_GPU
     /**
-     *  Returns true if the filter can be expressed a single-pass
-     *  GrEffect, used to process this filter on the GPU, or false if
-     *  not.
+     *  Returns true if the filter can be expressed a single-pass GrProcessor without requiring an
+     *  explicit input mask. Per-pixel, the effect receives the incoming mask's coverage as
+     *  the input color and outputs the filtered covereage value. This means that each pixel's
+     *  filtered coverage must only depend on the unfiltered mask value for that pixel and not on
+     *  surrounding values.
      *
-     *  If effect is non-NULL, a new GrEffect instance is stored
-     *  in it.  The caller assumes ownership of the stage, and it is up to the
-     *  caller to unref it.
+     * If effect is non-NULL, a new GrProcessor instance is stored in it. The caller assumes
+     * ownership of the effect and must unref it.
      */
-    virtual bool asNewEffect(GrEffectRef** effect, GrTexture*) const;
+    virtual bool asFragmentProcessor(GrFragmentProcessor**, GrTexture*, const SkMatrix& ctm) const;
 
     /**
-     *  Returns true if the filter can be processed on the GPU.  This is most
-     *  often used for multi-pass effects, where intermediate results must be
-     *  rendered to textures.  For single-pass effects, use asNewEffect().
+     *  If asFragmentProcessor() fails the filter may be implemented on the GPU by a subclass
+     *  overriding filterMaskGPU (declared below). That code path requires constructing a
+     *  src mask as input. Since that is a potentially expensive operation, the subclass must also
+     *  override this function to indicate whether filterTextureMaskGPU would succeeed if the mask
+     *  were to be created.
      *
-     *  'maskRect' returns the device space portion of the mask the the filter
-     *  needs. The mask passed into 'filterMaskGPU' should have the same extent
-     *  as 'maskRect' but be translated to the upper-left corner of the mask
-     *  (i.e., (maskRect.fLeft, maskRect.fTop) appears at (0, 0) in the mask).
+     *  'maskRect' returns the device space portion of the mask that the filter needs. The mask
+     *  passed into 'filterMaskGPU' should have the same extent as 'maskRect' but be
+     *  translated to the upper-left corner of the mask (i.e., (maskRect.fLeft, maskRect.fTop)
+     *  appears at (0, 0) in the mask).
+     *
+     * Logically, how this works is:
+     *    canFilterMaskGPU is called
+     *    if (it returns true)
+     *        the returned mask rect is used for quick rejecting
+     *        either directFilterMaskGPU or directFilterRRectMaskGPU is then called
+     *        if (neither of them handle the blur)
+     *            the mask rect is used to generate the mask
+     *            filterMaskGPU is called to filter the mask
+     *
+     * TODO: this should work as:
+     *    if (canFilterMaskGPU(devShape, ...)) // rect, rrect, drrect, path
+     *        filterMaskGPU(devShape, ...)
+     * this would hide the RRect special case and the mask generation
      */
-    virtual bool canFilterMaskGPU(const SkRect& devBounds,
+    virtual bool canFilterMaskGPU(const SkRRect& devRRect,
                                   const SkIRect& clipBounds,
                                   const SkMatrix& ctm,
                                   SkRect* maskRect) const;
 
     /**
-     *  Perform this mask filter on the GPU.  This is most often used for
-     *  multi-pass effects, where intermediate results must be rendered to
-     *  textures.  For single-pass effects, use asNewEffect().  'src' is the
-     *  source image for processing, as a texture-backed bitmap.  'result' is
-     *  the destination bitmap, which should contain a texture-backed pixelref
-     *  on success. 'maskRect' should be the rect returned from canFilterMaskGPU.
+     *  Try to directly render the mask filter into the target.  Returns
+     *  true if drawing was successful.
      */
-    bool filterMaskGPU(GrContext* context,
-                       const SkBitmap& src,
-                       const SkRect& maskRect,
-                       SkBitmap* result) const;
+    virtual bool directFilterMaskGPU(GrTextureProvider* texProvider,
+                                     GrRenderTargetContext* renderTargetContext,
+                                     GrPaint* grp,
+                                     const GrClip&,
+                                     const SkMatrix& viewMatrix,
+                                     const SkStrokeRec& strokeRec,
+                                     const SkPath& path) const;
+    /**
+     *  Try to directly render a rounded rect mask filter into the target.  Returns
+     *  true if drawing was successful.
+     */
+    virtual bool directFilterRRectMaskGPU(GrContext*,
+                                          GrRenderTargetContext* renderTargetContext,
+                                          GrPaint* grp,
+                                          const GrClip&,
+                                          const SkMatrix& viewMatrix,
+                                          const SkStrokeRec& strokeRec,
+                                          const SkRRect& rrect,
+                                          const SkRRect& devRRect) const;
 
     /**
-     *  This flavor of 'filterMaskGPU' provides a more direct means of accessing
-     *  the filtering capabilities. Setting 'canOverwriteSrc' can allow some
-     *  filters to skip the allocation of an additional texture.
+     * This function is used to implement filters that require an explicit src mask. It should only
+     * be called if canFilterMaskGPU returned true and the maskRect param should be the output from
+     * that call.
+     * Implementations are free to get the GrContext from the src texture in order to create
+     * additional textures and perform multiple passes.
      */
     virtual bool filterMaskGPU(GrTexture* src,
-                               const SkRect& maskRect,
-                               GrTexture** result,
-                               bool canOverwriteSrc) const;
+                               const SkMatrix& ctm,
+                               const SkIRect& maskRect,
+                               GrTexture** result) const;
 #endif
 
     /**
@@ -125,12 +160,23 @@ public:
      */
     virtual void computeFastBounds(const SkRect& src, SkRect* dest) const;
 
-    SkDEVCODE(virtual void toString(SkString* str) const = 0;)
+    struct BlurRec {
+        SkScalar        fSigma;
+        SkBlurStyle     fStyle;
+        SkBlurQuality   fQuality;
+    };
+    /**
+     *  If this filter can be represented by a BlurRec, return true and (if not null) fill in the
+     *  provided BlurRec parameter. If this effect cannot be represented as a BlurRec, return false
+     *  and ignore the BlurRec parameter.
+     */
+    virtual bool asABlur(BlurRec*) const;
+
+    SK_TO_STRING_PUREVIRT()
     SK_DEFINE_FLATTENABLE_TYPE(SkMaskFilter)
 
 protected:
-    // empty for now, but lets get our subclass to remember to init us for the future
-    SkMaskFilter(SkFlattenableReadBuffer& buffer) : INHERITED(buffer) {}
+    SkMaskFilter() {}
 
     enum FilterReturn {
         kFalse_FilterReturn,
@@ -138,10 +184,15 @@ protected:
         kUnimplemented_FilterReturn
     };
 
-    struct NinePatch {
+    class NinePatch : ::SkNoncopyable {
+    public:
+        NinePatch() : fCache(nullptr) { }
+        ~NinePatch();
+
         SkMask      fMask;      // fBounds must have [0,0] in its top-left
         SkIRect     fOuterRect; // width/height must be >= fMask.fBounds'
         SkIPoint    fCenter;    // identifies center row/col for stretching
+        SkCachedData* fCache;
     };
 
     /**
@@ -178,17 +229,15 @@ private:
      to render that mask. Returns false if filterMask() returned false.
      This method is not exported to java.
      */
-    bool filterPath(const SkPath& devPath, const SkMatrix& devMatrix,
-                    const SkRasterClip&, SkBounder*, SkBlitter* blitter,
-                    SkPaint::Style style) const;
+    bool filterPath(const SkPath& devPath, const SkMatrix& ctm, const SkRasterClip&, SkBlitter*,
+                    SkStrokeRec::InitStyle) const;
 
     /** Helper method that, given a roundRect in device space, will rasterize it into a kA8_Format
      mask and then call filterMask(). If this returns true, the specified blitter will be called
      to render that mask. Returns false if filterMask() returned false.
      */
-    bool filterRRect(const SkRRect& devRRect, const SkMatrix& devMatrix,
-                     const SkRasterClip&, SkBounder*, SkBlitter* blitter,
-                     SkPaint::Style style) const;
+    bool filterRRect(const SkRRect& devRRect, const SkMatrix& ctm, const SkRasterClip&,
+                     SkBlitter*) const;
 
     typedef SkFlattenable INHERITED;
 };

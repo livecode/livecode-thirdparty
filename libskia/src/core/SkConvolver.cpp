@@ -3,23 +3,10 @@
 // found in the LICENSE file.
 
 #include "SkConvolver.h"
-#include "SkSize.h"
-#include "SkTypes.h"
+#include "SkOpts.h"
+#include "SkTArray.h"
 
 namespace {
-
-    // Converts the argument to an 8-bit unsigned value by clamping to the range
-    // 0-255.
-    inline unsigned char ClampTo8(int a) {
-        if (static_cast<unsigned>(a) < 256) {
-            return a;  // Avoid the extra check in the common case.
-        }
-        if (a < 0) {
-            return 0;
-        }
-        return 255;
-    }
-
     // Stores a list of rows in a circular buffer. The usage is you write into it
     // by calling AdvanceRow. It will keep track of which row in the buffer it
     // should use next, and the total number of rows added.
@@ -109,141 +96,6 @@ namespace {
         SkTArray<unsigned char*> fRowAddresses;
     };
 
-// Convolves horizontally along a single row. The row data is given in
-// |srcData| and continues for the numValues() of the filter.
-template<bool hasAlpha>
-    void ConvolveHorizontally(const unsigned char* srcData,
-                              const SkConvolutionFilter1D& filter,
-                              unsigned char* outRow) {
-        // Loop over each pixel on this row in the output image.
-        int numValues = filter.numValues();
-        for (int outX = 0; outX < numValues; outX++) {
-            // Get the filter that determines the current output pixel.
-            int filterOffset, filterLength;
-            const SkConvolutionFilter1D::ConvolutionFixed* filterValues =
-                filter.FilterForValue(outX, &filterOffset, &filterLength);
-
-            // Compute the first pixel in this row that the filter affects. It will
-            // touch |filterLength| pixels (4 bytes each) after this.
-            const unsigned char* rowToFilter = &srcData[filterOffset * 4];
-
-            // Apply the filter to the row to get the destination pixel in |accum|.
-            int accum[4] = {0};
-            for (int filterX = 0; filterX < filterLength; filterX++) {
-                SkConvolutionFilter1D::ConvolutionFixed curFilter = filterValues[filterX];
-                accum[0] += curFilter * rowToFilter[filterX * 4 + 0];
-                accum[1] += curFilter * rowToFilter[filterX * 4 + 1];
-                accum[2] += curFilter * rowToFilter[filterX * 4 + 2];
-                if (hasAlpha) {
-                    accum[3] += curFilter * rowToFilter[filterX * 4 + 3];
-                }
-            }
-
-            // Bring this value back in range. All of the filter scaling factors
-            // are in fixed point with kShiftBits bits of fractional part.
-            accum[0] >>= SkConvolutionFilter1D::kShiftBits;
-            accum[1] >>= SkConvolutionFilter1D::kShiftBits;
-            accum[2] >>= SkConvolutionFilter1D::kShiftBits;
-            if (hasAlpha) {
-                accum[3] >>= SkConvolutionFilter1D::kShiftBits;
-            }
-
-            // Store the new pixel.
-            outRow[outX * 4 + 0] = ClampTo8(accum[0]);
-            outRow[outX * 4 + 1] = ClampTo8(accum[1]);
-            outRow[outX * 4 + 2] = ClampTo8(accum[2]);
-            if (hasAlpha) {
-                outRow[outX * 4 + 3] = ClampTo8(accum[3]);
-            }
-        }
-    }
-
-// Does vertical convolution to produce one output row. The filter values and
-// length are given in the first two parameters. These are applied to each
-// of the rows pointed to in the |sourceDataRows| array, with each row
-// being |pixelWidth| wide.
-//
-// The output must have room for |pixelWidth * 4| bytes.
-template<bool hasAlpha>
-    void ConvolveVertically(const SkConvolutionFilter1D::ConvolutionFixed* filterValues,
-                            int filterLength,
-                            unsigned char* const* sourceDataRows,
-                            int pixelWidth,
-                            unsigned char* outRow) {
-        // We go through each column in the output and do a vertical convolution,
-        // generating one output pixel each time.
-        for (int outX = 0; outX < pixelWidth; outX++) {
-            // Compute the number of bytes over in each row that the current column
-            // we're convolving starts at. The pixel will cover the next 4 bytes.
-            int byteOffset = outX * 4;
-
-            // Apply the filter to one column of pixels.
-            int accum[4] = {0};
-            for (int filterY = 0; filterY < filterLength; filterY++) {
-                SkConvolutionFilter1D::ConvolutionFixed curFilter = filterValues[filterY];
-                accum[0] += curFilter * sourceDataRows[filterY][byteOffset + 0];
-                accum[1] += curFilter * sourceDataRows[filterY][byteOffset + 1];
-                accum[2] += curFilter * sourceDataRows[filterY][byteOffset + 2];
-                if (hasAlpha) {
-                    accum[3] += curFilter * sourceDataRows[filterY][byteOffset + 3];
-                }
-            }
-
-            // Bring this value back in range. All of the filter scaling factors
-            // are in fixed point with kShiftBits bits of precision.
-            accum[0] >>= SkConvolutionFilter1D::kShiftBits;
-            accum[1] >>= SkConvolutionFilter1D::kShiftBits;
-            accum[2] >>= SkConvolutionFilter1D::kShiftBits;
-            if (hasAlpha) {
-                accum[3] >>= SkConvolutionFilter1D::kShiftBits;
-            }
-
-            // Store the new pixel.
-            outRow[byteOffset + 0] = ClampTo8(accum[0]);
-            outRow[byteOffset + 1] = ClampTo8(accum[1]);
-            outRow[byteOffset + 2] = ClampTo8(accum[2]);
-            if (hasAlpha) {
-                unsigned char alpha = ClampTo8(accum[3]);
-
-                // Make sure the alpha channel doesn't come out smaller than any of the
-                // color channels. We use premultipled alpha channels, so this should
-                // never happen, but rounding errors will cause this from time to time.
-                // These "impossible" colors will cause overflows (and hence random pixel
-                // values) when the resulting bitmap is drawn to the screen.
-                //
-                // We only need to do this when generating the final output row (here).
-                int maxColorChannel = SkTMax(outRow[byteOffset + 0],
-                                               SkTMax(outRow[byteOffset + 1],
-                                                      outRow[byteOffset + 2]));
-                if (alpha < maxColorChannel) {
-                    outRow[byteOffset + 3] = maxColorChannel;
-                } else {
-                    outRow[byteOffset + 3] = alpha;
-                }
-            } else {
-                // No alpha channel, the image is opaque.
-                outRow[byteOffset + 3] = 0xff;
-            }
-        }
-    }
-
-    void ConvolveVertically(const SkConvolutionFilter1D::ConvolutionFixed* filterValues,
-                            int filterLength,
-                            unsigned char* const* sourceDataRows,
-                            int pixelWidth,
-                            unsigned char* outRow,
-                            bool sourceHasAlpha) {
-        if (sourceHasAlpha) {
-            ConvolveVertically<true>(filterValues, filterLength,
-                                     sourceDataRows, pixelWidth,
-                                     outRow);
-        } else {
-            ConvolveVertically<false>(filterValues, filterLength,
-                                      sourceDataRows, pixelWidth,
-                                      outRow);
-        }
-    }
-
 }  // namespace
 
 // SkConvolutionFilter1D ---------------------------------------------------------
@@ -253,21 +105,6 @@ SkConvolutionFilter1D::SkConvolutionFilter1D()
 }
 
 SkConvolutionFilter1D::~SkConvolutionFilter1D() {
-}
-
-void SkConvolutionFilter1D::AddFilter(int filterOffset,
-                                      const float* filterValues,
-                                      int filterLength) {
-    SkASSERT(filterLength > 0);
-
-    SkTArray<ConvolutionFixed> fixedValues;
-    fixedValues.reset(filterLength);
-
-    for (int i = 0; i < filterLength; ++i) {
-        fixedValues.push_back(FloatToFixed(filterValues[i]));
-    }
-
-    AddFilter(filterOffset, &fixedValues[0], filterLength);
 }
 
 void SkConvolutionFilter1D::AddFilter(int filterOffset,
@@ -294,9 +131,7 @@ void SkConvolutionFilter1D::AddFilter(int filterOffset,
         filterLength = lastNonZero + 1 - firstNonZero;
         SkASSERT(filterLength > 0);
 
-        for (int i = firstNonZero; i <= lastNonZero; i++) {
-            fFilterValues.push_back(filterValues[i]);
-        }
+        fFilterValues.append(filterLength, &filterValues[firstNonZero]);
     } else {
         // Here all the factors were zeroes.
         filterLength = 0;
@@ -310,7 +145,7 @@ void SkConvolutionFilter1D::AddFilter(int filterOffset,
     instance.fOffset = filterOffset;
     instance.fTrimmedLength = filterLength;
     instance.fLength = filterSize;
-    fFilters.push_back(instance);
+    fFilters.push(instance);
 
     fMaxFilter = SkTMax(fMaxFilter, filterLength);
 }
@@ -324,21 +159,19 @@ const SkConvolutionFilter1D::ConvolutionFixed* SkConvolutionFilter1D::GetSingleF
     *filterLength = filter.fTrimmedLength;
     *specifiedFilterlength = filter.fLength;
     if (filter.fTrimmedLength == 0) {
-        return NULL;
+        return nullptr;
     }
 
     return &fFilterValues[filter.fDataLocation];
 }
 
-void BGRAConvolve2D(const unsigned char* sourceData,
+bool BGRAConvolve2D(const unsigned char* sourceData,
                     int sourceByteRowStride,
                     bool sourceHasAlpha,
                     const SkConvolutionFilter1D& filterX,
                     const SkConvolutionFilter1D& filterY,
                     int outputByteRowStride,
-                    unsigned char* output,
-                    const SkConvolutionProcs& convolveProcs,
-                    bool useSimdIfPossible) {
+                    unsigned char* output) {
 
     int maxYFilterSize = filterY.maxFilter();
 
@@ -364,7 +197,21 @@ void BGRAConvolve2D(const unsigned char* sourceData,
     // convolution pass yet. Somehow Windows does not like it.
     int rowBufferWidth = (filterX.numValues() + 15) & ~0xF;
     int rowBufferHeight = maxYFilterSize +
-                          (convolveProcs.fConvolve4RowsHorizontally ? 4 : 0);
+                          (SkOpts::convolve_4_rows_horizontally != nullptr ? 4 : 0);
+
+    // check for too-big allocation requests : crbug.com/528628
+    {
+        int64_t size = sk_64_mul(rowBufferWidth, rowBufferHeight);
+        // need some limit, to avoid over-committing success from malloc, but then
+        // crashing when we try to actually use the memory.
+        // 100meg seems big enough to allow "normal" zoom factors and image sizes through
+        // while avoiding the crash seen by the bug (crbug.com/528628)
+        if (size > 100 * 1024 * 1024) {
+//            SkDebugf("BGRAConvolve2D: tmp allocation [%lld] too big\n", size);
+            return false;
+        }
+    }
+
     CircularRowBuffer rowBuffer(rowBufferWidth,
                                 rowBufferHeight,
                                 filterOffset);
@@ -377,19 +224,6 @@ void BGRAConvolve2D(const unsigned char* sourceData,
     // We need to check which is the last line to convolve before we advance 4
     // lines in one iteration.
     int lastFilterOffset, lastFilterLength;
-
-    // SSE2 can access up to 3 extra pixels past the end of the
-    // buffer. At the bottom of the image, we have to be careful
-    // not to access data past the end of the buffer. Normally
-    // we fall back to the C++ implementation for the last row.
-    // If the last row is less than 3 pixels wide, we may have to fall
-    // back to the C++ version for more rows. Compute how many
-    // rows we need to avoid the SSE implementation for here.
-    filterX.FilterForValue(filterX.numValues() - 1, &lastFilterOffset,
-                           &lastFilterLength);
-    int avoidSimdRows = 1 + convolveProcs.fExtraHorizontalReads /
-        (lastFilterOffset + lastFilterLength);
-
     filterY.FilterForValue(numOutputRows - 1, &lastFilterOffset,
                            &lastFilterLength);
 
@@ -399,63 +233,40 @@ void BGRAConvolve2D(const unsigned char* sourceData,
 
         // Generate output rows until we have enough to run the current filter.
         while (nextXRow < filterOffset + filterLength) {
-            if (convolveProcs.fConvolve4RowsHorizontally &&
-                nextXRow + 3 < lastFilterOffset + lastFilterLength -
-                avoidSimdRows) {
+            if (SkOpts::convolve_4_rows_horizontally != nullptr &&
+                nextXRow + 3 < lastFilterOffset + lastFilterLength) {
                 const unsigned char* src[4];
                 unsigned char* outRow[4];
                 for (int i = 0; i < 4; ++i) {
-                    src[i] = &sourceData[(nextXRow + i) * sourceByteRowStride];
+                    src[i] = &sourceData[(uint64_t)(nextXRow + i) * sourceByteRowStride];
                     outRow[i] = rowBuffer.advanceRow();
                 }
-                convolveProcs.fConvolve4RowsHorizontally(src, filterX, outRow);
+                SkOpts::convolve_4_rows_horizontally(src, filterX, outRow, 4*rowBufferWidth);
                 nextXRow += 4;
             } else {
-                // Check if we need to avoid SSE2 for this row.
-                if (convolveProcs.fConvolveHorizontally &&
-                    nextXRow < lastFilterOffset + lastFilterLength -
-                    avoidSimdRows) {
-                    convolveProcs.fConvolveHorizontally(
-                        &sourceData[nextXRow * sourceByteRowStride],
+                SkOpts::convolve_horizontally(
+                        &sourceData[(uint64_t)nextXRow * sourceByteRowStride],
                         filterX, rowBuffer.advanceRow(), sourceHasAlpha);
-                } else {
-                    if (sourceHasAlpha) {
-                        ConvolveHorizontally<true>(
-                            &sourceData[nextXRow * sourceByteRowStride],
-                            filterX, rowBuffer.advanceRow());
-                    } else {
-                        ConvolveHorizontally<false>(
-                            &sourceData[nextXRow * sourceByteRowStride],
-                            filterX, rowBuffer.advanceRow());
-                    }
-                }
                 nextXRow++;
             }
         }
 
         // Compute where in the output image this row of final data will go.
-        unsigned char* curOutputRow = &output[outY * outputByteRowStride];
+        unsigned char* curOutputRow = &output[(uint64_t)outY * outputByteRowStride];
 
         // Get the list of rows that the circular buffer has, in order.
         int firstRowInCircularBuffer;
         unsigned char* const* rowsToConvolve =
             rowBuffer.GetRowAddresses(&firstRowInCircularBuffer);
 
-        // Now compute the start of the subset of those rows that the filter
-        // needs.
+        // Now compute the start of the subset of those rows that the filter needs.
         unsigned char* const* firstRowForFilter =
             &rowsToConvolve[filterOffset - firstRowInCircularBuffer];
 
-        if (convolveProcs.fConvolveVertically) {
-            convolveProcs.fConvolveVertically(filterValues, filterLength,
-                                               firstRowForFilter,
-                                               filterX.numValues(), curOutputRow,
-                                               sourceHasAlpha);
-        } else {
-            ConvolveVertically(filterValues, filterLength,
-                               firstRowForFilter,
-                               filterX.numValues(), curOutputRow,
-                               sourceHasAlpha);
-        }
+        SkOpts::convolve_vertically(filterValues, filterLength,
+                                    firstRowForFilter,
+                                    filterX.numValues(), curOutputRow,
+                                    sourceHasAlpha);
     }
+    return true;
 }

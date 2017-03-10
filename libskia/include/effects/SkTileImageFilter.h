@@ -11,30 +11,37 @@
 #include "SkImageFilter.h"
 
 class SK_API SkTileImageFilter : public SkImageFilter {
-    typedef SkImageFilter INHERITED;
-
 public:
-    /** Tile image filter constructor
-        @param srcRect  Defines the pixels to tile
-        @param dstRect  Defines the pixels where tiles are drawn
+    /** Create a tile image filter
+        @param src  Defines the pixels to tile
+        @param dst  Defines the pixels where tiles are drawn
         @param input    Input from which the subregion defined by srcRect will be tiled
     */
-    SkTileImageFilter(const SkRect& srcRect, const SkRect& dstRect, SkImageFilter* input)
-        : INHERITED(input), fSrcRect(srcRect), fDstRect(dstRect) {}
+    static sk_sp<SkImageFilter> Make(const SkRect& src,
+                                     const SkRect& dst,
+                                     sk_sp<SkImageFilter> input);
 
-    virtual bool onFilterImage(Proxy* proxy, const SkBitmap& src, const SkMatrix& ctm,
-                               SkBitmap* dst, SkIPoint* offset) SK_OVERRIDE;
+    SkIRect onFilterBounds(const SkIRect& src, const SkMatrix&, MapDirection) const override;
+    SkIRect onFilterNodeBounds(const SkIRect&, const SkMatrix&, MapDirection) const override;
+    SkRect computeFastBounds(const SkRect& src) const override;
 
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkTileImageFilter)
 
 protected:
-    explicit SkTileImageFilter(SkFlattenableReadBuffer& buffer);
+    void flatten(SkWriteBuffer& buffer) const override;
 
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) const SK_OVERRIDE;
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
 
 private:
+    SkTileImageFilter(const SkRect& srcRect, const SkRect& dstRect, sk_sp<SkImageFilter> input)
+        : INHERITED(&input, 1, nullptr), fSrcRect(srcRect), fDstRect(dstRect) {}
+
     SkRect fSrcRect;
     SkRect fDstRect;
+
+    typedef SkImageFilter INHERITED;
 };
 
 #endif

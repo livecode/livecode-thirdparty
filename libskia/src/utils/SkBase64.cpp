@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2006 The Android Open Source Project
  *
@@ -26,10 +25,10 @@ static const signed char decodeData[] = {
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
 };
 
-SkBase64::SkBase64() : fLength((size_t) -1), fData(NULL) {
+SkBase64::SkBase64() : fLength((size_t) -1), fData(nullptr) {
 }
 
-#if defined _WIN32 && _MSC_VER >= 1300  // disable 'two', etc. may be used without having been initialized
+#if defined _WIN32  // disable 'two', etc. may be used without having been initialized
 #pragma warning ( push )
 #pragma warning ( disable : 4701 )
 #endif
@@ -105,13 +104,13 @@ goHome:
     return kNoError;
 }
 
-#if defined _WIN32 && _MSC_VER >= 1300
+#if defined _WIN32
 #pragma warning ( pop )
 #endif
 
 size_t SkBase64::Encode(const void* srcPtr, size_t length, void* dstPtr, const char* encodeMap) {
     const char* encode;
-    if (NULL == encodeMap) {
+    if (nullptr == encodeMap) {
         encode = default_encode;
     } else {
         encode = encodeMap;
@@ -162,24 +161,3 @@ SkBase64::Error SkBase64::decode(const char* src, size_t len) {
     decode(src, len, true);
     return kNoError;
 }
-
-#ifdef SK_SUPPORT_UNITTEST
-void SkBase64::UnitTest() {
-    signed char all[256];
-    for (int index = 0; index < 256; index++)
-        all[index] = (signed char) (index + 1);
-    for (int offset = 0; offset < 6; offset++) {
-        size_t length = 256 - offset;
-        size_t encodeLength = Encode(all + offset, length, NULL);
-        char* src = (char*)sk_malloc_throw(encodeLength + 1);
-        Encode(all + offset, length, src);
-        src[encodeLength] = '\0';
-        SkBase64 tryMe;
-        tryMe.decode(src, encodeLength);
-        SkASSERT(length == tryMe.fLength);
-        SkASSERT(strcmp((const char*) (all + offset), tryMe.fData) == 0);
-        sk_free(src);
-        delete[] tryMe.fData;
-    }
-}
-#endif

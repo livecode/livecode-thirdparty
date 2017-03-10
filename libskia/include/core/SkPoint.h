@@ -11,6 +11,28 @@
 #include "SkMath.h"
 #include "SkScalar.h"
 
+/** \struct SkIPoint16
+
+    SkIPoint holds two 16 bit integer coordinates
+*/
+struct SkIPoint16 {
+    int16_t fX, fY;
+
+    static SkIPoint16 Make(int x, int y) {
+        SkIPoint16 pt;
+        pt.set(x, y);
+        return pt;
+    }
+
+    int16_t x() const { return fX; }
+    int16_t y() const { return fY; }
+
+    void set(int x, int y) {
+        fX = SkToS16(x);
+        fY = SkToS16(y);
+    }
+};
+
 /** \struct SkIPoint
 
     SkIPoint holds two 32 bit integer coordinates
@@ -190,7 +212,16 @@ struct SK_API SkPoint {
         v[2].set(r, b);
         v[3].set(r, t);
     }
-    void setRectFan(SkScalar l, SkScalar t, SkScalar r, SkScalar b, size_t stride);
+
+    void setRectFan(SkScalar l, SkScalar t, SkScalar r, SkScalar b, size_t stride) {
+        SkASSERT(stride >= sizeof(SkPoint));
+        
+        ((SkPoint*)((intptr_t)this + 0 * stride))->set(l, t);
+        ((SkPoint*)((intptr_t)this + 1 * stride))->set(l, b);
+        ((SkPoint*)((intptr_t)this + 2 * stride))->set(r, b);
+        ((SkPoint*)((intptr_t)this + 3 * stride))->set(r, t);
+    }
+    
 
     static void Offset(SkPoint points[], int count, const SkPoint& offset) {
         Offset(points, count, offset.fX, offset.fY);
@@ -227,25 +258,25 @@ struct SK_API SkPoint {
 
     /** Set the point (vector) to be unit-length in the same direction as it
         already points.  If the point has a degenerate length (i.e. nearly 0)
-        then return false and do nothing; otherwise return true.
+        then set it to (0,0) and return false; otherwise return true.
     */
     bool normalize();
 
     /** Set the point (vector) to be unit-length in the same direction as the
         x,y params. If the vector (x,y) has a degenerate length (i.e. nearly 0)
-        then return false and do nothing, otherwise return true.
+        then set it to (0,0) and return false, otherwise return true.
     */
     bool setNormalize(SkScalar x, SkScalar y);
 
     /** Scale the point (vector) to have the specified length, and return that
         length. If the original length is degenerately small (nearly zero),
-        do nothing and return false, otherwise return true.
+        set it to (0,0) and return false, otherwise return true.
     */
     bool setLength(SkScalar length);
 
     /** Set the point (vector) to have the specified length in the same
      direction as (x,y). If the vector (x,y) has a degenerate length
-     (i.e. nearly 0) then return false and do nothing, otherwise return true.
+     (i.e. nearly 0) then set it to (0,0) and return false, otherwise return true.
     */
     bool setLength(SkScalar x, SkScalar y, SkScalar length);
 
@@ -317,6 +348,16 @@ struct SK_API SkPoint {
         fY -= v.fY;
     }
 
+    SkPoint operator*(SkScalar scale) const {
+        return Make(fX * scale, fY * scale);
+    }
+    
+    SkPoint& operator*=(SkScalar scale) {
+        fX *= scale;
+        fY *= scale;
+        return *this;
+    }
+    
     /**
      *  Returns true if both X and Y are finite (not infinity or NaN)
      */
@@ -326,11 +367,11 @@ struct SK_API SkPoint {
         accum *= fY;
 
         // accum is either NaN or it is finite (zero).
-        SkASSERT(0 == accum || !(accum == accum));
+        SkASSERT(0 == accum || SkScalarIsNaN(accum));
 
         // value==value will be true iff value is not NaN
         // TODO: is it faster to say !accum or accum==accum?
-        return accum == accum;
+        return !SkScalarIsNaN(accum);
     }
 
     /**
@@ -392,7 +433,7 @@ struct SK_API SkPoint {
     static SkScalar Length(SkScalar x, SkScalar y);
 
     /** Normalize pt, returning its previous length. If the prev length is too
-        small (degenerate), return 0 and leave pt unchanged. This uses the same
+        small (degenerate), set pt to (0,0) and return 0. This uses the same
         tolerance as CanNormalize.
 
         Note that this method may be significantly more expensive than
@@ -411,13 +452,13 @@ struct SK_API SkPoint {
     /** Returns the dot product of a and b, treating them as 2D vectors
     */
     static SkScalar DotProduct(const SkPoint& a, const SkPoint& b) {
-        return SkScalarMul(a.fX, b.fX) + SkScalarMul(a.fY, b.fY);
+        return a.fX * b.fX + a.fY * b.fY;
     }
 
     /** Returns the cross product of a and b, treating them as 2D vectors
     */
     static SkScalar CrossProduct(const SkPoint& a, const SkPoint& b) {
-        return SkScalarMul(a.fX, b.fY) - SkScalarMul(a.fY, b.fX);
+        return a.fX * b.fY - a.fY * b.fX;
     }
 
     SkScalar cross(const SkPoint& vec) const {
@@ -435,7 +476,7 @@ struct SK_API SkPoint {
     SkScalar distanceToSqd(const SkPoint& pt) const {
         SkScalar dx = fX - pt.fX;
         SkScalar dy = fY - pt.fY;
-        return SkScalarMul(dx, dx) + SkScalarMul(dy, dy);
+        return dx * dx + dy * dy;
     }
 
     /**
@@ -507,5 +548,9 @@ struct SK_API SkPoint {
 };
 
 typedef SkPoint SkVector;
+
+static inline bool SkPointsAreFinite(const SkPoint array[], int count) {
+    return SkScalarsAreFinite(&array[0].fX, count << 1);
+}
 
 #endif

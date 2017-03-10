@@ -5,18 +5,17 @@
  * found in the LICENSE file.
  */
 
-
-#include "Sk64.h"
 #include "SkMask.h"
+
+//#define TRACK_SKMASK_LIFETIME
 
 /** returns the product if it is positive and fits in 31 bits. Otherwise this
     returns 0.
  */
 static int32_t safeMul32(int32_t a, int32_t b) {
-    Sk64 size;
-    size.setMul(a, b);
-    if (size.is32() && size.isPos()) {
-        return size.get32();
+    int64_t size = sk_64_mul(a, b);
+    if (size > 0 && sk_64_isS32(size)) {
+        return sk_64_asS32(size);
     }
     return 0;
 }
@@ -28,15 +27,22 @@ size_t SkMask::computeImageSize() const {
 size_t SkMask::computeTotalImageSize() const {
     size_t size = this->computeImageSize();
     if (fFormat == SkMask::k3D_Format) {
-        size = safeMul32(size, 3);
+        size = safeMul32(SkToS32(size), 3);
     }
     return size;
 }
+
+#ifdef TRACK_SKMASK_LIFETIME
+    static int gCounter;
+#endif
 
 /** We explicitly use this allocator for SkBimap pixels, so that we can
     freely assign memory allocated by one class to the other.
 */
 uint8_t* SkMask::AllocImage(size_t size) {
+#ifdef TRACK_SKMASK_LIFETIME
+    SkDebugf("SkMask::AllocImage %d\n", gCounter++);
+#endif
     return (uint8_t*)sk_malloc_throw(SkAlign4(size));
 }
 
@@ -44,6 +50,11 @@ uint8_t* SkMask::AllocImage(size_t size) {
     freely assign memory allocated by one class to the other.
 */
 void SkMask::FreeImage(void* image) {
+#ifdef TRACK_SKMASK_LIFETIME
+    if (image) {
+        SkDebugf("SkMask::FreeImage  %d\n", --gCounter);
+    }
+#endif
     sk_free(image);
 }
 
@@ -55,7 +66,6 @@ static const int gMaskFormatToShift[] = {
     0,  // 3D
     2,  // ARGB32
     1,  // LCD16
-    2   // LCD32
 };
 
 static int maskFormatToShift(SkMask::Format format) {

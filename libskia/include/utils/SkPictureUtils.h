@@ -10,22 +10,19 @@
 
 #include "SkPicture.h"
 
-class SkData;
-struct SkRect;
+// TODO: remove this file?
 
 class SK_API SkPictureUtils {
 public:
     /**
-     *  Given a rectangular visible "window" into the picture, return an array
-     *  of SkPixelRefs that might intersect that area. To keep the call fast,
-     *  the returned list is not guaranteed to be exact, so it may miss some,
-     *  and it may return false positives.
-     *
-     *  The pixelrefs returned in the SkData are already owned by the picture,
-     *  so the returned pointers are only valid while the picture is in scope
-     *  and remains unchanged.
+     *  How many bytes are allocated to hold the SkPicture.
+     *  Includes operations, parameters, bounding data, deletion listeners;
+     *  includes nested SkPictures, but does not include large objects that
+     *  SkRecord holds a reference to (e.g. paths, or pixels backing bitmaps).
      */
-    static SkData* GatherPixelRefs(SkPicture* pict, const SkRect& area);
+    static size_t ApproximateBytesUsed(const SkPicture* pict) {
+        return pict->approximateBytesUsed();
+    }
 };
 
 #endif

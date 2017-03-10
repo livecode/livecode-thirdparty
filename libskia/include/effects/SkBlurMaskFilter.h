@@ -11,17 +11,15 @@
 // we include this since our callers will need to at least be able to ref/unref
 #include "SkMaskFilter.h"
 #include "SkScalar.h"
+#include "SkBlurTypes.h"
 
 class SK_API SkBlurMaskFilter {
 public:
-    enum BlurStyle {
-        kNormal_BlurStyle,  //!< fuzzy inside and outside
-        kSolid_BlurStyle,   //!< solid inside, fuzzy outside
-        kOuter_BlurStyle,   //!< nothing inside, fuzzy outside
-        kInner_BlurStyle,   //!< fuzzy inside, nothing outside
-
-        kBlurStyleCount
-    };
+    /**
+     *  If radius > 0, return the corresponding sigma, else return 0. Use this to convert from the
+     *  (legacy) idea of specify the blur "radius" to the standard notion of specifying its sigma.
+     */
+    static SkScalar ConvertRadiusToSigma(SkScalar radius);
 
     enum BlurFlags {
         kNone_BlurFlag = 0x00,
@@ -33,18 +31,22 @@ public:
         kAll_BlurFlag = 0x03
     };
 
-    SK_ATTR_DEPRECATED("use sigma version")
-    static SkMaskFilter* Create(SkScalar radius, BlurStyle style,
-                                uint32_t flags = kNone_BlurFlag);
-
     /** Create a blur maskfilter.
-        @param style    The BlurStyle to use
-        @param sigma    Standard deviation of the Gaussian blur to apply. Must be > 0.
-        @param flags    Flags to use - defaults to none
-        @return The new blur maskfilter
-    */
-    static SkMaskFilter* Create(BlurStyle style, SkScalar sigma,
-                                uint32_t flags = kNone_BlurFlag);
+     *  @param style     The SkBlurStyle to use
+     *  @param sigma     Standard deviation of the Gaussian blur to apply. Must be > 0.
+     *  @param occluder  The rect for which no pixels need be drawn (b.c. it will be overdrawn
+     *                   with some opaque object. This is just a hint which backends are free to
+     *                   ignore.
+     *  @param flags     Flags to use - defaults to none
+     *  @return The new blur maskfilter
+     */
+    static sk_sp<SkMaskFilter> Make(SkBlurStyle style, SkScalar sigma,
+                                    const SkRect& occluder, uint32_t flags = kNone_BlurFlag);
+
+    static sk_sp<SkMaskFilter> Make(SkBlurStyle style, SkScalar sigma,
+                                    uint32_t flags = kNone_BlurFlag) {
+        return Make(style, sigma, SkRect::MakeEmpty(), flags);
+    }
 
     /** Create an emboss maskfilter
         @param blurSigma    standard deviation of the Gaussian blur to apply
@@ -54,13 +56,30 @@ public:
         @param specular     coefficient for specular highlights (e.g. 8)
         @return the emboss maskfilter
     */
-    static SkMaskFilter* CreateEmboss(SkScalar blurSigma, const SkScalar direction[3],
-                                      SkScalar ambient, SkScalar specular);
+    static sk_sp<SkMaskFilter> MakeEmboss(SkScalar blurSigma, const SkScalar direction[3],
+                                          SkScalar ambient, SkScalar specular);
 
-    SK_ATTR_DEPRECATED("use sigma version")
-    static SkMaskFilter* CreateEmboss(const SkScalar direction[3],
-                                      SkScalar ambient, SkScalar specular,
-                                      SkScalar blurRadius);
+    static const int kMaxDivisions = 6;
+
+    // This method computes all the parameters for drawing a partially occluded nine-patched
+    // blurred rrect mask:
+    //   rrectToDraw - the integerized rrect to draw in the mask
+    //   widthHeight - how large to make the mask (rrectToDraw will be centered in this coord sys)
+    //   rectXs, rectYs - the x & y coordinates of the covering geometry lattice
+    //   texXs, texYs - the texture coordinate at each point in rectXs & rectYs
+    //   numXs, numYs - number of coordinates in the x & y directions
+    //   skipMask - bit mask that contains a 1-bit whenever one of the cells is occluded
+    // It returns true if 'devRRect' is nine-patchable
+    static bool ComputeBlurredRRectParams(const SkRRect& srcRRect, const SkRRect& devRRect,
+                                          const SkRect& occluder,
+                                          SkScalar sigma, SkScalar xformedSigma,
+                                          SkRRect* rrectToDraw,
+                                          SkISize* widthHeight,
+                                          SkScalar rectXs[kMaxDivisions],
+                                          SkScalar rectYs[kMaxDivisions],
+                                          SkScalar texXs[kMaxDivisions],
+                                          SkScalar texYs[kMaxDivisions],
+                                          int* numXs, int* numYs, uint32_t* skipMask);
 
     SK_DECLARE_FLATTENABLE_REGISTRAR_GROUP()
 

@@ -5,23 +5,49 @@
  * found in the LICENSE file.
  */
 
+#ifndef SkDropShadowImageFilter_DEFINED
+#define SkDropShadowImageFilter_DEFINED
+
 #include "SkColor.h"
 #include "SkImageFilter.h"
 #include "SkScalar.h"
 
 class SK_API SkDropShadowImageFilter : public SkImageFilter {
 public:
-    SkDropShadowImageFilter(SkScalar dx, SkScalar dy, SkScalar sigma, SkColor, SkImageFilter* input = NULL);
-    SkDropShadowImageFilter(SkScalar dx, SkScalar dy, SkScalar sigmaX, SkScalar sigmaY, SkColor, SkImageFilter* input = NULL, const CropRect* cropRect = NULL);
+    enum ShadowMode {
+        kDrawShadowAndForeground_ShadowMode,
+        kDrawShadowOnly_ShadowMode,
+
+        kLast_ShadowMode = kDrawShadowOnly_ShadowMode
+    };
+
+    static const int kShadowModeCount = kLast_ShadowMode+1;
+
+    static sk_sp<SkImageFilter> Make(SkScalar dx, SkScalar dy, SkScalar sigmaX, SkScalar sigmaY,
+                                     SkColor color, ShadowMode shadowMode,
+                                     sk_sp<SkImageFilter> input,
+                                     const CropRect* cropRect = nullptr);
+
+    SkRect computeFastBounds(const SkRect&) const override;
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkDropShadowImageFilter)
 
 protected:
-    explicit SkDropShadowImageFilter(SkFlattenableReadBuffer&);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-    virtual bool onFilterImage(Proxy*, const SkBitmap& source, const SkMatrix&, SkBitmap* result, SkIPoint* loc) SK_OVERRIDE;
+    void flatten(SkWriteBuffer&) const override;
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
+    SkIRect onFilterNodeBounds(const SkIRect& src, const SkMatrix&, MapDirection) const override;
 
 private:
+    SkDropShadowImageFilter(SkScalar dx, SkScalar dy, SkScalar sigmaX, SkScalar sigmaY, SkColor,
+                            ShadowMode shadowMode, sk_sp<SkImageFilter> input,
+                            const CropRect* cropRect);
+
     SkScalar fDx, fDy, fSigmaX, fSigmaY;
     SkColor fColor;
+    ShadowMode fShadowMode;
+
     typedef SkImageFilter INHERITED;
 };
+
+#endif

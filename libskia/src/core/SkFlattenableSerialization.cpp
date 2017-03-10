@@ -9,20 +9,24 @@
 
 #include "SkData.h"
 #include "SkValidatingReadBuffer.h"
-#include "SkOrderedWriteBuffer.h"
+#include "SkWriteBuffer.h"
 
 SkData* SkValidatingSerializeFlattenable(SkFlattenable* flattenable) {
-    SkOrderedWriteBuffer writer(1024);
-    writer.setFlags(SkOrderedWriteBuffer::kValidation_Flag);
+    SkBinaryWriteBuffer writer;
     writer.writeFlattenable(flattenable);
-    uint32_t size = writer.bytesWritten();
-    void* data = sk_malloc_throw(size);
-    writer.writeToMemory(data);
-    return SkData::NewFromMalloc(data, size);
+    size_t size = writer.bytesWritten();
+    auto data = SkData::MakeUninitialized(size);
+    writer.writeToMemory(data->writable_data());
+    return data.release();
 }
 
 SkFlattenable* SkValidatingDeserializeFlattenable(const void* data, size_t size,
                                                   SkFlattenable::Type type) {
     SkValidatingReadBuffer buffer(data, size);
     return buffer.readFlattenable(type);
+}
+
+sk_sp<SkImageFilter> SkValidatingDeserializeImageFilter(const void* data, size_t size) {
+    return sk_sp<SkImageFilter>((SkImageFilter*)SkValidatingDeserializeFlattenable(
+                                data, size, SkImageFilter::GetFlattenableType()));
 }

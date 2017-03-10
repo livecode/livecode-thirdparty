@@ -37,22 +37,6 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/*  Scalars (the fractional value type in skia) can be implemented either as
-    floats or 16.16 integers (fixed). Exactly one of these two symbols must be
-    defined.
-*/
-//#define SK_SCALAR_IS_FLOAT
-//#define SK_SCALAR_IS_FIXED
-
-
-/*  For some performance-critical scalar operations, skia will optionally work
-    around the standard float operators if it knows that the CPU does not have
-    native support for floats. If your environment uses software floating point,
-    define this flag.
- */
-//#define SK_SOFTWARE_FLOAT
-
-
 /*  Skia has lots of debug-only code. Often this is just null checks or other
     parameter checking, but sometimes it can be quite intrusive (e.g. check that
     each 32bit pixel is in premultiplied form). This code can be very useful
@@ -74,20 +58,6 @@
 //#define SK_DEBUG_GLYPH_CACHE
 //#define SK_DEBUG_PATH
 
-/*  To assist debugging, Skia provides an instance counting utility in
-    include/core/SkInstCount.h. This flag turns on and off that utility to
-    allow instance count tracking in either debug or release builds. By
-    default it is enabled in debug but disabled in release.
- */
-//#define SK_ENABLE_INST_COUNT 1
-
-/*  If, in debugging mode, Skia needs to stop (presumably to invoke a debugger)
-    it will call SK_CRASH(). If this is not defined it, it is defined in
-    SkPostConfig.h to write to an illegal address
- */
-//#define SK_CRASH() *(int *)(uintptr_t)0 = 0
-
-
 /*  preconfig will have attempted to determine the endianness of the system,
     but you can change these mutually exclusive flags here.
  */
@@ -102,12 +72,6 @@
 */
 //#define SK_UINT8_BITFIELD_BENDIAN
 //#define SK_UINT8_BITFIELD_LENDIAN
-
-
-/*  Some compilers don't support long long for 64bit integers. If yours does
-    not, define this to the appropriate type.
- */
-//#define SkLONGLONG int64_t
 
 
 /*  To write debug messages to a console, skia will call SkDebugf(...) following
@@ -129,22 +93,9 @@
  */
 //#define SK_DEFAULT_IMAGE_CACHE_LIMIT (1024 * 1024)
 
-/*  If zlib is available and you want to support the flate compression
-    algorithm (used in PDF generation), define SK_ZLIB_INCLUDE to be the
-    include path. Alternatively, define SK_SYSTEM_ZLIB to use the system zlib
-    library specified as "#include <zlib.h>".
- */
-//#define SK_ZLIB_INCLUDE <zlib.h>
-//#define SK_SYSTEM_ZLIB
-
-/*  Define this to allow PDF scalars above 32k.  The PDF/A spec doesn't allow
-    them, but modern PDF interpreters should handle them just fine.
- */
-//#define SK_ALLOW_LARGE_PDF_SCALARS
-
 /*  Define this to provide font subsetter in PDF generation.
  */
-//#define SK_SFNTLY_SUBSETTER "sfntly/subsetter/font_subsetter.h"
+//#define SK_SFNTLY_SUBSETTER "sample/chromium/font_subsetter.h"
 
 /*  Define this to set the upper limit for text to support LCD. Values that
     are very large increase the cost in the font cache and draw slower, without
@@ -161,26 +112,14 @@
 //#define SK_SUPPORT_UNITTEST
 #endif
 
-/* If your system embeds skia and has complex event logging, define this
-   symbol to name a file that maps the following macros to your system's
-   equivalents:
-       SK_TRACE_EVENT0(event)
-       SK_TRACE_EVENT1(event, name1, value1)
-       SK_TRACE_EVENT2(event, name1, value1, name2, value2)
-   src/utils/SkDebugTrace.h has a trivial implementation that writes to
-   the debug output stream. If SK_USER_TRACE_INCLUDE_FILE is not defined,
-   SkTrace.h will define the above three macros to do nothing.
-*/
-//#undef SK_USER_TRACE_INCLUDE_FILE
-
 /*  Change the ordering to work in X windows.
  */
-/*#ifdef SK_SAMPLES_FOR_X
+#ifdef SK_SAMPLES_FOR_X
         #define SK_R32_SHIFT    16
         #define SK_G32_SHIFT    8
         #define SK_B32_SHIFT    0
         #define SK_A32_SHIFT    24
-#endif*/
+#endif
 
 
 /* Determines whether to build code that supports the GPU backend. Some classes
@@ -190,70 +129,14 @@
    directories from your include search path when you're not building the GPU
    backend. Defaults to 1 (build the GPU code).
  */
-#define SK_SUPPORT_GPU 0
+//#define SK_SUPPORT_GPU 1
 
-/* The PDF generation code uses Path Ops to generate inverse fills and complex
- * clipping paths, but at this time, Path Ops is not release ready yet. So,
- * the code is hidden behind this #define guard. If you are feeling adventurous
- * and want the latest and greatest PDF generation code, uncomment the #define.
- * When Path Ops is release ready, the define guards and this user config
- * define should be removed entirely.
+/* Skia makes use of histogram logging macros to trace the frequency of
+ * events. By default, Skia provides no-op versions of these macros.
+ * Skia consumers can provide their own definitions of these macros to
+ * integrate with their histogram collection backend.
  */
-//#define SK_PDF_USE_PATHOPS
-
-// FG-2014-09-26: [[ Bugfix 11968 ]] PowerPC uses the same build order as x86
-// Mac platforms (just with the bytes reversed).
-#if defined(SK_BUILD_FOR_MAC)
-    // MM-2014-02-05: [[ RefactorGraphics ]] Fiddled with byte order.
-    #define SK_R32_SHIFT    16
-    #define SK_G32_SHIFT    8
-    #define SK_B32_SHIFT    0
-    #define SK_A32_SHIFT    24
-#elif defined(SK_BUILD_FOR_IOS) || defined(SK_BUILD_FOR_UNIX)
-    // IM-2013-08-21: [[ RefactorGraphics ]] Use GL byte order for iOS
-    // FG-2014-07-17: [[ LinuxGDK ]] Use GDK byte order
-    #define SK_R32_SHIFT    0
-    #define SK_G32_SHIFT    8
-    #define SK_B32_SHIFT    16
-    #define SK_A32_SHIFT    24
-#endif
-
-// MM-2014-01-09: [[ RefactorGraphics ]] SkAtomics_sync.h doesn't appear to compile on Linux.
-#if defined(SK_BUILD_FOR_UNIX)
-   #define SK_ATOMICS_PLATFORM_H "../../src/ports/SkAtomics_sync.h"
-#endif
-
-// MM-2014-01-14: [[ RefactorGraphics ]] SK_FONTHOST_DOES_NOT_USE_FONTMGR is required for fonr support on Android.
-#if defined(SK_BUILD_FOR_ANDROID)
-    #define SK_FONTHOST_DOES_NOT_USE_FONTMGR
-#endif
-
-#ifdef SK_BUILD_FOR_WIN32
-	// MM-2014-01-17: [[ RefactorGraphics ]] Define SK_RESTRICT to empty to prevent VS 2005 from complaining.
-	#if defined(SK_RESTRICT)
-        #undef SK_RESTRICT 
-    #endif
-	#define SK_RESTRICT
-
-	// MM-2014-01-17: [[ RefactorGraphics ]] Workaround to prevent VS 2005 from complaing when both windows.h and intrin.h are included.
-	//  Taken from http://blog.assarbad.net/20120425/annoyance-in-the-windows-sdk-headers/ and 
-	//  https://developer.mozilla.org/en-US/docs/Developer_Guide/Build_Instructions/Intrin.h
-	#if _MSC_VER >= 1400
-		#pragma push_macro("_interlockedbittestandset")
-		#pragma push_macro("_interlockedbittestandreset")
-		#pragma push_macro("_interlockedbittestandset64")
-		#pragma push_macro("_interlockedbittestandreset64")
-		#define _interlockedbittestandset _local_interlockedbittestandset
-		#define _interlockedbittestandreset _local_interlockedbittestandreset
-		#define _interlockedbittestandset64 _local_interlockedbittestandset64
-		#define _interlockedbittestandreset64 _local_interlockedbittestandreset64
-		#include <intrin.h>
-		#pragma pop_macro("_interlockedbittestandreset64")
-		#pragma pop_macro("_interlockedbittestandset64")
-		#pragma pop_macro("_interlockedbittestandreset")
-		#pragma pop_macro("_interlockedbittestandset")
-		#pragma intrinsic(_ReadWriteBarrier)
-	#endif
-#endif
+//#define SK_HISTOGRAM_BOOLEAN(name, value)
+//#define SK_HISTOGRAM_ENUMERATION(name, value, boundary_value)
 
 #endif

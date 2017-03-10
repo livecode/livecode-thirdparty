@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2013 Google Inc.
  *
@@ -14,18 +13,19 @@ SkCanvasStack::~SkCanvasStack() {
     this->removeAll();
 }
 
-void SkCanvasStack::pushCanvas(SkCanvas* canvas, const SkIPoint& origin) {
+void SkCanvasStack::pushCanvas(std::unique_ptr<SkCanvas> canvas, const SkIPoint& origin) {
     if (canvas) {
         // compute the bounds of this canvas
         const SkIRect canvasBounds = SkIRect::MakeSize(canvas->getDeviceSize());
 
         // push the canvas onto the stack
-        this->INHERITED::addCanvas(canvas);
+        this->INHERITED::addCanvas(canvas.get());
 
         // push the canvas data onto the stack
         CanvasData* data = &fCanvasData.push_back();
         data->origin = origin;
         data->requiredClip.setRect(canvasBounds);
+        data->ownedCanvas = std::move(canvas);
 
         // subtract this region from the canvas objects already on the stack.
         // This ensures they do not draw into the space occupied by the layers
@@ -42,8 +42,8 @@ void SkCanvasStack::pushCanvas(SkCanvas* canvas, const SkIPoint& origin) {
 }
 
 void SkCanvasStack::removeAll() {
+    this->INHERITED::removeAll();   // call the baseclass *before* we actually delete the canvases
     fCanvasData.reset();
-    this->INHERITED::removeAll();
 }
 
 /**
@@ -54,7 +54,7 @@ void SkCanvasStack::removeAll() {
 void SkCanvasStack::clipToZOrderedBounds() {
     SkASSERT(fList.count() == fCanvasData.count());
     for (int i = 0; i < fList.count(); ++i) {
-        fList[i]->clipRegion(fCanvasData[i].requiredClip, SkRegion::kIntersect_Op);
+        fList[i]->clipRegion(fCanvasData[i].requiredClip);
     }
 }
 
@@ -65,7 +65,7 @@ void SkCanvasStack::clipToZOrderedBounds() {
  * canvas unlike all other matrix operations (i.e. translate, scale, etc) which
  * just pre-concatenate with the existing matrix.
  */
-void SkCanvasStack::setMatrix(const SkMatrix& matrix) {
+void SkCanvasStack::didSetMatrix(const SkMatrix& matrix) {
     SkASSERT(fList.count() == fCanvasData.count());
     for (int i = 0; i < fList.count(); ++i) {
 
@@ -74,28 +74,25 @@ void SkCanvasStack::setMatrix(const SkMatrix& matrix) {
                                  SkIntToScalar(-fCanvasData[i].origin.y()));
         fList[i]->setMatrix(tempMatrix);
     }
-    this->SkCanvas::setMatrix(matrix);
+    this->SkCanvas::didSetMatrix(matrix);
 }
 
-bool SkCanvasStack::clipRect(const SkRect& r, SkRegion::Op op, bool aa) {
-    bool result = this->INHERITED::clipRect(r, op, aa);
+void SkCanvasStack::onClipRect(const SkRect& r, ClipOp op, ClipEdgeStyle edgeStyle) {
+    this->INHERITED::onClipRect(r, op, edgeStyle);
     this->clipToZOrderedBounds();
-    return result;
 }
 
-bool SkCanvasStack::clipRRect(const SkRRect& rr, SkRegion::Op op, bool aa) {
-    bool result = this->INHERITED::clipRRect(rr, op, aa);
+void SkCanvasStack::onClipRRect(const SkRRect& rr, ClipOp op, ClipEdgeStyle edgeStyle) {
+    this->INHERITED::onClipRRect(rr, op, edgeStyle);
     this->clipToZOrderedBounds();
-    return result;
 }
 
-bool SkCanvasStack::clipPath(const SkPath& p, SkRegion::Op op, bool aa) {
-    bool result = this->INHERITED::clipPath(p, op, aa);
+void SkCanvasStack::onClipPath(const SkPath& p, ClipOp op, ClipEdgeStyle edgeStyle) {
+    this->INHERITED::onClipPath(p, op, edgeStyle);
     this->clipToZOrderedBounds();
-    return result;
 }
 
-bool SkCanvasStack::clipRegion(const SkRegion& deviceRgn, SkRegion::Op op) {
+void SkCanvasStack::onClipRegion(const SkRegion& deviceRgn, ClipOp op) {
     SkASSERT(fList.count() == fCanvasData.count());
     for (int i = 0; i < fList.count(); ++i) {
         SkRegion tempRegion;
@@ -104,5 +101,5 @@ bool SkCanvasStack::clipRegion(const SkRegion& deviceRgn, SkRegion::Op op) {
         tempRegion.op(fCanvasData[i].requiredClip, SkRegion::kIntersect_Op);
         fList[i]->clipRegion(tempRegion, op);
     }
-    return this->SkCanvas::clipRegion(deviceRgn, op);
+    this->SkCanvas::onClipRegion(deviceRgn, op);
 }

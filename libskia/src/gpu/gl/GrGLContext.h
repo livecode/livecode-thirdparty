@@ -12,125 +12,87 @@
 #include "gl/GrGLExtensions.h"
 #include "gl/GrGLInterface.h"
 #include "GrGLCaps.h"
-#include "GrGLSL.h"
 #include "GrGLUtil.h"
 
-#include "SkString.h"
+struct GrContextOptions;
+namespace SkSL {
+    class Compiler;
+}
 
 /**
  * Encapsulates information about an OpenGL context including the OpenGL
- * version, the GrGLBinding type of the context, and GLSL version.
+ * version, the GrGLStandard type of the context, and GLSL version.
  */
-class GrGLContextInfo {
+class GrGLContextInfo : public SkRefCnt {
 public:
-    /**
-     * Default constructor
-     */
-    GrGLContextInfo() {
-        fGLCaps.reset(SkNEW(GrGLCaps));
-        this->reset();
-    }
-
-    /**
-     * Copies a GrGLContextInfo
-     */
-    GrGLContextInfo& operator= (const GrGLContextInfo& ctxInfo);
-
-    /**
-     * Initializes a GrGLContextInfo from a GrGLInterface and the currently
-     * bound OpenGL context accessible by the GrGLInterface.
-     */
-    bool initialize(const GrGLInterface* interface);
-    bool isInitialized() const;
-
-    GrGLBinding binding() const { return fBindingInUse; }
+    GrGLStandard standard() const { return fInterface->fStandard; }
     GrGLVersion version() const { return fGLVersion; }
     GrGLSLGeneration glslGeneration() const { return fGLSLGeneration; }
     GrGLVendor vendor() const { return fVendor; }
     GrGLRenderer renderer() const { return fRenderer; }
-    /** Is this a mesa-based driver. Does not mean it is the osmesa software rasterizer. */
-    bool isMesa() const { return fIsMesa; }
-    /** Are we running inside Chromium (using the command buffer)? We make some different tradeoffs
-        about what errors to check for because queries are synchronous. We should probably expose
-        this as an option for clients other than Chromium. */
-    bool isChromium() const { return fIsChromium; }
+    /** What driver is running our GL implementation? This is not necessarily related to the vendor.
+        (e.g. Intel GPU being driven by Mesa) */
+    GrGLDriver driver() const { return fDriver; }
+    GrGLDriverVersion driverVersion() const { return fDriverVersion; }
     const GrGLCaps* caps() const { return fGLCaps.get(); }
-    GrGLCaps* caps() { return fGLCaps; }
-    const GrGLExtensions& extensions() const { return fExtensions; }
-
-    /**
-     * Shortcut for extensions().has(ext);
-     */
+    GrGLCaps* caps() { return fGLCaps.get(); }
     bool hasExtension(const char* ext) const {
-        if (!this->isInitialized()) {
-            return false;
-        }
-        return fExtensions.has(ext);
+        return fInterface->hasExtension(ext);
     }
 
-    /**
-     * Reset the information
-     */
-    void reset();
+    const GrGLExtensions& extensions() const { return fInterface->fExtensions; }
 
-private:
+    virtual ~GrGLContextInfo() {}
 
-    GrGLBinding             fBindingInUse;
-    GrGLVersion             fGLVersion;
-    GrGLSLGeneration        fGLSLGeneration;
-    GrGLVendor              fVendor;
-    GrGLRenderer            fRenderer;
-    GrGLExtensions          fExtensions;
-    bool                    fIsMesa;
-    bool                    fIsChromium;
-    SkAutoTUnref<GrGLCaps>  fGLCaps;
+protected:
+    struct ConstructorArgs {
+        const GrGLInterface*                fInterface;
+        GrGLVersion                         fGLVersion;
+        GrGLSLGeneration                    fGLSLGeneration;
+        GrGLVendor                          fVendor;
+        GrGLRenderer                        fRenderer;
+        GrGLDriver                          fDriver;
+        GrGLDriverVersion                   fDriverVersion;
+        const  GrContextOptions*            fContextOptions;
+    };
+
+    GrGLContextInfo(const ConstructorArgs& args);
+
+    sk_sp<const GrGLInterface> fInterface;
+    GrGLVersion                fGLVersion;
+    GrGLSLGeneration           fGLSLGeneration;
+    GrGLVendor                 fVendor;
+    GrGLRenderer               fRenderer;
+    GrGLDriver                 fDriver;
+    GrGLDriverVersion          fDriverVersion;
+    sk_sp<GrGLCaps>            fGLCaps;
 };
 
 /**
- * Encapsulates the GrGLInterface used to make GL calls plus information
- * about the context (via GrGLContextInfo).
+ * Extension of GrGLContextInfo that also provides access to GrGLInterface and SkSL::Compiler.
  */
-class GrGLContext {
+class GrGLContext : public GrGLContextInfo {
 public:
-    /**
-     * Default constructor
-     */
-    GrGLContext() { this->reset(); }
-
     /**
      * Creates a GrGLContext from a GrGLInterface and the currently
      * bound OpenGL context accessible by the GrGLInterface.
      */
-    explicit GrGLContext(const GrGLInterface* interface);
+    static GrGLContext* Create(const GrGLInterface* interface, const GrContextOptions& options);
 
-    /**
-     * Copies a GrGLContext
-     */
-    GrGLContext(const GrGLContext& ctx);
+    const GrGLInterface* interface() const { return fInterface.get(); }
 
-    ~GrGLContext() { SkSafeUnref(fInterface); }
+    SkSL::Compiler* compiler() const;
 
-    /**
-     * Copies a GrGLContext
-     */
-    GrGLContext& operator= (const GrGLContext& ctx);
-
-    /**
-     * Initializes a GrGLContext from a GrGLInterface and the currently
-     * bound OpenGL context accessible by the GrGLInterface.
-     */
-    bool initialize(const GrGLInterface* interface);
-    bool isInitialized() const { return fInfo.isInitialized(); }
-
-    const GrGLInterface* interface() const { return fInterface; }
-    const GrGLContextInfo& info() const { return fInfo; }
-    GrGLContextInfo& info() { return fInfo; }
+    ~GrGLContext() override;
 
 private:
-    void reset();
+    GrGLContext(const ConstructorArgs& args) 
+    : INHERITED(args)
+    , fCompiler(nullptr) {}
 
-    const GrGLInterface* fInterface;
-    GrGLContextInfo      fInfo;
+    mutable SkSL::Compiler* fCompiler;
+
+    typedef GrGLContextInfo INHERITED;
 };
 
 #endif

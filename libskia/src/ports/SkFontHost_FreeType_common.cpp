@@ -32,7 +32,9 @@
 
 //#define SK_SHOW_TEXT_BLIT_COVERAGE
 
-static FT_Pixel_Mode compute_pixel_mode(SkMask::Format format) {
+namespace {
+
+FT_Pixel_Mode compute_pixel_mode(SkMask::Format format) {
     switch (format) {
         case SkMask::kBW_Format:
             return FT_PIXEL_MODE_MONO;
@@ -44,7 +46,7 @@ static FT_Pixel_Mode compute_pixel_mode(SkMask::Format format) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static uint16_t packTriple(U8CPU r, U8CPU g, U8CPU b) {
+uint16_t packTriple(U8CPU r, U8CPU g, U8CPU b) {
 #ifdef SK_SHOW_TEXT_BLIT_COVERAGE
     r = SkTMax(r, (U8CPU)0x40);
     g = SkTMax(g, (U8CPU)0x40);
@@ -53,14 +55,14 @@ static uint16_t packTriple(U8CPU r, U8CPU g, U8CPU b) {
     return SkPack888ToRGB16(r, g, b);
 }
 
-static uint16_t grayToRGB16(U8CPU gray) {
+uint16_t grayToRGB16(U8CPU gray) {
 #ifdef SK_SHOW_TEXT_BLIT_COVERAGE
     gray = SkTMax(gray, (U8CPU)0x40);
 #endif
     return SkPack888ToRGB16(gray, gray, gray);
 }
 
-static int bittst(const uint8_t data[], int bitOffset) {
+int bittst(const uint8_t data[], int bitOffset) {
     SkASSERT(bitOffset >= 0);
     int lowBit = data[bitOffset >> 3] >> (~bitOffset & 7);
     return lowBit & 1;
@@ -75,15 +77,15 @@ static int bittst(const uint8_t data[], int bitOffset) {
  *  FT_PIXEL_MODE_LCD_V
  */
 template<bool APPLY_PREBLEND>
-static void copyFT2LCD16(const FT_Bitmap& bitmap, const SkMask& mask, int lcdIsBGR,
-                         const uint8_t* tableR, const uint8_t* tableG, const uint8_t* tableB)
+void copyFT2LCD16(const FT_Bitmap& bitmap, const SkMask& mask, int lcdIsBGR,
+                  const uint8_t* tableR, const uint8_t* tableG, const uint8_t* tableB)
 {
     SkASSERT(SkMask::kLCD16_Format == mask.fFormat);
     if (FT_PIXEL_MODE_LCD != bitmap.pixel_mode) {
-        SkASSERT(mask.fBounds.width() == bitmap.width);
+        SkASSERT(mask.fBounds.width() == static_cast<int>(bitmap.width));
     }
     if (FT_PIXEL_MODE_LCD_V != bitmap.pixel_mode) {
-        SkASSERT(mask.fBounds.height() == bitmap.rows);
+        SkASSERT(mask.fBounds.height() == static_cast<int>(bitmap.rows));
     }
 
     const uint8_t* src = bitmap.buffer;
@@ -113,7 +115,7 @@ static void copyFT2LCD16(const FT_Bitmap& bitmap, const SkMask& mask, int lcdIsB
             }
             break;
         case FT_PIXEL_MODE_LCD:
-            SkASSERT(3 * mask.fBounds.width() == bitmap.width);
+            SkASSERT(3 * mask.fBounds.width() == static_cast<int>(bitmap.width));
             for (int y = height; y --> 0;) {
                 const uint8_t* triple = src;
                 if (lcdIsBGR) {
@@ -136,7 +138,7 @@ static void copyFT2LCD16(const FT_Bitmap& bitmap, const SkMask& mask, int lcdIsB
             }
             break;
         case FT_PIXEL_MODE_LCD_V:
-            SkASSERT(3 * mask.fBounds.height() == bitmap.rows);
+            SkASSERT(3 * mask.fBounds.height() == static_cast<int>(bitmap.rows));
             for (int y = height; y --> 0;) {
                 const uint8_t* srcR = src;
                 const uint8_t* srcG = srcR + bitmap.pitch;
@@ -165,20 +167,30 @@ static void copyFT2LCD16(const FT_Bitmap& bitmap, const SkMask& mask, int lcdIsB
  *
  *  Yes, No, Never Requested, Never Produced
  *
- *                        kBW kA8 k3D kARGB32 kLCD16 kLCD32
- *  FT_PIXEL_MODE_MONO     Y   Y  NR     N       Y     NR
- *  FT_PIXEL_MODE_GRAY     N   Y  NR     N       Y     NR
- *  FT_PIXEL_MODE_GRAY2   NP  NP  NR    NP      NP     NR
- *  FT_PIXEL_MODE_GRAY4   NP  NP  NR    NP      NP     NR
- *  FT_PIXEL_MODE_LCD     NP  NP  NR    NP      NP     NR
- *  FT_PIXEL_MODE_LCD_V   NP  NP  NR    NP      NP     NR
- *  FT_PIXEL_MODE_BGRA     N   N  NR     Y       N     NR
+ *                        kBW kA8 k3D kARGB32 kLCD16
+ *  FT_PIXEL_MODE_MONO     Y   Y  NR     N       Y
+ *  FT_PIXEL_MODE_GRAY     N   Y  NR     N       Y
+ *  FT_PIXEL_MODE_GRAY2   NP  NP  NR    NP      NP
+ *  FT_PIXEL_MODE_GRAY4   NP  NP  NR    NP      NP
+ *  FT_PIXEL_MODE_LCD     NP  NP  NR    NP      NP
+ *  FT_PIXEL_MODE_LCD_V   NP  NP  NR    NP      NP
+ *  FT_PIXEL_MODE_BGRA     N   N  NR     Y       N
  *
  *  TODO: All of these N need to be Y or otherwise ruled out.
  */
-static void copyFTBitmap(const FT_Bitmap& srcFTBitmap, SkMask& dstMask) {
-    SkASSERT(dstMask.fBounds.width() == srcFTBitmap.width);
-    SkASSERT(dstMask.fBounds.height() == srcFTBitmap.rows);
+void copyFTBitmap(const FT_Bitmap& srcFTBitmap, SkMask& dstMask) {
+    SkASSERTF(dstMask.fBounds.width() == static_cast<int>(srcFTBitmap.width),
+              "dstMask.fBounds.width() = %d\n"
+              "static_cast<int>(srcFTBitmap.width) = %d",
+              dstMask.fBounds.width(),
+              static_cast<int>(srcFTBitmap.width)
+    );
+    SkASSERTF(dstMask.fBounds.height() == static_cast<int>(srcFTBitmap.rows),
+              "dstMask.fBounds.height() = %d\n"
+              "static_cast<int>(srcFTBitmap.rows) = %d",
+              dstMask.fBounds.height(),
+              static_cast<int>(srcFTBitmap.rows)
+    );
 
     const uint8_t* src = reinterpret_cast<const uint8_t*>(srcFTBitmap.buffer);
     const FT_Pixel_Mode srcFormat = static_cast<FT_Pixel_Mode>(srcFTBitmap.pixel_mode);
@@ -194,7 +206,7 @@ static void copyFTBitmap(const FT_Bitmap& srcFTBitmap, SkMask& dstMask) {
     const size_t height = srcFTBitmap.rows;
 
     if (SkMask::kLCD16_Format == dstFormat) {
-        copyFT2LCD16<false>(srcFTBitmap, dstMask, false, NULL, NULL, NULL);
+        copyFT2LCD16<false>(srcFTBitmap, dstMask, false, nullptr, nullptr, nullptr);
         return;
     }
 
@@ -249,13 +261,13 @@ static void copyFTBitmap(const FT_Bitmap& srcFTBitmap, SkMask& dstMask) {
     }
 }
 
-static inline int convert_8_to_1(unsigned byte) {
+inline int convert_8_to_1(unsigned byte) {
     SkASSERT(byte <= 0xFF);
     // Arbitrary decision that making the cutoff at 1/4 instead of 1/2 in general looks better.
     return (byte >> 6) != 0;
 }
 
-static uint8_t pack_8_to_1(const uint8_t alpha[8]) {
+uint8_t pack_8_to_1(const uint8_t alpha[8]) {
     unsigned bits = 0;
     for (int i = 0; i < 8; ++i) {
         bits <<= 1;
@@ -264,7 +276,7 @@ static uint8_t pack_8_to_1(const uint8_t alpha[8]) {
     return SkToU8(bits);
 }
 
-static void packA8ToA1(const SkMask& mask, const uint8_t* src, size_t srcRB) {
+void packA8ToA1(const SkMask& mask, const uint8_t* src, size_t srcRB) {
     const int height = mask.fBounds.height();
     const int width = mask.fBounds.width();
     const int octs = width >> 3;
@@ -295,11 +307,11 @@ static void packA8ToA1(const SkMask& mask, const uint8_t* src, size_t srcRB) {
     }
 }
 
-inline SkMask::Format SkMaskFormat_for_SkBitmapConfig(SkBitmap::Config config) {
-    switch (config) {
-        case SkBitmap::kA8_Config:
+inline SkMask::Format SkMaskFormat_for_SkColorType(SkColorType colorType) {
+    switch (colorType) {
+        case kAlpha_8_SkColorType:
             return SkMask::kA8_Format;
-        case SkBitmap::kARGB_8888_Config:
+        case kN32_SkColorType:
             return SkMask::kARGB32_Format;
         default:
             SkDEBUGFAIL("unsupported SkBitmap::Config");
@@ -307,34 +319,76 @@ inline SkMask::Format SkMaskFormat_for_SkBitmapConfig(SkBitmap::Config config) {
     }
 }
 
-inline SkBitmap::Config SkBitmapConfig_for_FTPixelMode(FT_Pixel_Mode pixel_mode) {
+inline SkColorType SkColorType_for_FTPixelMode(FT_Pixel_Mode pixel_mode) {
     switch (pixel_mode) {
         case FT_PIXEL_MODE_MONO:
         case FT_PIXEL_MODE_GRAY:
-            return SkBitmap::kA8_Config;
+            return kAlpha_8_SkColorType;
         case FT_PIXEL_MODE_BGRA:
-            return SkBitmap::kARGB_8888_Config;
+            return kN32_SkColorType;
         default:
             SkDEBUGFAIL("unsupported FT_PIXEL_MODE");
-            return SkBitmap::kA8_Config;
+            return kAlpha_8_SkColorType;
     }
 }
 
-inline SkBitmap::Config SkBitmapConfig_for_SkMaskFormat(SkMask::Format format) {
+inline SkColorType SkColorType_for_SkMaskFormat(SkMask::Format format) {
     switch (format) {
         case SkMask::kBW_Format:
         case SkMask::kA8_Format:
         case SkMask::kLCD16_Format:
-            return SkBitmap::kA8_Config;
+            return kAlpha_8_SkColorType;
         case SkMask::kARGB32_Format:
-            return SkBitmap::kARGB_8888_Config;
+            return kN32_SkColorType;
         default:
             SkDEBUGFAIL("unsupported destination SkBitmap::Config");
-            return SkBitmap::kA8_Config;
+            return kAlpha_8_SkColorType;
     }
 }
 
-void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGlyph& glyph) {
+#ifdef SK_DEBUG
+
+#  define SK_STRING(X) SK_STRING_IMPL(X)
+#  define SK_STRING_IMPL(X) #X
+
+#  undef __FTERRORS_H__
+#  define FT_ERROR_START_LIST
+#  define FT_ERRORDEF(e, v, s)  { SK_STRING(e), s },
+#  define FT_ERROR_END_LIST
+
+const struct {
+  const char* err_code;
+  const char* err_msg;
+} sk_ft_errors[] = {
+#  include FT_ERRORS_H
+};
+
+void SkTraceFTR(const char* file, unsigned long line, FT_Error err, const char* msg) {
+    SkString s;
+    s.printf("%s:%lu:1: error: 0x%x ", file, line, err);
+    if (0 <= err && (unsigned)err < SK_ARRAY_COUNT(sk_ft_errors)) {
+        s.appendf("%s '%s' ", sk_ft_errors[err].err_code, sk_ft_errors[err].err_msg);
+    } else {
+        s.appendf("<unknown> ");
+    }
+    if (msg) {
+        s.appendf("%s", msg);
+    }
+    SkDebugf("%s\n", s.c_str());
+}
+
+#  define SK_TRACEFTR(_err, _msg) SkTraceFTR(__FILE__, __LINE__, _err, _msg)
+#else
+#  define SK_TRACEFTR(_err, _msg) sk_ignore_unused_variable(_err)
+#endif
+
+}  // namespace
+
+void SkScalerContext_FreeType_Base::generateGlyphImage(
+    FT_Face face,
+    const SkGlyph& glyph,
+    const SkMatrix& bitmapTransform)
+{
     const bool doBGR = SkToBool(fRec.fFlags & SkScalerContext::kLCD_BGROrder_Flag);
     const bool doVert = SkToBool(fRec.fFlags & SkScalerContext::kLCD_Vertical_Flag);
 
@@ -364,7 +418,13 @@ void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGly
                                           dy - ((bbox.yMin + dy) & ~63));
 
             if (SkMask::kLCD16_Format == glyph.fMaskFormat) {
-                FT_Render_Glyph(face->glyph, doVert ? FT_RENDER_MODE_LCD_V : FT_RENDER_MODE_LCD);
+                FT_Error err = FT_Render_Glyph(face->glyph, doVert ? FT_RENDER_MODE_LCD_V :
+                                                                     FT_RENDER_MODE_LCD);
+                if (err) {
+                    SK_TRACEFTR(err, "Could not render glyph.");
+                    sk_bzero(glyph.fImage, glyph.computeImageSize());
+                    return;
+                }
                 SkMask mask;
                 glyph.toMask(&mask);
                 if (fPreBlend.isApplicable()) {
@@ -402,20 +462,8 @@ void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGly
                      SkMask::kARGB32_Format == maskFormat ||
                      SkMask::kLCD16_Format == maskFormat);
 
-            if (fRec.fFlags & SkScalerContext::kEmbolden_Flag &&
-                !(face->style_flags & FT_STYLE_FLAG_BOLD))
-            {
-                FT_GlyphSlot_Own_Bitmap(face->glyph);
-                FT_Bitmap_Embolden(face->glyph->library, &face->glyph->bitmap,
-                                   kBitmapEmboldenStrength, 0);
-            }
-
             // If no scaling needed, directly copy glyph bitmap.
-            if (glyph.fWidth == face->glyph->bitmap.width &&
-                glyph.fHeight == face->glyph->bitmap.rows &&
-                glyph.fTop == -face->glyph->bitmap_top &&
-                glyph.fLeft == face->glyph->bitmap_left)
-            {
+            if (bitmapTransform.isIdentity()) {
                 SkMask dstMask;
                 glyph.toMask(&dstMask);
                 copyFTBitmap(face->glyph->bitmap, dstMask);
@@ -426,15 +474,17 @@ void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGly
 
             // Copy the FT_Bitmap into an SkBitmap (either A8 or ARGB)
             SkBitmap unscaledBitmap;
-            unscaledBitmap.setConfig(SkBitmapConfig_for_FTPixelMode(pixel_mode),
-                                     face->glyph->bitmap.width, face->glyph->bitmap.rows);
-            unscaledBitmap.allocPixels();
+            // TODO: mark this as sRGB when the blits will be sRGB.
+            unscaledBitmap.allocPixels(SkImageInfo::Make(face->glyph->bitmap.width,
+                                                         face->glyph->bitmap.rows,
+                                                         SkColorType_for_FTPixelMode(pixel_mode),
+                                                         kPremul_SkAlphaType));
 
             SkMask unscaledBitmapAlias;
             unscaledBitmapAlias.fImage = reinterpret_cast<uint8_t*>(unscaledBitmap.getPixels());
             unscaledBitmapAlias.fBounds.set(0, 0, unscaledBitmap.width(), unscaledBitmap.height());
             unscaledBitmapAlias.fRowBytes = unscaledBitmap.rowBytes();
-            unscaledBitmapAlias.fFormat = SkMaskFormat_for_SkBitmapConfig(unscaledBitmap.config());
+            unscaledBitmapAlias.fFormat = SkMaskFormat_for_SkColorType(unscaledBitmap.colorType());
             copyFTBitmap(face->glyph->bitmap, unscaledBitmapAlias);
 
             // Wrap the glyph's mask in a bitmap, unless the glyph's mask is BW or LCD.
@@ -446,8 +496,11 @@ void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGly
                 bitmapRowBytes = glyph.rowBytes();
             }
             SkBitmap dstBitmap;
-            dstBitmap.setConfig(SkBitmapConfig_for_SkMaskFormat(maskFormat),
-                                glyph.fWidth, glyph.fHeight, bitmapRowBytes);
+            // TODO: mark this as sRGB when the blits will be sRGB.
+            dstBitmap.setInfo(SkImageInfo::Make(glyph.fWidth, glyph.fHeight,
+                                                SkColorType_for_SkMaskFormat(maskFormat),
+                                                kPremul_SkAlphaType),
+                              bitmapRowBytes);
             if (SkMask::kBW_Format == maskFormat || SkMask::kLCD16_Format == maskFormat) {
                 dstBitmap.allocPixels();
             } else {
@@ -456,11 +509,17 @@ void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGly
 
             // Scale unscaledBitmap into dstBitmap.
             SkCanvas canvas(dstBitmap);
+#ifdef SK_SHOW_TEXT_BLIT_COVERAGE
+            canvas.clear(0x33FF0000);
+#else
             canvas.clear(SK_ColorTRANSPARENT);
-            canvas.scale(SkIntToScalar(glyph.fWidth) / SkIntToScalar(face->glyph->bitmap.width),
-                         SkIntToScalar(glyph.fHeight) / SkIntToScalar(face->glyph->bitmap.rows));
+#endif
+            canvas.translate(-glyph.fLeft, -glyph.fTop);
+            canvas.concat(bitmapTransform);
+            canvas.translate(face->glyph->bitmap_left, -face->glyph->bitmap_top);
+
             SkPaint paint;
-            paint.setFilterLevel(SkPaint::kLow_FilterLevel);
+            paint.setFilterQuality(kMedium_SkFilterQuality);
             canvas.drawBitmap(unscaledBitmap, 0, 0, &paint);
 
             // If the destination is BW or LCD, convert from A8.
@@ -509,20 +568,22 @@ void SkScalerContext_FreeType_Base::generateGlyphImage(FT_Face face, const SkGly
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int move_proc(const FT_Vector* pt, void* ctx) {
+namespace {
+
+int move_proc(const FT_Vector* pt, void* ctx) {
     SkPath* path = (SkPath*)ctx;
     path->close();  // to close the previous contour (if any)
     path->moveTo(SkFDot6ToScalar(pt->x), -SkFDot6ToScalar(pt->y));
     return 0;
 }
 
-static int line_proc(const FT_Vector* pt, void* ctx) {
+int line_proc(const FT_Vector* pt, void* ctx) {
     SkPath* path = (SkPath*)ctx;
     path->lineTo(SkFDot6ToScalar(pt->x), -SkFDot6ToScalar(pt->y));
     return 0;
 }
 
-static int quad_proc(const FT_Vector* pt0, const FT_Vector* pt1,
+int quad_proc(const FT_Vector* pt0, const FT_Vector* pt1,
                      void* ctx) {
     SkPath* path = (SkPath*)ctx;
     path->quadTo(SkFDot6ToScalar(pt0->x), -SkFDot6ToScalar(pt0->y),
@@ -530,7 +591,7 @@ static int quad_proc(const FT_Vector* pt0, const FT_Vector* pt1,
     return 0;
 }
 
-static int cubic_proc(const FT_Vector* pt0, const FT_Vector* pt1,
+int cubic_proc(const FT_Vector* pt0, const FT_Vector* pt1,
                       const FT_Vector* pt2, void* ctx) {
     SkPath* path = (SkPath*)ctx;
     path->cubicTo(SkFDot6ToScalar(pt0->x), -SkFDot6ToScalar(pt0->y),
@@ -539,9 +600,9 @@ static int cubic_proc(const FT_Vector* pt0, const FT_Vector* pt1,
     return 0;
 }
 
-void SkScalerContext_FreeType_Base::generateGlyphPath(FT_Face face,
-                                                      SkPath* path)
-{
+}  // namespace
+
+void SkScalerContext_FreeType_Base::generateGlyphPath(FT_Face face, SkPath* path) {
     FT_Outline_Funcs    funcs;
 
     funcs.move_to   = move_proc;

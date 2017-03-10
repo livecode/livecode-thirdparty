@@ -2,7 +2,7 @@
 #include "pg_config.win32.h"
 #elif defined(_LINUX)
 #include "pg_config.linux.h"
-#elif defined(_MACOSX)
+#elif defined(TARGET_PLATFORM_MACOS)
 #include "pg_config.mac.h"
 #endif
 

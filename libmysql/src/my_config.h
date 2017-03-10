@@ -1,6 +1,6 @@
 #if defined(_LINUX)
 #include "config-lnx.h"
-#elif defined(_MACOSX)
+#elif defined(TARGET_PLATFORM_MACOS)
 #include "config-osx.h"
 #elif defined(TARGET_SUBPLATFORM_IPHONE)
 #include "config-ios.h"

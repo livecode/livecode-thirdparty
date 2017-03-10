@@ -40,7 +40,11 @@ protected:
 
 class SkMutex : public SkBaseMutex {
 public:
-    using SkBaseMutex::SkBaseMutex;
+    // [[ Patch ]] Work around a missing C++11 feature in older GCC versions
+    //using SkBaseMutex::SkBaseMutex;
+    constexpr SkMutex()
+        : SkBaseMutex() {}
+    
     ~SkMutex() { fSemaphore.cleanup(); }
 };
 

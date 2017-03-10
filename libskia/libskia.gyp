@@ -1728,6 +1728,8 @@
 							['exclude', 'fontconfig'],
 							['exclude', 'FontConfig'],
 							['exclude', 'SkFontMgr_custom'],
+							
+							['exclude', '/xps/'],
 						],
 						
 						'defines':

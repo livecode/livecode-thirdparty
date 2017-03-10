@@ -19,8 +19,10 @@
 // max_align_t is needed to calculate the alignment for createWithIniterT when the T used is an
 // abstract type. The complication with max_align_t is that it is defined differently for
 // different builds.
+//
+// [[ Patch ]] Emscripten support
 namespace {
-#if defined(SK_BUILD_FOR_WIN32) || defined(SK_BUILD_FOR_MAC)
+#if defined(SK_BUILD_FOR_WIN32) || defined(SK_BUILD_FOR_MAC) || defined(__EMSCRIPTEN__)
     // Use std::max_align_t for compiles that follow the standard.
     #include <cstddef>
     using SystemAlignment = std::max_align_t;

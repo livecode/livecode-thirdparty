@@ -1670,6 +1670,9 @@
 				
 				# SkSnapshot doesn't build
 				['exclude', 'src/animator/SkSnapshot'],
+				
+				# Don't build XPS 
+				['exclude', '/xps/'],
 			],
 			
 			'conditions':

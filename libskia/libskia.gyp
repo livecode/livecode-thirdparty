@@ -1906,6 +1906,11 @@
                             ['exclude', 'SkFontMgr_custom'],
                         ],
 
+						'cflags':
+						[
+							'-msse4.1',
+						],
+						
                         'link_settings':
                         {
                             'libraries':

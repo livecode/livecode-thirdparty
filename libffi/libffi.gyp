@@ -21,6 +21,11 @@
 		[
 			'./include_win32',
 		],
+
+		'libffi_public_headers_win64_dir':
+		[
+			'./include_win64',
+		],
 		
 		'libffi_public_headers_linux_x86_dir':
 		[
@@ -79,10 +84,17 @@
 			'git_master/src/types.c',
 		],
 		
-		'libffi_win_source_files':
+		'libffi_win32_source_files':
 		[
 			'src/x86/ffi.c',
 			'src/x86/win32.asm',
+		],
+
+		'libffi_win64_source_files':
+		[
+			'src/x86/ffi.c',
+			'src/x86/ffi64.c',
+			'src/x86/win64.asm',
 		],
 		
 		'libffi_linux_x86_source_files':
@@ -153,6 +165,25 @@
 				[
 					'<@(_platform_include_dirs)',
 				],
+
+				'defines':
+				[
+					# Ensures we don't try to DLLImport symbols from a static lib
+					'FFI_BUILDING',
+				],
+			},
+			
+			'all_dependent_settings':
+			{
+				'msvs_settings':
+				{
+					'VCLinkerTool':
+					{
+						# libffi is not safe exception handler compatible therefore nothing
+						# linked to it is compatible either
+						'ImageHasSafeExceptionHandlers': 'false',
+					},
+				},
 			},
 			
 			'conditions':
@@ -193,7 +224,7 @@
 					},
 				],
 				[
-					'toolset_os == "win"',
+					'toolset_os == "win" and toolset_arch == "x86"',
 					{
 						'platform_include_dirs':
 						[
@@ -202,7 +233,22 @@
 						
 						'sources':
 						[
-							'<@(libffi_win_source_files)',
+							'<@(libffi_win32_source_files)',
+							'<@(libffi_generic_sources)'
+						],
+					},
+				],
+				[
+					'toolset_os == "win" and toolset_arch == "x64"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_win64_dir)',
+						],
+						
+						'sources':
+						[
+							'<@(libffi_win64_source_files)',
 							'<@(libffi_generic_sources)'
 						],
 					},

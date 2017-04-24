@@ -40,7 +40,7 @@
 			[
 				'.',
 			],
-			
+		
 			'defines':
 			[
 				# A whole pile of configuration options...
@@ -80,6 +80,7 @@
 				'__STDC_FORMAT_MACROS',
 				'DYNAMIC_ANNOTATIONS_ENABLED=1',
 				'WTF_USE_DYNAMIC_ANNOTATIONS=1',
+                'NDEBUG',
 			],
 			
 			'sources':
@@ -109,6 +110,7 @@
 				'libcef_dll/cpptoc/display_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/domvisitor_cpptoc.cc',
 				'libcef_dll/cpptoc/download_handler_cpptoc.cc',
+                'libcef_dll/cpptoc/download_image_callback_cpptoc.cc',
 				'libcef_dll/cpptoc/drag_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/end_tracing_callback_cpptoc.cc',
 				'libcef_dll/cpptoc/find_handler_cpptoc.cc',
@@ -119,6 +121,7 @@
 				'libcef_dll/cpptoc/keyboard_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/life_span_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/load_handler_cpptoc.cc',
+                'libcef_dll/cpptoc/menu_model_delegate_cpptoc.cc',
 				'libcef_dll/cpptoc/navigation_entry_visitor_cpptoc.cc',
 				'libcef_dll/cpptoc/pdf_print_callback_cpptoc.cc',
 				'libcef_dll/cpptoc/print_handler_cpptoc.cc',
@@ -127,6 +130,7 @@
 				'libcef_dll/cpptoc/render_process_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/request_context_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/request_handler_cpptoc.cc',
+                'libcef_dll/cpptoc/resolve_callback_cpptoc.cc',
 				'libcef_dll/cpptoc/resource_bundle_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/resource_handler_cpptoc.cc',
 				'libcef_dll/cpptoc/response_filter_cpptoc.cc',
@@ -159,6 +163,7 @@
 				'libcef_dll/ctocpp/file_dialog_callback_ctocpp.cc',
 				'libcef_dll/ctocpp/frame_ctocpp.cc',
 				'libcef_dll/ctocpp/geolocation_callback_ctocpp.cc',
+                'libcef_dll/ctocpp/image_ctocpp.cc',
 				'libcef_dll/ctocpp/jsdialog_callback_ctocpp.cc',
 				'libcef_dll/ctocpp/list_value_ctocpp.cc',
 				'libcef_dll/ctocpp/menu_model_ctocpp.cc',
@@ -172,6 +177,7 @@
 				'libcef_dll/ctocpp/request_callback_ctocpp.cc',
 				'libcef_dll/ctocpp/request_context_ctocpp.cc',
 				'libcef_dll/ctocpp/request_ctocpp.cc',
+                'libcef_dll/ctocpp/resource_bundle_ctocpp.cc',
 				'libcef_dll/ctocpp/response_ctocpp.cc',
 				'libcef_dll/ctocpp/run_context_menu_callback_ctocpp.cc',
 				'libcef_dll/ctocpp/scheme_registrar_ctocpp.cc',
@@ -193,6 +199,7 @@
 				'libcef_dll/wrapper/cef_byte_read_handler.cc',
 				'libcef_dll/wrapper/cef_closure_task.cc',
 				'libcef_dll/wrapper/cef_message_router.cc',
+                'libcef_dll/wrapper/cef_resource_manager.cc',
 				'libcef_dll/wrapper/cef_stream_resource_handler.cc',
 				'libcef_dll/wrapper/cef_xml_object.cc',
 				'libcef_dll/wrapper/cef_zip_archive.cc',

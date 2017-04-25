@@ -15,6 +15,7 @@ cef ./CEF/libcef ./CEF/libcef ./CEF/libcef
 	cef_command_line_get_global: () -> (pointer)
 	cef_cookie_manager_create_manager: (pointer,integer,pointer) -> (pointer)
 	cef_cookie_manager_get_global_manager: (pointer) -> (pointer)
+	cef_create_context_shared: (pointer,pointer) -> (pointer)
 	cef_create_url: (pointer,pointer) -> (integer)
 	cef_currently_on: (integer) -> (integer)
 	cef_dictionary_value_create: () -> (pointer)
@@ -35,6 +36,7 @@ cef ./CEF/libcef ./CEF/libcef ./CEF/libcef
 	cef_get_min_log_level: () -> (integer)
 	cef_get_path: (integer,pointer) -> (integer)
 	cef_get_vlog_level: (pointer,intsize) -> (integer)
+	? cef_get_xdisplay: () -> (pointer)
 	cef_image_create: () -> (pointer)
 	cef_initialize: (pointer,pointer,pointer,pointer) -> (integer)
 	cef_is_web_plugin_unstable: (pointer,pointer) -> ()
@@ -166,7 +168,6 @@ cef ./CEF/libcef ./CEF/libcef ./CEF/libcef
 	cef_write_json: (pointer,integer) -> (pointer)
 	cef_xml_reader_create: (pointer,integer,pointer) -> (pointer)
 	cef_zip_reader_create: (pointer) -> (pointer)
-	create_context_shared: (pointer,pointer) -> (pointer)
 #	cef_get_current_platform_thread_handle: () -> (cef_platform_thread_handle_t)
 #	cef_get_current_platform_thread_id: () -> (cef_platform_thread_id_t)
 # ( CEF_EXPORT __declspec(dllexport) #elif USING_CEF_SHARED #define CEF_EXPORT __declspec(dllimport) #else #define CEF_EXPORT #endif #define CEF_CALLBACK __stdcall #elif defined(COMPILER_GCC) #define CEF_EXPORT __attribute__ ((visibility("default"))) #define CEF_CALLBACK #endif // COMPILER_GCC #endif // CEF_INCLUDE_INTERNAL_CEF_EXPORT_H_

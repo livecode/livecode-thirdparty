@@ -13,7 +13,8 @@ _s_type_table = {
 "uint64":"integer64",
 "double":"double",
 "void":"",
-"size_t":"integer",
+"size_t":"intsize",
+"time_t":"integer64",
 "cef_json_parser_options_t":"integer",
 "cef_json_writer_options_t":"integer",
 "cef_path_key_t":"integer",
@@ -120,13 +121,12 @@ def gen_stubs_file(pPaths):
 
 	tSignatureList.sort()
 	
-	print "cef libcef.so libcef.dylib libcef.dll"
+	print "cef ./CEF/libcef ./CEF/libcef ./CEF/libcef"
 	print "\n".join(tSignatureList)
-
 
 #get include folder from the command line
 tPaths = ["."]
 if len(sys.argv) > 1:
 	tPaths = sys.argv[1:]
-	
+
 gen_stubs_file(tPaths)

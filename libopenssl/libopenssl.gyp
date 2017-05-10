@@ -10,6 +10,11 @@
 			'target_name': 'libopenssl_stubs',
 			'type': 'static_library',
 
+			'dependencies':
+			[
+				'../../prebuilt/libopenssl.gyp:libopenssl_headers',
+			],
+
 			'variables':
 			{
 				'library_for_module': 1,
@@ -59,7 +64,7 @@
 						{
 							'include_dirs':
 							[
-								'../../prebuilt/unpacked/openssl/<(target_arch)-win32-$(PlatformToolset)_static_$(ConfigurationName)/include',
+								'../../prebuilt/unpacked/openssl/<(uniform_arch)-win32-$(PlatformToolset)_static_$(ConfigurationName)/include',
 							],
 						},
 					],

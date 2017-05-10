@@ -36,10 +36,11 @@ class CefBrowserHostCToCpp
   // CefBrowserHost methods.
   CefRefPtr<CefBrowser> GetBrowser() OVERRIDE;
   void CloseBrowser(bool force_close) OVERRIDE;
+  bool TryCloseBrowser() OVERRIDE;
   void SetFocus(bool focus) OVERRIDE;
-  void SetWindowVisibility(bool visible) OVERRIDE;
   CefWindowHandle GetWindowHandle() OVERRIDE;
   CefWindowHandle GetOpenerWindowHandle() OVERRIDE;
+  bool HasView() OVERRIDE;
   CefRefPtr<CefClient> GetClient() OVERRIDE;
   CefRefPtr<CefRequestContext> GetRequestContext() OVERRIDE;
   double GetZoomLevel() OVERRIDE;
@@ -49,6 +50,9 @@ class CefBrowserHostCToCpp
       const std::vector<CefString>& accept_filters, int selected_accept_filter,
       CefRefPtr<CefRunFileDialogCallback> callback) OVERRIDE;
   void StartDownload(const CefString& url) OVERRIDE;
+  void DownloadImage(const CefString& image_url, bool is_favicon,
+      uint32 max_image_size, bool bypass_cache,
+      CefRefPtr<CefDownloadImageCallback> callback) OVERRIDE;
   void Print() OVERRIDE;
   void PrintToPDF(const CefString& path, const CefPdfPrintSettings& settings,
       CefRefPtr<CefPdfPrintCallback> callback) OVERRIDE;
@@ -59,6 +63,7 @@ class CefBrowserHostCToCpp
       CefRefPtr<CefClient> client, const CefBrowserSettings& settings,
       const CefPoint& inspect_element_at) OVERRIDE;
   void CloseDevTools() OVERRIDE;
+  bool HasDevTools() OVERRIDE;
   void GetNavigationEntries(CefRefPtr<CefNavigationEntryVisitor> visitor,
       bool current_only) OVERRIDE;
   void SetMouseCursorChangeDisabled(bool disabled) OVERRIDE;

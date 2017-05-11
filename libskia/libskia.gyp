@@ -1678,7 +1678,7 @@
 			'conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x86_64")',
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64", "x64")',
 					{
 						'sources/':
 						[

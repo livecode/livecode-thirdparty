@@ -36,33 +36,38 @@ public:
 
         Note: only affects stroked paths.
     */
-    SkDashPathEffect(const SkScalar intervals[], int count, SkScalar phase,
-                     bool scaleToFit = false);
-    virtual ~SkDashPathEffect();
+    static sk_sp<SkPathEffect> Make(const SkScalar intervals[], int count, SkScalar phase);
 
     virtual bool filterPath(SkPath* dst, const SkPath& src,
-                            SkStrokeRec*, const SkRect*) const SK_OVERRIDE;
+                            SkStrokeRec*, const SkRect*) const override;
 
     virtual bool asPoints(PointData* results, const SkPath& src,
                           const SkStrokeRec&, const SkMatrix&,
-                          const SkRect*) const SK_OVERRIDE;
+                          const SkRect*) const override;
 
-    virtual Factory getFactory() const SK_OVERRIDE;
+    DashType asADash(DashInfo* info) const override;
 
-    static SkFlattenable* CreateProc(SkFlattenableReadBuffer&);
+    SK_TO_STRING_OVERRIDE()
+    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkDashPathEffect)
+
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+    bool exposedInAndroidJavaAPI() const override { return true; }
+#endif
 
 protected:
-    SkDashPathEffect(SkFlattenableReadBuffer&);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
+    virtual ~SkDashPathEffect();
+    SkDashPathEffect(const SkScalar intervals[], int count, SkScalar phase);
+    void flatten(SkWriteBuffer&) const override;
 
 private:
     SkScalar*   fIntervals;
     int32_t     fCount;
+    SkScalar    fPhase;
     // computed from phase
+
     SkScalar    fInitialDashLength;
     int32_t     fInitialDashIndex;
     SkScalar    fIntervalLength;
-    bool        fScaleToFit;
 
     typedef SkPathEffect INHERITED;
 };

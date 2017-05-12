@@ -5,48 +5,22 @@
  * found in the LICENSE file.
  */
 
-#include "SkImageEncoder.h"
-#include "SkBitmap.h"
-#include "SkStream.h"
-#include "SkTemplates.h"
+#include "SkImageEncoderPriv.h"
 
-SkImageEncoder::~SkImageEncoder() {}
-
-bool SkImageEncoder::encodeStream(SkWStream* stream, const SkBitmap& bm,
-                                  int quality) {
-    quality = SkMin32(100, SkMax32(0, quality));
-    return this->onEncode(stream, bm, quality);
-}
-
-bool SkImageEncoder::encodeFile(const char file[], const SkBitmap& bm,
-                                int quality) {
-    quality = SkMin32(100, SkMax32(0, quality));
-    SkFILEWStream   stream(file);
-    return this->onEncode(&stream, bm, quality);
-}
-
-SkData* SkImageEncoder::encodeData(const SkBitmap& bm, int quality) {
-    SkDynamicMemoryWStream stream;
-    quality = SkMin32(100, SkMax32(0, quality));
-    if (this->onEncode(&stream, bm, quality)) {
-        return stream.copyToData();
-    }
-    return NULL;
-}
-
-bool SkImageEncoder::EncodeFile(const char file[], const SkBitmap& bm, Type t,
-                                int quality) {
-    SkAutoTDelete<SkImageEncoder> enc(SkImageEncoder::Create(t));
-    return enc.get() && enc.get()->encodeFile(file, bm, quality);
-}
-
-bool SkImageEncoder::EncodeStream(SkWStream* stream, const SkBitmap& bm, Type t,
-                                  int quality) {
-    SkAutoTDelete<SkImageEncoder> enc(SkImageEncoder::Create(t));
-    return enc.get() && enc.get()->encodeStream(stream, bm, quality);
-}
-
-SkData* SkImageEncoder::EncodeData(const SkBitmap& bm, Type t, int quality) {
-    SkAutoTDelete<SkImageEncoder> enc(SkImageEncoder::Create(t));
-    return enc.get() ? enc.get()->encodeData(bm, quality) : NULL;
+bool SkEncodeImage(SkWStream* dst, const SkPixmap& src,
+                   SkEncodedImageFormat format, int quality) {
+    #ifdef SK_USE_CG_ENCODER
+        (void)quality;
+        return SkEncodeImageWithCG(dst, src, format);
+    #elif SK_USE_WIC_ENCODER
+        return SkEncodeImageWithWIC(dst, src, format, quality);
+    #else
+        switch(format) {
+            //case SkEncodedImageFormat::kJPEG: return SkEncodeImageAsJPEG(dst, src, quality);
+            //case SkEncodedImageFormat::kPNG:  return SkEncodeImageAsPNG(dst, src);
+            //case SkEncodedImageFormat::kWEBP: return SkEncodeImageAsWEBP(dst, src, quality);
+            //case SkEncodedImageFormat::kKTX:  return SkEncodeImageAsKTX(dst, src);
+            default:                          return false;
+        }
+    #endif
 }

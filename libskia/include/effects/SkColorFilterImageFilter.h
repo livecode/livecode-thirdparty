@@ -14,27 +14,27 @@ class SkColorFilter;
 
 class SK_API SkColorFilterImageFilter : public SkImageFilter {
 public:
-    static SkColorFilterImageFilter* Create(SkColorFilter* cf,
-                                            SkImageFilter* input = NULL,
-                                            const CropRect* cropRect = NULL);
-    virtual ~SkColorFilterImageFilter();
+    static sk_sp<SkImageFilter> Make(sk_sp<SkColorFilter> cf,
+                                     sk_sp<SkImageFilter> input,
+                                     const CropRect* cropRect = NULL);
 
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkColorFilterImageFilter)
 
 protected:
-    SkColorFilterImageFilter(SkFlattenableReadBuffer& buffer);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
-                               SkBitmap* result, SkIPoint* loc) SK_OVERRIDE;
-
-    virtual bool asColorFilter(SkColorFilter**) const SK_OVERRIDE;
+    void flatten(SkWriteBuffer&) const override;
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
+    bool onIsColorFilterNode(SkColorFilter**) const override;
+    bool onCanHandleComplexCTM() const override { return true; }
+    bool affectsTransparentBlack() const override;
 
 private:
-    SkColorFilterImageFilter(SkColorFilter* cf,
-                             SkImageFilter* input,
-                             const CropRect* cropRect = NULL);
-    SkColorFilter*  fColorFilter;
+    SkColorFilterImageFilter(sk_sp<SkColorFilter> cf,
+                             sk_sp<SkImageFilter> input,
+                             const CropRect* cropRect);
+
+    sk_sp<SkColorFilter> fColorFilter;
 
     typedef SkImageFilter INHERITED;
 };

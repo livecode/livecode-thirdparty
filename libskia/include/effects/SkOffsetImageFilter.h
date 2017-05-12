@@ -12,23 +12,28 @@
 #include "SkPoint.h"
 
 class SK_API SkOffsetImageFilter : public SkImageFilter {
-    typedef SkImageFilter INHERITED;
-
 public:
-    SkOffsetImageFilter(SkScalar dx, SkScalar dy, SkImageFilter* input = NULL,
-                        const CropRect* cropRect = NULL);
+    static sk_sp<SkImageFilter> Make(SkScalar dx, SkScalar dy,
+                                     sk_sp<SkImageFilter> input,
+                                     const CropRect* cropRect = nullptr);
+
+    SkRect computeFastBounds(const SkRect& src) const override;
+
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkOffsetImageFilter)
 
 protected:
-    SkOffsetImageFilter(SkFlattenableReadBuffer& buffer);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
-                               SkBitmap* result, SkIPoint* loc) SK_OVERRIDE;
-    virtual bool onFilterBounds(const SkIRect&, const SkMatrix&, SkIRect*) SK_OVERRIDE;
+    void flatten(SkWriteBuffer&) const override;
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
+    SkIRect onFilterNodeBounds(const SkIRect&, const SkMatrix&, MapDirection) const override;
 
 private:
+    SkOffsetImageFilter(SkScalar dx, SkScalar dy, sk_sp<SkImageFilter> input, const CropRect*);
+
     SkVector fOffset;
+
+    typedef SkImageFilter INHERITED;
 };
 
 #endif

@@ -1,445 +1,238 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-#include "SkColorPriv.h"
-#include "SkFlattenableBuffers.h"
-#include "SkPixelRef.h"
-#include "SkErrorInternals.h"
+
 #include "SkBitmapProcShader.h"
-
-#if SK_SUPPORT_GPU
-#include "effects/GrSimpleTextureEffect.h"
-#include "effects/GrBicubicEffect.h"
-#endif
-
-bool SkBitmapProcShader::CanDo(const SkBitmap& bm, TileMode tx, TileMode ty) {
-    switch (bm.config()) {
-        case SkBitmap::kA8_Config:
-        case SkBitmap::kRGB_565_Config:
-        case SkBitmap::kIndex8_Config:
-        case SkBitmap::kARGB_8888_Config:
-    //        if (tx == ty && (kClamp_TileMode == tx || kRepeat_TileMode == tx))
-                return true;
-        default:
-            break;
-    }
-    return false;
-}
-
-SkBitmapProcShader::SkBitmapProcShader(const SkBitmap& src,
-                                       TileMode tmx, TileMode tmy) {
-    fRawBitmap = src;
-    fState.fTileModeX = (uint8_t)tmx;
-    fState.fTileModeY = (uint8_t)tmy;
-    fFlags = 0; // computed in setContext
-}
-
-SkBitmapProcShader::SkBitmapProcShader(SkFlattenableReadBuffer& buffer)
-        : INHERITED(buffer) {
-    buffer.readBitmap(&fRawBitmap);
-    fRawBitmap.setImmutable();
-    fState.fTileModeX = buffer.readUInt();
-    fState.fTileModeY = buffer.readUInt();
-    fFlags = 0; // computed in setContext
-}
-
-SkShader::BitmapType SkBitmapProcShader::asABitmap(SkBitmap* texture,
-                                                   SkMatrix* texM,
-                                                   TileMode xy[]) const {
-    if (texture) {
-        *texture = fRawBitmap;
-    }
-    if (texM) {
-        texM->reset();
-    }
-    if (xy) {
-        xy[0] = (TileMode)fState.fTileModeX;
-        xy[1] = (TileMode)fState.fTileModeY;
-    }
-    return kDefault_BitmapType;
-}
-
-void SkBitmapProcShader::flatten(SkFlattenableWriteBuffer& buffer) const {
-    this->INHERITED::flatten(buffer);
-
-    buffer.writeBitmap(fRawBitmap);
-    buffer.writeUInt(fState.fTileModeX);
-    buffer.writeUInt(fState.fTileModeY);
-}
+#include "SkBitmapProcState.h"
+#include "SkBitmapProvider.h"
+#include "SkXfermodePriv.h"
 
 static bool only_scale_and_translate(const SkMatrix& matrix) {
     unsigned mask = SkMatrix::kTranslate_Mask | SkMatrix::kScale_Mask;
     return (matrix.getType() & ~mask) == 0;
 }
 
-bool SkBitmapProcShader::isOpaque() const {
-    return fRawBitmap.isOpaque();
-}
+class BitmapProcInfoContext : public SkShader::Context {
+public:
+    // The info has been allocated elsewhere, but we are responsible for calling its destructor.
+    BitmapProcInfoContext(const SkShader& shader, const SkShader::ContextRec& rec,
+                            SkBitmapProcInfo* info)
+        : INHERITED(shader, rec)
+        , fInfo(info)
+    {
+        fFlags = 0;
+        if (fInfo->fPixmap.isOpaque() && (255 == this->getPaintAlpha())) {
+            fFlags |= SkShader::kOpaqueAlpha_Flag;
+        }
 
-static bool valid_for_drawing(const SkBitmap& bm) {
-    if (0 == bm.width() || 0 == bm.height()) {
-        return false;   // nothing to draw
-    }
-    if (NULL == bm.pixelRef()) {
-        return false;   // no pixels to read
-    }
-    if (SkBitmap::kIndex8_Config == bm.config()) {
-        // ugh, I have to lock-pixels to inspect the colortable
-        SkAutoLockPixels alp(bm);
-        if (!bm.getColorTable()) {
-            return false;
+        if (1 == fInfo->fPixmap.height() && only_scale_and_translate(this->getTotalInverse())) {
+            fFlags |= SkShader::kConstInY32_Flag;
         }
     }
-    return true;
-}
 
-bool SkBitmapProcShader::setContext(const SkBitmap& device,
-                                    const SkPaint& paint,
-                                    const SkMatrix& matrix) {
-    if (!fRawBitmap.getTexture() && !valid_for_drawing(fRawBitmap)) {
-        return false;
+    ~BitmapProcInfoContext() override {
+        fInfo->~SkBitmapProcInfo();
     }
 
-    // do this first, so we have a correct inverse matrix
-    if (!this->INHERITED::setContext(device, paint, matrix)) {
-        return false;
-    }
+    uint32_t getFlags() const override { return fFlags; }
 
-    fState.fOrigBitmap = fRawBitmap;
-    if (!fState.chooseProcs(this->getTotalInverse(), paint)) {
-        this->INHERITED::endContext();
-        return false;
-    }
+private:
+    SkBitmapProcInfo*   fInfo;
+    uint32_t            fFlags;
 
-    const SkBitmap& bitmap = *fState.fBitmap;
-    bool bitmapIsOpaque = bitmap.isOpaque();
+    typedef SkShader::Context INHERITED;
+};
 
-    // update fFlags
-    uint32_t flags = 0;
-    if (bitmapIsOpaque && (255 == this->getPaintAlpha())) {
-        flags |= kOpaqueAlpha_Flag;
-    }
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
-    switch (bitmap.config()) {
-        case SkBitmap::kRGB_565_Config:
-            flags |= (kHasSpan16_Flag | kIntrinsicly16_Flag);
-            break;
-        case SkBitmap::kIndex8_Config:
-        case SkBitmap::kARGB_8888_Config:
-            if (bitmapIsOpaque) {
-                flags |= kHasSpan16_Flag;
+class BitmapProcShaderContext : public BitmapProcInfoContext {
+public:
+    BitmapProcShaderContext(const SkShader& shader, const SkShader::ContextRec& rec,
+                            SkBitmapProcState* state)
+        : INHERITED(shader, rec, state)
+        , fState(state)
+    {}
+
+    void shadeSpan(int x, int y, SkPMColor dstC[], int count) override {
+        const SkBitmapProcState& state = *fState;
+        if (state.getShaderProc32()) {
+            state.getShaderProc32()(&state, x, y, dstC, count);
+            return;
+        }
+
+        const int BUF_MAX = 128;
+        uint32_t buffer[BUF_MAX];
+        SkBitmapProcState::MatrixProc   mproc = state.getMatrixProc();
+        SkBitmapProcState::SampleProc32 sproc = state.getSampleProc32();
+        const int max = state.maxCountForBufferSize(sizeof(buffer[0]) * BUF_MAX);
+
+        SkASSERT(state.fPixmap.addr());
+
+        for (;;) {
+            int n = SkTMin(count, max);
+            SkASSERT(n > 0 && n < BUF_MAX*2);
+            mproc(state, buffer, n, x, y);
+            sproc(state, buffer, n, dstC);
+
+            if ((count -= n) == 0) {
+                break;
             }
-            break;
-        case SkBitmap::kA8_Config:
-            break;  // never set kHasSpan16_Flag
-        default:
-            break;
-    }
-
-    if (paint.isDither() && bitmap.config() != SkBitmap::kRGB_565_Config) {
-        // gradients can auto-dither in their 16bit sampler, but we don't so
-        // we clear the flag here.
-        flags &= ~kHasSpan16_Flag;
-    }
-
-    // if we're only 1-pixel high, and we don't rotate, then we can claim this
-    if (1 == bitmap.height() &&
-            only_scale_and_translate(this->getTotalInverse())) {
-        flags |= kConstInY32_Flag;
-        if (flags & kHasSpan16_Flag) {
-            flags |= kConstInY16_Flag;
+            SkASSERT(count > 0);
+            x += n;
+            dstC += n;
         }
     }
 
-    fFlags = flags;
-    return true;
-}
-
-void SkBitmapProcShader::endContext() {
-    fState.endContext();
-    this->INHERITED::endContext();
-}
-
-#define BUF_MAX     128
-
-#define TEST_BUFFER_OVERRITEx
-
-#ifdef TEST_BUFFER_OVERRITE
-    #define TEST_BUFFER_EXTRA   32
-    #define TEST_PATTERN    0x88888888
-#else
-    #define TEST_BUFFER_EXTRA   0
-#endif
-
-void SkBitmapProcShader::shadeSpan(int x, int y, SkPMColor dstC[], int count) {
-    const SkBitmapProcState& state = fState;
-    if (state.getShaderProc32()) {
-        state.getShaderProc32()(state, x, y, dstC, count);
-        return;
+    ShadeProc asAShadeProc(void** ctx) override {
+        if (fState->getShaderProc32()) {
+            *ctx = fState;
+            return (ShadeProc)fState->getShaderProc32();
+        }
+        return nullptr;
     }
 
-    uint32_t buffer[BUF_MAX + TEST_BUFFER_EXTRA];
-    SkBitmapProcState::MatrixProc   mproc = state.getMatrixProc();
-    SkBitmapProcState::SampleProc32 sproc = state.getSampleProc32();
-    int max = fState.maxCountForBufferSize(sizeof(buffer[0]) * BUF_MAX);
+private:
+    SkBitmapProcState*  fState;
 
-    SkASSERT(state.fBitmap->getPixels());
-    SkASSERT(state.fBitmap->pixelRef() == NULL ||
-             state.fBitmap->pixelRef()->isLocked());
+    typedef BitmapProcInfoContext INHERITED;
+};
 
-    for (;;) {
-        int n = count;
-        if (n > max) {
-            n = max;
-        }
-        SkASSERT(n > 0 && n < BUF_MAX*2);
-#ifdef TEST_BUFFER_OVERRITE
-        for (int i = 0; i < TEST_BUFFER_EXTRA; i++) {
-            buffer[BUF_MAX + i] = TEST_PATTERN;
-        }
-#endif
-        mproc(state, buffer, n, x, y);
-#ifdef TEST_BUFFER_OVERRITE
-        for (int j = 0; j < TEST_BUFFER_EXTRA; j++) {
-            SkASSERT(buffer[BUF_MAX + j] == TEST_PATTERN);
-        }
-#endif
-        sproc(state, buffer, n, dstC);
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#include "SkLinearBitmapPipeline.h"
+#include "SkPM4f.h"
 
-        if ((count -= n) == 0) {
-            break;
-        }
-        SkASSERT(count > 0);
-        x += n;
-        dstC += n;
-    }
-}
+class LinearPipelineContext : public BitmapProcInfoContext {
+public:
+    LinearPipelineContext(const SkShader& shader, const SkShader::ContextRec& rec,
+                          SkBitmapProcInfo* info)
+        : INHERITED(shader, rec, info)
+    {
+        // Save things off in case we need to build a blitter pipeline.
+        fSrcPixmap = info->fPixmap;
+        fAlpha = SkColorGetA(info->fPaintColor) / 255.0f;
+        fFilterQuality = info->fFilterQuality;
+        fMatrixTypeMask = info->fRealInvMatrix.getType();
 
-SkShader::ShadeProc SkBitmapProcShader::asAShadeProc(void** ctx) {
-    if (fState.getShaderProc32()) {
-        *ctx = &fState;
-        return (ShadeProc)fState.getShaderProc32();
-    }
-    return NULL;
-}
+        fShaderPipeline = fAllocator.make<SkLinearBitmapPipeline>(
+            info->fRealInvMatrix, info->fFilterQuality,
+            info->fTileModeX, info->fTileModeY,
+            info->fPaintColor,
+            info->fPixmap,
+            &fAllocator);
 
-void SkBitmapProcShader::shadeSpan16(int x, int y, uint16_t dstC[], int count) {
-    const SkBitmapProcState& state = fState;
-    if (state.getShaderProc16()) {
-        state.getShaderProc16()(state, x, y, dstC, count);
-        return;
+        // To implement the old shadeSpan entry-point, we need to efficiently convert our native
+        // floats into SkPMColor. The SkXfermode::D32Procs do exactly that.
+        //
+        fSrcModeProc = SkXfermode::GetD32Proc(SkBlendMode::kSrc, 0);
     }
 
-    uint32_t buffer[BUF_MAX];
-    SkBitmapProcState::MatrixProc   mproc = state.getMatrixProc();
-    SkBitmapProcState::SampleProc16 sproc = state.getSampleProc16();
-    int max = fState.maxCountForBufferSize(sizeof(buffer));
-
-    SkASSERT(state.fBitmap->getPixels());
-    SkASSERT(state.fBitmap->pixelRef() == NULL ||
-             state.fBitmap->pixelRef()->isLocked());
-
-    for (;;) {
-        int n = count;
-        if (n > max) {
-            n = max;
-        }
-        mproc(state, buffer, n, x, y);
-        sproc(state, buffer, n, dstC);
-
-        if ((count -= n) == 0) {
-            break;
-        }
-        x += n;
-        dstC += n;
+    void shadeSpan4f(int x, int y, SkPM4f dstC[], int count) override {
+        fShaderPipeline->shadeSpan4f(x, y, dstC, count);
     }
-}
 
-///////////////////////////////////////////////////////////////////////////////
+    void shadeSpan(int x, int y, SkPMColor dstC[], int count) override {
+        const int N = 128;
+        SkPM4f  tmp[N];
 
-#include "SkUnPreMultiply.h"
-#include "SkColorShader.h"
-#include "SkEmptyShader.h"
+        while (count > 0) {
+            const int n = SkTMin(count, N);
+            fShaderPipeline->shadeSpan4f(x, y, tmp, n);
+            fSrcModeProc(SkBlendMode::kSrc, dstC, tmp, n, nullptr);
+            dstC += n;
+            x += n;
+            count -= n;
+        }
+    }
 
-// returns true and set color if the bitmap can be drawn as a single color
-// (for efficiency)
-static bool canUseColorShader(const SkBitmap& bm, SkColor* color) {
-    if (1 != bm.width() || 1 != bm.height()) {
+    bool onChooseBlitProcs(const SkImageInfo& dstInfo, BlitState* state) override {
+        if ((fBlitterPipeline = SkLinearBitmapPipeline::ClonePipelineForBlitting(
+            *fShaderPipeline,
+            fMatrixTypeMask,
+            fFilterQuality, fSrcPixmap,
+            fAlpha, state->fMode, dstInfo, &fAllocator)))
+        {
+            state->fStorage[0] = fBlitterPipeline;
+            state->fBlitBW = &LinearPipelineContext::ForwardToPipeline;
+
+            return true;
+        }
+
         return false;
     }
 
-    SkAutoLockPixels alp(bm);
-    if (!bm.readyToDraw()) {
-        return false;
+    static void ForwardToPipeline(BlitState* state, int x, int y, const SkPixmap& dst, int count) {
+        SkLinearBitmapPipeline* pipeline = static_cast<SkLinearBitmapPipeline*>(state->fStorage[0]);
+        void* addr = dst.writable_addr32(x, y);
+        pipeline->blitSpan(x, y, addr, count);
     }
 
-    switch (bm.config()) {
-        case SkBitmap::kARGB_8888_Config:
-            *color = SkUnPreMultiply::PMColorToColor(*bm.getAddr32(0, 0));
-            return true;
-        case SkBitmap::kRGB_565_Config:
-            *color = SkPixel16ToColor(*bm.getAddr16(0, 0));
-            return true;
-        case SkBitmap::kIndex8_Config:
-            *color = SkUnPreMultiply::PMColorToColor(bm.getIndex8Color(0, 0));
-            return true;
-        default: // just skip the other configs for now
-            break;
-    }
-    return false;
-}
+private:
+    char                    fStorage[512 + 96];
+    SkFixedAlloc            fFixedAlloc {fStorage, sizeof(fStorage)};
+    SkFallbackAlloc         fAllocator {&fFixedAlloc};
+    SkLinearBitmapPipeline* fShaderPipeline;
+    SkLinearBitmapPipeline* fBlitterPipeline;
+    SkXfermode::D32Proc     fSrcModeProc;
+    SkPixmap                fSrcPixmap;
+    float                   fAlpha;
+    SkMatrix::TypeMask      fMatrixTypeMask;
+    SkFilterQuality         fFilterQuality;
 
-#include "SkTemplatesPriv.h"
+    typedef BitmapProcInfoContext INHERITED;
+};
 
-static bool bitmapIsTooBig(const SkBitmap& bm) {
-    // SkBitmapProcShader stores bitmap coordinates in a 16bit buffer, as it
-    // communicates between its matrix-proc and its sampler-proc. Until we can
-    // widen that, we have to reject bitmaps that are larger.
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+static bool choose_linear_pipeline(const SkShader::ContextRec& rec, const SkImageInfo& srcInfo) {
+    // If we get here, we can reasonably use either context, respect the caller's preference
     //
-    const int maxSize = 65535;
-
-    return bm.width() > maxSize || bm.height() > maxSize;
+    bool needsPremul = srcInfo.alphaType() == kUnpremul_SkAlphaType;
+    bool needsSwizzle = srcInfo.bytesPerPixel() == 4 && srcInfo.colorType() != kN32_SkColorType;
+    return SkShader::ContextRec::kPM4f_DstType == rec.fPreferredDstType
+           || needsPremul || needsSwizzle;
 }
 
-SkShader* SkShader::CreateBitmapShader(const SkBitmap& src,
-                                       TileMode tmx, TileMode tmy,
-                                       void* storage, size_t storageSize) {
-    SkShader* shader;
-    SkColor color;
-    if (src.isNull() || bitmapIsTooBig(src)) {
-        SK_PLACEMENT_NEW(shader, SkEmptyShader, storage, storageSize);
+size_t SkBitmapProcLegacyShader::ContextSize(const ContextRec& rec, const SkImageInfo& srcInfo) {
+    size_t size0 = sizeof(BitmapProcShaderContext) + sizeof(SkBitmapProcState);
+    size_t size1 = sizeof(LinearPipelineContext) + sizeof(SkBitmapProcInfo);
+    size_t s = SkTMax(size0, size1);
+    return s;
+}
+
+SkShader::Context* SkBitmapProcLegacyShader::MakeContext(const SkShader& shader,
+                                                   TileMode tmx, TileMode tmy,
+                                                   const SkBitmapProvider& provider,
+                                                   const ContextRec& rec, void* storage) {
+    SkMatrix totalInverse;
+    // Do this first, so we know the matrix can be inverted.
+    if (!shader.computeTotalInverse(rec, &totalInverse)) {
+        return nullptr;
     }
-    else if (canUseColorShader(src, &color)) {
-        SK_PLACEMENT_NEW_ARGS(shader, SkColorShader, storage, storageSize,
-                              (color));
+
+    // Decide if we can/want to use the new linear pipeline
+    bool useLinearPipeline = choose_linear_pipeline(rec, provider.info());
+    SkDestinationSurfaceColorMode colorMode = SkMipMap::DeduceColorMode(rec);
+
+    if (useLinearPipeline) {
+        void* infoStorage = (char*)storage + sizeof(LinearPipelineContext);
+        SkBitmapProcInfo* info = new (infoStorage) SkBitmapProcInfo(provider, tmx, tmy, colorMode);
+        if (!info->init(totalInverse, *rec.fPaint)) {
+            info->~SkBitmapProcInfo();
+            return nullptr;
+        }
+
+        return new (storage) LinearPipelineContext(shader, rec, info);
     } else {
-        SK_PLACEMENT_NEW_ARGS(shader, SkBitmapProcShader, storage,
-                              storageSize, (src, tmx, tmy));
-    }
-    return shader;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-#ifdef SK_DEVELOPER
-void SkBitmapProcShader::toString(SkString* str) const {
-    static const char* gTileModeName[SkShader::kTileModeCount] = {
-        "clamp", "repeat", "mirror"
-    };
-
-    str->append("BitmapShader: (");
-
-    str->appendf("(%s, %s)",
-                 gTileModeName[fState.fTileModeX],
-                 gTileModeName[fState.fTileModeY]);
-
-    str->append(" ");
-    fRawBitmap.toString(str);
-
-    this->INHERITED::toString(str);
-
-    str->append(")");
-}
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-
-#if SK_SUPPORT_GPU
-
-#include "GrTextureAccess.h"
-#include "effects/GrSimpleTextureEffect.h"
-#include "SkGr.h"
-
-// Note that this will return -1 if either matrix is perspective.
-static SkScalar get_combined_min_stretch(const SkMatrix& viewMatrix, const SkMatrix& localMatrix) {
-    if (localMatrix.isIdentity()) {
-        return viewMatrix.getMinStretch();
-    } else {
-        SkMatrix combined;
-        combined.setConcat(viewMatrix, localMatrix);
-        return combined.getMinStretch();
+        void* stateStorage = (char*)storage + sizeof(BitmapProcShaderContext);
+        SkBitmapProcState* state = new (stateStorage) SkBitmapProcState(provider, tmx, tmy,
+                                                                        colorMode);
+        if (!state->setup(totalInverse, *rec.fPaint)) {
+            state->~SkBitmapProcState();
+            return nullptr;
+        }
+        return new (storage) BitmapProcShaderContext(shader, rec, state);
     }
 }
-
-GrEffectRef* SkBitmapProcShader::asNewEffect(GrContext* context, const SkPaint& paint) const {
-    SkMatrix matrix;
-    matrix.setIDiv(fRawBitmap.width(), fRawBitmap.height());
-
-    SkMatrix lmInverse;
-    if (!this->getLocalMatrix().invert(&lmInverse)) {
-        return NULL;
-    }
-    matrix.preConcat(lmInverse);
-
-    SkShader::TileMode tm[] = {
-        (TileMode)fState.fTileModeX,
-        (TileMode)fState.fTileModeY,
-    };
-
-    // Must set wrap and filter on the sampler before requesting a texture. In two places below
-    // we check the matrix scale factors to determine how to interpret the filter quality setting.
-    // This completely ignores the complexity of the drawVertices case where explicit local coords
-    // are provided by the caller.
-    SkPaint::FilterLevel paintFilterLevel = paint.getFilterLevel();
-    GrTextureParams::FilterMode textureFilterMode;
-    switch(paintFilterLevel) {
-        case SkPaint::kNone_FilterLevel:
-            textureFilterMode = GrTextureParams::kNone_FilterMode;
-            break;
-        case SkPaint::kLow_FilterLevel:
-            textureFilterMode = GrTextureParams::kBilerp_FilterMode;
-            break;
-        case SkPaint::kMedium_FilterLevel:
-            if (get_combined_min_stretch(context->getMatrix(), this->getLocalMatrix()) <
-                SK_Scalar1) {
-                textureFilterMode = GrTextureParams::kMipMap_FilterMode;
-            } else {
-                // Don't trigger MIP level generation unnecessarily.
-                textureFilterMode = GrTextureParams::kBilerp_FilterMode;
-            }
-            break;
-        case SkPaint::kHigh_FilterLevel:
-            // Minification can look bad with bicubic filtering.
-            if (get_combined_min_stretch(context->getMatrix(), this->getLocalMatrix()) >=
-                SK_Scalar1) {
-                // fall back to no filtering here; we will install another shader that will do the
-                // HQ filtering.
-                textureFilterMode = GrTextureParams::kNone_FilterMode;
-            } else {
-                // Fall back to MIP-mapping.
-                paintFilterLevel = SkPaint::kMedium_FilterLevel;
-                textureFilterMode = GrTextureParams::kMipMap_FilterMode;
-            }
-            break;
-        default:
-            SkErrorInternals::SetError( kInvalidPaint_SkError,
-                                        "Sorry, I don't understand the filtering "
-                                        "mode you asked for.  Falling back to "
-                                        "MIPMaps.");
-            textureFilterMode = GrTextureParams::kMipMap_FilterMode;
-            break;
-
-    }
-    GrTextureParams params(tm, textureFilterMode);
-    GrTexture* texture = GrLockAndRefCachedBitmapTexture(context, fRawBitmap, &params);
-
-    if (NULL == texture) {
-        SkErrorInternals::SetError( kInternalError_SkError,
-                                    "Couldn't convert bitmap to texture.");
-        return NULL;
-    }
-
-    GrEffectRef* effect = NULL;
-    if (paintFilterLevel == SkPaint::kHigh_FilterLevel) {
-        effect = GrBicubicEffect::Create(texture, matrix, tm);
-    } else {
-        effect = GrSimpleTextureEffect::Create(texture, matrix, params);
-    }
-    GrUnlockAndUnrefCachedBitmapTexture(texture);
-    return effect;
-}
-#endif

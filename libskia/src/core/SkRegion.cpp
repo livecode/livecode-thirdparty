@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2006 The Android Open Source Project
  *
@@ -7,9 +6,9 @@
  */
 
 
+#include "SkAtomics.h"
 #include "SkRegionPriv.h"
 #include "SkTemplates.h"
-#include "SkThread.h"
 #include "SkUtils.h"
 
 /* Region Layout
@@ -193,18 +192,19 @@ char* SkRegion::toString() {
     }
     // 4 ints, up to 10 digits each plus sign, 3 commas, '(', ')', SkRegion() and '\0'
     const int max = (count*((11*4)+5))+11+1;
-    char* result = (char*)malloc(max);
-    if (result == NULL) {
-        return NULL;
+    char* result = (char*)sk_malloc_throw(max);
+    if (result == nullptr) {
+        return nullptr;
     }
-    count = sprintf(result, "SkRegion(");
+    count = snprintf(result, max, "SkRegion(");
     iter.reset(*this);
     while (!iter.done()) {
         const SkIRect& r = iter.rect();
-        count += sprintf(result+count, "(%d,%d,%d,%d)", r.fLeft, r.fTop, r.fRight, r.fBottom);
+        count += snprintf(result+count, max - count, 
+                "(%d,%d,%d,%d)", r.fLeft, r.fTop, r.fRight, r.fBottom);
         iter.next();
     }
-    count += sprintf(result+count, ")");
+    count += snprintf(result+count, max - count, ")");
     return result;
 }
 #endif
@@ -212,12 +212,6 @@ char* SkRegion::toString() {
 ///////////////////////////////////////////////////////////////////////////////
 
 int SkRegion::count_runtype_values(int* itop, int* ibot) const {
-    if (this == NULL) {
-        *itop = SK_MinS32;
-        *ibot = SK_MaxS32;
-        return 0;
-    }
-
     int maxT;
 
     if (this->isRect()) {
@@ -414,7 +408,7 @@ bool SkRegion::contains(const SkRegion& rgn) const {
      *  A contains B is equivalent to
      *  B - A == 0
      */
-    return !Oper(rgn, *this, kDifference_Op, NULL);
+    return !Oper(rgn, *this, kDifference_Op, nullptr);
 }
 
 const SkRegion::RunType* SkRegion::getRuns(RunType tmpStorage[],
@@ -504,7 +498,7 @@ bool SkRegion::intersects(const SkRegion& rgn) const {
     }
 
     // both of us are complex
-    return Oper(*this, rgn, kIntersect_Op, NULL);
+    return Oper(*this, rgn, kIntersect_Op, nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -539,7 +533,7 @@ bool SkRegion::operator==(const SkRegion& b) const {
 void SkRegion::translate(int dx, int dy, SkRegion* dst) const {
     SkDEBUGCODE(this->validate();)
 
-    if (NULL == dst) {
+    if (nullptr == dst) {
         return;
     }
     if (this->isEmpty()) {
@@ -605,7 +599,7 @@ bool SkRegion::setRects(const SkIRect rects[], int count) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-#if defined _WIN32 && _MSC_VER >= 1300  // disable warning : local variable used without having been initialized
+#if defined _WIN32  // disable warning : local variable used without having been initialized
 #pragma warning ( push )
 #pragma warning ( disable : 4701 )
 #endif
@@ -743,7 +737,7 @@ static SkRegion::RunType* operate_on_span(const SkRegion::RunType a_runs[],
     return dst;
 }
 
-#if defined _WIN32 && _MSC_VER >= 1300
+#if defined _WIN32
 #pragma warning ( pop )
 #endif
 
@@ -796,7 +790,7 @@ public:
                 fTop = (SkRegion::RunType)(bottom); // just update our bottom
             } else {
                 start[-2] = (SkRegion::RunType)(bottom);
-                start[-1] = len >> 1;
+                start[-1] = SkToS32(len >> 1);
                 fPrevDst = start;
                 fPrevLen = len;
             }
@@ -1080,7 +1074,7 @@ bool SkRegion::Oper(const SkRegion& rgnaOrig, const SkRegion& rgnbOrig, Op op,
 //  sk_memset32((uint32_t*)array.get(), 0x7FFFFFFF, dstCount);
 #endif
 
-    int count = operate(a_runs, b_runs, array.get(), op, NULL == result);
+    int count = operate(a_runs, b_runs, array.get(), op, nullptr == result);
     SkASSERT(count <= dstCount);
 
     if (result) {
@@ -1101,7 +1095,7 @@ bool SkRegion::op(const SkRegion& rgna, const SkRegion& rgnb, Op op) {
 #include "SkBuffer.h"
 
 size_t SkRegion::writeToMemory(void* storage) const {
-    if (NULL == storage) {
+    if (nullptr == storage) {
         size_t size = sizeof(int32_t); // -1 (empty), 0 (rect), runCount
         if (!this->isEmpty()) {
             size += sizeof(fBounds);
@@ -1143,7 +1137,8 @@ size_t SkRegion::readFromMemory(const void* storage, size_t length) {
             tmp.fRunHead = SkRegion_gRectRunHeadPtr;
         } else {
             int32_t ySpanCount, intervalCount;
-            if (buffer.readS32(&ySpanCount) && buffer.readS32(&intervalCount)) {
+            if (buffer.readS32(&ySpanCount) && buffer.readS32(&intervalCount) &&
+                intervalCount > 1) {
                 tmp.allocateRuns(count, ySpanCount, intervalCount);
                 buffer.read(tmp.fRunHead->writable_runs(), count * sizeof(RunType));
             }
@@ -1212,7 +1207,7 @@ static void compute_bounds(const SkRegion::RunType runs[],
 
             const SkRegion::RunType* prev = runs;
             runs = skip_intervals_slow(runs);
-            int intervals = (runs - prev) >> 1;
+            int intervals = SkToInt((runs - prev) >> 1);
             SkASSERT(prev[-1] == intervals);
             intervalCount += intervals;
 
@@ -1301,7 +1296,7 @@ void SkRegion::Iterator::reset(const SkRegion& rgn) {
         fDone = false;
         if (rgn.isRect()) {
             fRect = rgn.fBounds;
-            fRuns = NULL;
+            fRuns = nullptr;
         } else {
             fRuns = rgn.fRunHead->readonly_runs();
             fRect.set(fRuns[3], fRuns[0], fRuns[4], fRuns[1]);
@@ -1316,7 +1311,7 @@ void SkRegion::Iterator::next() {
         return;
     }
 
-    if (fRuns == NULL) {   // rect case
+    if (fRuns == nullptr) {   // rect case
         fDone = true;
         return;
     }
@@ -1408,7 +1403,7 @@ SkRegion::Spanerator::Spanerator(const SkRegion& rgn, int y, int left,
             }
             fLeft = left;
             fRight = right;
-            fRuns = NULL;    // means we're a rect, not a rgn
+            fRuns = nullptr;    // means we're a rect, not a rgn
             fDone = false;
         } else {
             const SkRegion::RunType* runs = rgn.fRunHead->findScanline(y);
@@ -1439,7 +1434,7 @@ bool SkRegion::Spanerator::next(int* left, int* right) {
         return false;
     }
 
-    if (fRuns == NULL) {   // we're a rect
+    if (fRuns == nullptr) {   // we're a rect
         fDone = true;   // ok, now we're done
         if (left) {
             *left = fLeft;

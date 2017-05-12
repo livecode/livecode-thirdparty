@@ -6,15 +6,33 @@
  */
 
 #include "SkMergeImageFilter.h"
+
 #include "SkCanvas.h"
-#include "SkDevice.h"
-#include "SkFlattenableBuffers.h"
+#include "SkReadBuffer.h"
+#include "SkSpecialImage.h"
+#include "SkSpecialSurface.h"
+#include "SkWriteBuffer.h"
 #include "SkValidationUtils.h"
+
+sk_sp<SkImageFilter> SkMergeImageFilter::Make(sk_sp<SkImageFilter> first,
+                                              sk_sp<SkImageFilter> second,
+                                              SkBlendMode mode,
+                                              const CropRect* cropRect) {
+    sk_sp<SkImageFilter> inputs[2] = { first, second };
+    SkBlendMode modes[2] = { mode, mode };
+    return sk_sp<SkImageFilter>(new SkMergeImageFilter(inputs, 2, modes, cropRect));
+}
+
+sk_sp<SkImageFilter> SkMergeImageFilter::MakeN(sk_sp<SkImageFilter> filters[], int count,
+                                               const SkBlendMode modes[],
+                                               const CropRect* cropRect) {
+    return sk_sp<SkImageFilter>(new SkMergeImageFilter(filters, count, modes, cropRect));
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
 void SkMergeImageFilter::initAllocModes() {
-    int inputCount = countInputs();
+    int inputCount = this->countInputs();
     if (inputCount) {
         size_t size = sizeof(uint8_t) * inputCount;
         if (size <= sizeof(fStorage)) {
@@ -23,36 +41,26 @@ void SkMergeImageFilter::initAllocModes() {
             fModes = SkTCast<uint8_t*>(sk_malloc_throw(size));
         }
     } else {
-        fModes = NULL;
+        fModes = nullptr;
     }
 }
 
-void SkMergeImageFilter::initModes(const SkXfermode::Mode modes[]) {
+void SkMergeImageFilter::initModes(const SkBlendMode modes[]) {
     if (modes) {
         this->initAllocModes();
-        int inputCount = countInputs();
+        int inputCount = this->countInputs();
         for (int i = 0; i < inputCount; ++i) {
-            fModes[i] = SkToU8(modes[i]);
+            fModes[i] = SkToU8((unsigned)modes[i]);
         }
     } else {
-        fModes = NULL;
+        fModes = nullptr;
     }
 }
 
-SkMergeImageFilter::SkMergeImageFilter(SkImageFilter* first, SkImageFilter* second,
-                                       SkXfermode::Mode mode,
-                                       const CropRect* cropRect) : INHERITED(first, second, cropRect) {
-    if (SkXfermode::kSrcOver_Mode != mode) {
-        SkXfermode::Mode modes[] = { mode, mode };
-        this->initModes(modes);
-    } else {
-        fModes = NULL;
-    }
-}
-
-SkMergeImageFilter::SkMergeImageFilter(SkImageFilter* filters[], int count,
-                                       const SkXfermode::Mode modes[],
-                                       const CropRect* cropRect) : INHERITED(count, filters, cropRect) {
+SkMergeImageFilter::SkMergeImageFilter(sk_sp<SkImageFilter> filters[], int count,
+                                       const SkBlendMode modes[],
+                                       const CropRect* cropRect)
+    : INHERITED(filters, count, cropRect) {
     SkASSERT(count >= 0);
     this->initModes(modes);
 }
@@ -64,114 +72,122 @@ SkMergeImageFilter::~SkMergeImageFilter() {
     }
 }
 
-bool SkMergeImageFilter::onFilterBounds(const SkIRect& src, const SkMatrix& ctm,
-                                        SkIRect* dst) {
-    if (countInputs() < 1) {
-        return false;
-    }
-
-    SkIRect totalBounds;
-
-    int inputCount = countInputs();
-    for (int i = 0; i < inputCount; ++i) {
-        SkImageFilter* filter = getInput(i);
-        SkIRect r;
-        if (filter) {
-            if (!filter->filterBounds(src, ctm, &r)) {
-                return false;
-            }
-        } else {
-            r = src;
-        }
-        if (0 == i) {
-            totalBounds = r;
-        } else {
-            totalBounds.join(r);
-        }
-    }
-
-    // don't modify dst until now, so we don't accidentally change it in the
-    // loop, but then return false on the next filter.
-    *dst = totalBounds;
-    return true;
-}
-
-bool SkMergeImageFilter::onFilterImage(Proxy* proxy, const SkBitmap& src,
-                                       const SkMatrix& ctm,
-                                       SkBitmap* result, SkIPoint* offset) {
-    if (countInputs() < 1) {
-        return false;
+sk_sp<SkSpecialImage> SkMergeImageFilter::onFilterImage(SkSpecialImage* source, const Context& ctx,
+                                                        SkIPoint* offset) const {
+    int inputCount = this->countInputs();
+    if (inputCount < 1) {
+        return nullptr;
     }
 
     SkIRect bounds;
-    src.getBounds(&bounds);
-    if (!this->applyCropRect(&bounds, ctm)) {
-        return false;
+    bounds.setEmpty();
+
+    std::unique_ptr<sk_sp<SkSpecialImage>[]> inputs(new sk_sp<SkSpecialImage>[inputCount]);
+    std::unique_ptr<SkIPoint[]> offsets(new SkIPoint[inputCount]);
+
+    // Filter all of the inputs.
+    for (int i = 0; i < inputCount; ++i) {
+        offsets[i].setZero();
+        inputs[i] = this->filterInput(i, source, ctx, &offsets[i]);
+        if (!inputs[i]) {
+            continue;
+        }
+        const SkIRect inputBounds = SkIRect::MakeXYWH(offsets[i].fX, offsets[i].fY,
+                                                      inputs[i]->width(), inputs[i]->height());
+        bounds.join(inputBounds);
+    }
+    if (bounds.isEmpty()) {
+        return nullptr;
+    }
+
+    // Apply the crop rect to the union of the inputs' bounds.
+    // Note that the crop rect can only reduce the bounds, since this
+    // filter does not affect transparent black.
+    bool embiggen = false;
+    this->getCropRect().applyTo(bounds, ctx.ctm(), embiggen, &bounds);
+    if (!bounds.intersect(ctx.clipBounds())) {
+        return nullptr;
     }
 
     const int x0 = bounds.left();
     const int y0 = bounds.top();
 
-    SkAutoTUnref<SkBaseDevice> dst(proxy->createDevice(bounds.width(), bounds.height()));
-    if (NULL == dst) {
-        return false;
+    sk_sp<SkSpecialSurface> surf(source->makeSurface(ctx.outputProperties(), bounds.size()));
+    if (!surf) {
+        return nullptr;
     }
-    SkCanvas canvas(dst);
-    SkPaint paint;
 
-    int inputCount = countInputs();
+    SkCanvas* canvas = surf->getCanvas();
+    SkASSERT(canvas);
+
+    canvas->clear(0x0);
+
+    // Composite all of the filter inputs.
     for (int i = 0; i < inputCount; ++i) {
-        SkBitmap tmp;
-        const SkBitmap* srcPtr;
-        SkIPoint pos = SkIPoint::Make(0, 0);
-        SkImageFilter* filter = getInput(i);
-        if (filter) {
-            if (!filter->filterImage(proxy, src, ctm, &tmp, &pos)) {
-                return false;
-            }
-            srcPtr = &tmp;
-        } else {
-            srcPtr = &src;
+        if (!inputs[i]) {
+            continue;
         }
 
+        SkPaint paint;
         if (fModes) {
-            paint.setXfermodeMode((SkXfermode::Mode)fModes[i]);
-        } else {
-            paint.setXfermode(NULL);
+            paint.setBlendMode((SkBlendMode)fModes[i]);
         }
-        canvas.drawSprite(*srcPtr, pos.x() - x0, pos.y() - y0, &paint);
+
+        inputs[i]->draw(canvas,
+                        SkIntToScalar(offsets[i].x() - x0), SkIntToScalar(offsets[i].y() - y0),
+                        &paint);
     }
 
     offset->fX = bounds.left();
     offset->fY = bounds.top();
-    *result = dst->accessBitmap(false);
-    return true;
+    return surf->makeImageSnapshot();
 }
 
-void SkMergeImageFilter::flatten(SkFlattenableWriteBuffer& buffer) const {
-    this->INHERITED::flatten(buffer);
-
-    buffer.writeBool(fModes != NULL);
-    if (fModes) {
-        buffer.writeByteArray(fModes, countInputs() * sizeof(fModes[0]));
+sk_sp<SkFlattenable> SkMergeImageFilter::CreateProc(SkReadBuffer& buffer) {
+    Common common;
+    if (!common.unflatten(buffer, -1)) {
+        return nullptr;
     }
-}
 
-SkMergeImageFilter::SkMergeImageFilter(SkFlattenableReadBuffer& buffer)
-  : INHERITED(-1, buffer) {
+    const int count = common.inputCount();
     bool hasModes = buffer.readBool();
     if (hasModes) {
-        this->initAllocModes();
-        int nbInputs = countInputs();
-        size_t size = nbInputs * sizeof(fModes[0]);
-        SkASSERT(buffer.getArrayCount() == size);
-        if (buffer.validate(buffer.getArrayCount() == size) &&
-            buffer.readByteArray(fModes, size)) {
-            for (int i = 0; i < nbInputs; ++i) {
-                buffer.validate(SkIsValidMode((SkXfermode::Mode)fModes[i]));
-            }
+        SkAutoSTArray<4, SkBlendMode> modes(count);
+        SkAutoSTArray<4, uint8_t> modes8(count);
+        if (!buffer.readByteArray(modes8.get(), count)) {
+            return nullptr;
         }
-    } else {
-        fModes = 0;
+        for (int i = 0; i < count; ++i) {
+            modes[i] = (SkBlendMode)modes8[i];
+            buffer.validate(SkIsValidMode(modes[i]));
+        }
+        if (!buffer.isValid()) {
+            return nullptr;
+        }
+        return MakeN(common.inputs(), count, modes.get(), &common.cropRect());
+    }
+    return MakeN(common.inputs(), count, nullptr, &common.cropRect());
+}
+
+void SkMergeImageFilter::flatten(SkWriteBuffer& buffer) const {
+    this->INHERITED::flatten(buffer);
+    buffer.writeBool(fModes != nullptr);
+    if (fModes) {
+        buffer.writeByteArray(fModes, this->countInputs() * sizeof(fModes[0]));
     }
 }
+
+#ifndef SK_IGNORE_TO_STRING
+void SkMergeImageFilter::toString(SkString* str) const {
+    str->appendf("SkMergeImageFilter: (");
+
+    for (int i = 0; i < this->countInputs(); ++i) {
+        SkImageFilter* filter = this->getInput(i);
+        str->appendf("%d: (", i);
+        filter->toString(str);
+        str->appendf(")");
+    }
+
+    str->append(")");
+}
+#endif

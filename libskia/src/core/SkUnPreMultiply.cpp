@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
@@ -15,6 +14,15 @@ SkColor SkUnPreMultiply::PMColorToColor(SkPMColor c) {
                           ApplyScale(scale, SkGetPackedR32(c)),
                           ApplyScale(scale, SkGetPackedG32(c)),
                           ApplyScale(scale, SkGetPackedB32(c)));
+}
+
+uint32_t SkUnPreMultiply::UnPreMultiplyPreservingByteOrder(SkPMColor c) {
+    const U8CPU a = SkGetPackedA32(c);
+    const Scale scale = GetScale(a);
+    return SkPackARGB32NoCheck(a,
+                               ApplyScale(scale, SkGetPackedR32(c)),
+                               ApplyScale(scale, SkGetPackedG32(c)),
+                               ApplyScale(scale, SkGetPackedB32(c)));
 }
 
 const uint32_t SkUnPreMultiply::gTable[] = {

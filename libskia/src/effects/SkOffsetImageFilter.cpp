@@ -6,88 +6,117 @@
  */
 
 #include "SkOffsetImageFilter.h"
-#include "SkBitmap.h"
+
 #include "SkCanvas.h"
-#include "SkDevice.h"
-#include "SkFlattenableBuffers.h"
 #include "SkMatrix.h"
 #include "SkPaint.h"
+#include "SkReadBuffer.h"
+#include "SkSpecialImage.h"
+#include "SkSpecialSurface.h"
+#include "SkWriteBuffer.h"
 
-bool SkOffsetImageFilter::onFilterImage(Proxy* proxy, const SkBitmap& source,
-                                        const SkMatrix& matrix,
-                                        SkBitmap* result,
-                                        SkIPoint* offset) {
-    SkImageFilter* input = getInput(0);
-    SkBitmap src = source;
+sk_sp<SkImageFilter> SkOffsetImageFilter::Make(SkScalar dx, SkScalar dy,
+                                               sk_sp<SkImageFilter> input,
+                                               const CropRect* cropRect) {
+    if (!SkScalarIsFinite(dx) || !SkScalarIsFinite(dy)) {
+        return nullptr;
+    }
+
+    return sk_sp<SkImageFilter>(new SkOffsetImageFilter(dx, dy, std::move(input), cropRect));
+}
+
+sk_sp<SkSpecialImage> SkOffsetImageFilter::onFilterImage(SkSpecialImage* source,
+                                                         const Context& ctx,
+                                                         SkIPoint* offset) const {
     SkIPoint srcOffset = SkIPoint::Make(0, 0);
-#ifdef SK_DISABLE_OFFSETIMAGEFILTER_OPTIMIZATION
-    if (false) {
-#else
-    if (!cropRectIsSet()) {
-#endif
-        if (input && !input->filterImage(proxy, source, matrix, &src, &srcOffset)) {
-            return false;
-        }
+    sk_sp<SkSpecialImage> input(this->filterInput(0, source, ctx, &srcOffset));
+    if (!input) {
+        return nullptr;
+    }
 
-        SkVector vec;
-        matrix.mapVectors(&vec, &fOffset, 1);
+    SkVector vec;
+    ctx.ctm().mapVectors(&vec, &fOffset, 1);
 
+    if (!this->cropRectIsSet()) {
         offset->fX = srcOffset.fX + SkScalarRoundToInt(vec.fX);
         offset->fY = srcOffset.fY + SkScalarRoundToInt(vec.fY);
-        *result = src;
+        return input;
     } else {
-        if (input && !input->filterImage(proxy, source, matrix, &src, &srcOffset)) {
-            return false;
-        }
-
         SkIRect bounds;
-        src.getBounds(&bounds);
-        bounds.offset(srcOffset);
-
-        if (!applyCropRect(&bounds, matrix)) {
-            return false;
+        SkIRect srcBounds = SkIRect::MakeWH(input->width(), input->height());
+        srcBounds.offset(srcOffset);
+        if (!this->applyCropRect(ctx, srcBounds, &bounds)) {
+            return nullptr;
         }
 
-        SkAutoTUnref<SkBaseDevice> device(proxy->createDevice(bounds.width(), bounds.height()));
-        if (NULL == device.get()) {
-            return false;
+        sk_sp<SkSpecialSurface> surf(source->makeSurface(ctx.outputProperties(), bounds.size()));
+        if (!surf) {
+            return nullptr;
         }
-        SkCanvas canvas(device);
+
+        SkCanvas* canvas = surf->getCanvas();
+        SkASSERT(canvas);
+
+        // TODO: it seems like this clear shouldn't be necessary (see skbug.com/5075)
+        canvas->clear(0x0);
+
         SkPaint paint;
-        paint.setXfermodeMode(SkXfermode::kSrc_Mode);
-        canvas.translate(SkIntToScalar(srcOffset.fX - bounds.fLeft),
-                         SkIntToScalar(srcOffset.fY - bounds.fTop));
-        canvas.drawBitmap(src, fOffset.x(), fOffset.y(), &paint);
-        *result = device->accessBitmap(false);
+        paint.setBlendMode(SkBlendMode::kSrc);
+        canvas->translate(SkIntToScalar(srcOffset.fX - bounds.fLeft),
+                          SkIntToScalar(srcOffset.fY - bounds.fTop));
+
+        input->draw(canvas, vec.x(), vec.y(), &paint);
+
         offset->fX = bounds.fLeft;
         offset->fY = bounds.fTop;
+        return surf->makeImageSnapshot();
     }
-    return true;
 }
 
-bool SkOffsetImageFilter::onFilterBounds(const SkIRect& src, const SkMatrix& ctm,
-                                         SkIRect* dst) {
+SkRect SkOffsetImageFilter::computeFastBounds(const SkRect& src) const {
+    SkRect bounds = this->getInput(0) ? this->getInput(0)->computeFastBounds(src) : src;
+    bounds.offset(fOffset.fX, fOffset.fY);
+    return bounds;
+}
+
+SkIRect SkOffsetImageFilter::onFilterNodeBounds(const SkIRect& src, const SkMatrix& ctm,
+                                                MapDirection direction) const {
     SkVector vec;
     ctm.mapVectors(&vec, &fOffset, 1);
+    if (kReverse_MapDirection == direction) {
+        vec.negate();
+    }
 
-    *dst = src;
-    dst->offset(SkScalarRoundToInt(vec.fX), SkScalarRoundToInt(vec.fY));
-    return true;
+    return src.makeOffset(SkScalarCeilToInt(vec.fX), SkScalarCeilToInt(vec.fY));
 }
 
-void SkOffsetImageFilter::flatten(SkFlattenableWriteBuffer& buffer) const {
+sk_sp<SkFlattenable> SkOffsetImageFilter::CreateProc(SkReadBuffer& buffer) {
+    SK_IMAGEFILTER_UNFLATTEN_COMMON(common, 1);
+    SkPoint offset;
+    buffer.readPoint(&offset);
+    return Make(offset.x(), offset.y(), common.getInput(0), &common.cropRect());
+}
+
+void SkOffsetImageFilter::flatten(SkWriteBuffer& buffer) const {
     this->INHERITED::flatten(buffer);
     buffer.writePoint(fOffset);
 }
 
-SkOffsetImageFilter::SkOffsetImageFilter(SkScalar dx, SkScalar dy, SkImageFilter* input,
-                                         const CropRect* cropRect) : INHERITED(input, cropRect) {
+SkOffsetImageFilter::SkOffsetImageFilter(SkScalar dx, SkScalar dy,
+                                         sk_sp<SkImageFilter> input,
+                                         const CropRect* cropRect)
+    : INHERITED(&input, 1, cropRect) {
     fOffset.set(dx, dy);
 }
 
-SkOffsetImageFilter::SkOffsetImageFilter(SkFlattenableReadBuffer& buffer)
-  : INHERITED(1, buffer) {
-    buffer.readPoint(&fOffset);
-    buffer.validate(SkScalarIsFinite(fOffset.fX) &&
-                    SkScalarIsFinite(fOffset.fY));
+#ifndef SK_IGNORE_TO_STRING
+void SkOffsetImageFilter::toString(SkString* str) const {
+    str->appendf("SkOffsetImageFilter: (");
+    str->appendf("offset: (%f, %f) ", fOffset.fX, fOffset.fY);
+    str->append("input: (");
+    if (this->getInput(0)) {
+        this->getInput(0)->toString(str);
+    }
+    str->append("))");
 }
+#endif

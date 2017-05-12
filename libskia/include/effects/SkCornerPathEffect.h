@@ -20,17 +20,25 @@ public:
     /** radius must be > 0 to have an effect. It specifies the distance from each corner
         that should be "rounded".
     */
-    SkCornerPathEffect(SkScalar radius);
-    virtual ~SkCornerPathEffect();
+    static sk_sp<SkPathEffect> Make(SkScalar radius) {
+        return sk_sp<SkPathEffect>(new SkCornerPathEffect(radius));
+    }
 
     virtual bool filterPath(SkPath* dst, const SkPath& src,
-                            SkStrokeRec*, const SkRect*) const SK_OVERRIDE;
+                            SkStrokeRec*, const SkRect*) const override;
 
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkCornerPathEffect)
 
+#ifdef SK_BUILD_FOR_ANDROID_FRAMEWORK
+    bool exposedInAndroidJavaAPI() const override { return true; }
+#endif
+
 protected:
-    SkCornerPathEffect(SkFlattenableReadBuffer&);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
+    virtual ~SkCornerPathEffect();
+
+    explicit SkCornerPathEffect(SkScalar radius);
+    void flatten(SkWriteBuffer&) const override;
 
 private:
     SkScalar    fRadius;

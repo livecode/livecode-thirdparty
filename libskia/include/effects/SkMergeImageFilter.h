@@ -8,39 +8,39 @@
 #ifndef SkMergeImageFilter_DEFINED
 #define SkMergeImageFilter_DEFINED
 
+#include "SkBlendMode.h"
 #include "SkImageFilter.h"
-
-#include "SkXfermode.h"
 
 class SK_API SkMergeImageFilter : public SkImageFilter {
 public:
-    SkMergeImageFilter(SkImageFilter* first, SkImageFilter* second,
-                       SkXfermode::Mode = SkXfermode::kSrcOver_Mode,
-                       const CropRect* cropRect = NULL);
-    SkMergeImageFilter(SkImageFilter* filters[], int count,
-                       const SkXfermode::Mode modes[] = NULL,
-                       const CropRect* cropRect = NULL);
-    virtual ~SkMergeImageFilter();
+    ~SkMergeImageFilter() override;
 
+    static sk_sp<SkImageFilter> Make(sk_sp<SkImageFilter> first, sk_sp<SkImageFilter> second,
+                                     SkBlendMode, const CropRect* cropRect = nullptr);
+    static sk_sp<SkImageFilter> MakeN(sk_sp<SkImageFilter>[], int count, const SkBlendMode[],
+                                     const CropRect* cropRect = nullptr);
+
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkMergeImageFilter)
 
 protected:
-    SkMergeImageFilter(SkFlattenableReadBuffer& buffer);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
-
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
-                               SkBitmap* result, SkIPoint* loc) SK_OVERRIDE;
-    virtual bool onFilterBounds(const SkIRect&, const SkMatrix&, SkIRect*) SK_OVERRIDE;
+    void flatten(SkWriteBuffer&) const override;
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
+    bool onCanHandleComplexCTM() const override { return true; }
 
 private:
-    uint8_t*            fModes; // SkXfermode::Mode
+    SkMergeImageFilter(sk_sp<SkImageFilter> filters[], int count, const SkBlendMode modes[],
+                       const CropRect* cropRect);
+
+    uint8_t*    fModes; // SkBlendMode
 
     // private storage, to avoid dynamically allocating storage for our copy
     // of the modes (unless the count is so large we can't fit).
     intptr_t    fStorage[16];
 
     void initAllocModes();
-    void initModes(const SkXfermode::Mode []);
+    void initModes(const SkBlendMode[]);
 
     typedef SkImageFilter INHERITED;
 };

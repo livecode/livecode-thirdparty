@@ -8,50 +8,41 @@
 #ifndef GrOvalRenderer_DEFINED
 #define GrOvalRenderer_DEFINED
 
-#include "GrContext.h"
-#include "GrPaint.h"
+#include "GrColor.h"
 
-class GrContext;
-class GrDrawTarget;
-class GrPaint;
+class GrDrawOp;
+class GrShaderCaps;
+class GrStyle;
+class SkMatrix;
 struct SkRect;
+class SkRRect;
 class SkStrokeRec;
 
 /*
  * This class wraps helper functions that draw ovals and roundrects (filled & stroked)
  */
-class GrOvalRenderer : public SkRefCnt {
+class GrOvalRenderer {
 public:
-    SK_DECLARE_INST_COUNT(GrOvalRenderer)
+    static GrDrawOp* CreateOvalBatch(GrColor,
+                                     const SkMatrix& viewMatrix,
+                                     const SkRect& oval,
+                                     const SkStrokeRec& stroke,
+                                     const GrShaderCaps* shaderCaps);
+    static GrDrawOp* CreateRRectBatch(GrColor,
+                                      bool needsDistance,
+                                      const SkMatrix& viewMatrix,
+                                      const SkRRect& rrect,
+                                      const SkStrokeRec& stroke,
+                                      const GrShaderCaps* shaderCaps);
 
-    GrOvalRenderer() : fRRectIndexBuffer(NULL) {}
-    ~GrOvalRenderer() {
-        this->reset();
-    }
-
-    void reset();
-
-    bool drawOval(GrDrawTarget* target, const GrContext* context, bool useAA,
-                  const SkRect& oval, const SkStrokeRec& stroke);
-    bool drawSimpleRRect(GrDrawTarget* target, GrContext* context, bool useAA,
-                         const SkRRect& rrect, const SkStrokeRec& stroke);
-
-private:
-    bool drawEllipse(GrDrawTarget* target, bool useCoverageAA,
-                     const SkRect& ellipse,
-                     const SkStrokeRec& stroke);
-    bool drawDIEllipse(GrDrawTarget* target, bool useCoverageAA,
-                       const SkRect& ellipse,
-                       const SkStrokeRec& stroke);
-    void drawCircle(GrDrawTarget* target, bool useCoverageAA,
-                    const SkRect& circle,
-                    const SkStrokeRec& stroke);
-
-    GrIndexBuffer* rRectIndexBuffer(GrGpu* gpu);
-
-    GrIndexBuffer* fRRectIndexBuffer;
-
-    typedef SkRefCnt INHERITED;
+    static GrDrawOp* CreateArcBatch(GrColor,
+                                    const SkMatrix& viewMatrix,
+                                    const SkRect& oval,
+                                    SkScalar startAngle,
+                                    SkScalar sweepAngle,
+                                    bool useCenter,
+                                    const GrStyle&,
+                                    const GrShaderCaps* shaderCaps);
 };
 
 #endif // GrOvalRenderer_DEFINED

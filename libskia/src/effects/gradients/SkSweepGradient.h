@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2012 Google Inc.
  *
@@ -14,27 +13,36 @@
 class SkSweepGradient : public SkGradientShaderBase {
 public:
     SkSweepGradient(SkScalar cx, SkScalar cy, const Descriptor&);
-    virtual void shadeSpan(int x, int y, SkPMColor dstC[], int count) SK_OVERRIDE;
-    virtual void shadeSpan16(int x, int y, uint16_t dstC[], int count) SK_OVERRIDE;
 
-    virtual BitmapType asABitmap(SkBitmap* bitmap,
-                                 SkMatrix* matrix,
-                                 TileMode* xy) const SK_OVERRIDE;
+    class SweepGradientContext : public SkGradientShaderBase::GradientShaderBaseContext {
+    public:
+        SweepGradientContext(const SkSweepGradient& shader, const ContextRec&);
 
-    virtual GradientType asAGradient(GradientInfo* info) const SK_OVERRIDE;
+        void shadeSpan(int x, int y, SkPMColor dstC[], int count) override;
 
-    virtual GrEffectRef* asNewEffect(GrContext* context, const SkPaint&) const SK_OVERRIDE;
+    private:
+        typedef SkGradientShaderBase::GradientShaderBaseContext INHERITED;
+    };
 
-    SK_DEVELOPER_TO_STRING()
+    GradientType asAGradient(GradientInfo* info) const override;
+
+#if SK_SUPPORT_GPU
+    sk_sp<GrFragmentProcessor> asFragmentProcessor(const AsFPArgs&) const override;
+#endif
+
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkSweepGradient)
 
 protected:
-    SkSweepGradient(SkFlattenableReadBuffer& buffer);
-    virtual void flatten(SkFlattenableWriteBuffer& buffer) const SK_OVERRIDE;
+    void flatten(SkWriteBuffer& buffer) const override;
+    size_t onContextSize(const ContextRec&) const override;
+    Context* onCreateContext(const ContextRec&, void* storage) const override;
 
 private:
-    typedef SkGradientShaderBase INHERITED;
     const SkPoint fCenter;
+
+    friend class SkGradientShader;
+    typedef SkGradientShaderBase INHERITED;
 };
 
 #endif

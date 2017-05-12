@@ -14,19 +14,22 @@
 
 class SK_API SkMagnifierImageFilter : public SkImageFilter {
 public:
-    SkMagnifierImageFilter(SkRect srcRect, SkScalar inset);
+    static sk_sp<SkImageFilter> Make(const SkRect& src, SkScalar inset,
+                                     sk_sp<SkImageFilter> input,
+                                     const CropRect* cropRect = nullptr);
 
+    SK_TO_STRING_OVERRIDE()
     SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkMagnifierImageFilter)
 
 protected:
-    explicit SkMagnifierImageFilter(SkFlattenableReadBuffer& buffer);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
+    SkMagnifierImageFilter(const SkRect& srcRect,
+                           SkScalar inset,
+                           sk_sp<SkImageFilter> input,
+                           const CropRect* cropRect);
+    void flatten(SkWriteBuffer&) const override;
 
-    virtual bool onFilterImage(Proxy*, const SkBitmap& src, const SkMatrix&,
-                               SkBitmap* result, SkIPoint* offset) SK_OVERRIDE;
-#if SK_SUPPORT_GPU
-    virtual bool asNewEffect(GrEffectRef** effect, GrTexture* texture, const SkMatrix& matrix, const SkIRect& bounds) const SK_OVERRIDE;
-#endif
+    sk_sp<SkSpecialImage> onFilterImage(SkSpecialImage* source, const Context&,
+                                        SkIPoint* offset) const override;
 
 private:
     SkRect fSrcRect;

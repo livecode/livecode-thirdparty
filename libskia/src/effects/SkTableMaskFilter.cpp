@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2011 Google Inc.
  *
@@ -7,9 +6,11 @@
  */
 
 
-#include "SkTableMaskFilter.h"
-#include "SkFlattenableBuffers.h"
+#include "SkFixed.h"
+#include "SkReadBuffer.h"
 #include "SkString.h"
+#include "SkTableMaskFilter.h"
+#include "SkWriteBuffer.h"
 
 SkTableMaskFilter::SkTableMaskFilter() {
     for (int i = 0; i < 256; i++) {
@@ -32,7 +33,7 @@ bool SkTableMaskFilter::filterMask(SkMask* dst, const SkMask& src,
     dst->fBounds = src.fBounds;
     dst->fRowBytes = SkAlign4(dst->fBounds.width());
     dst->fFormat = SkMask::kA8_Format;
-    dst->fImage = NULL;
+    dst->fImage = nullptr;
 
     if (src.fImage) {
         dst->fImage = SkMask::AllocImage(dst->computeImageSize());
@@ -69,15 +70,16 @@ SkMask::Format SkTableMaskFilter::getFormat() const {
     return SkMask::kA8_Format;
 }
 
-void SkTableMaskFilter::flatten(SkFlattenableWriteBuffer& wb) const {
-    this->INHERITED::flatten(wb);
+void SkTableMaskFilter::flatten(SkWriteBuffer& wb) const {
     wb.writeByteArray(fTable, 256);
 }
 
-SkTableMaskFilter::SkTableMaskFilter(SkFlattenableReadBuffer& rb)
-        : INHERITED(rb) {
-    SkASSERT(256 == rb.getArrayCount());
-    rb.readByteArray(fTable, 256);
+sk_sp<SkFlattenable> SkTableMaskFilter::CreateProc(SkReadBuffer& buffer) {
+    uint8_t table[256];
+    if (!buffer.readByteArray(table, 256)) {
+        return nullptr;
+    }
+    return sk_sp<SkFlattenable>(Create(table));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -89,7 +91,7 @@ void SkTableMaskFilter::MakeGammaTable(uint8_t table[256], SkScalar gamma) {
     float x = 0;
     for (int i = 0; i < 256; i++) {
      // float ee = powf(x, g) * 255;
-        table[i] = SkPin32(sk_float_round2int(powf(x, g) * 255), 0, 255);
+        table[i] = SkTPin(sk_float_round2int(powf(x, g) * 255), 0, 255);
         x += dx;
     }
 }
@@ -128,7 +130,7 @@ void SkTableMaskFilter::MakeClipTable(uint8_t table[256], uint8_t min,
 #endif
 }
 
-#ifdef SK_DEVELOPER
+#ifndef SK_IGNORE_TO_STRING
 void SkTableMaskFilter::toString(SkString* str) const {
     str->append("SkTableMaskFilter: (");
 

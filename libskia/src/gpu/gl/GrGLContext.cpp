@@ -6,101 +6,83 @@
  */
 
 #include "GrGLContext.h"
+#include "GrGLGLSL.h"
+#include "SkSLCompiler.h"
 
 ////////////////////////////////////////////////////////////////////////////////
-GrGLContextInfo& GrGLContextInfo::operator= (const GrGLContextInfo& ctxInfo) {
-    fBindingInUse = ctxInfo.fBindingInUse;
-    fGLVersion = ctxInfo.fGLVersion;
-    fGLSLGeneration = ctxInfo.fGLSLGeneration;
-    fVendor = ctxInfo.fVendor;
-    fRenderer = ctxInfo.fRenderer;
-    fExtensions = ctxInfo.fExtensions;
-    fIsMesa = ctxInfo.fIsMesa;
-    fIsChromium = ctxInfo.fIsChromium;
-    *fGLCaps = *ctxInfo.fGLCaps.get();
-    return *this;
-}
 
-bool GrGLContextInfo::initialize(const GrGLInterface* interface) {
-    this->reset();
-    // We haven't validated the GrGLInterface yet, so check for GetString
-    // function pointer
-    if (interface->fGetString) {
-        const GrGLubyte* verUByte;
-        GR_GL_CALL_RET(interface, verUByte, GetString(GR_GL_VERSION));
-        const char* ver = reinterpret_cast<const char*>(verUByte);
-
-        const GrGLubyte* rendererUByte;
-        GR_GL_CALL_RET(interface, rendererUByte, GetString(GR_GL_RENDERER));
-        const char* renderer = reinterpret_cast<const char*>(rendererUByte);
-
-        GrGLBinding binding = GrGLGetBindingInUseFromString(ver);
-
-        if (0 != binding && interface->validate(binding) && fExtensions.init(binding, interface)) {
-            fBindingInUse = binding;
-
-            fGLVersion = GrGLGetVersionFromString(ver);
-
-            fGLSLGeneration = GrGetGLSLGeneration(fBindingInUse, interface);
-
-            fVendor = GrGLGetVendor(interface);
-
-            fRenderer = GrGLGetRendererFromString(renderer);
-
-            fIsMesa = GrGLIsMesaFromVersionString(ver);
-
-            fIsChromium = GrGLIsChromiumFromRendererString(renderer);
-
-            fGLCaps->init(*this, interface);
-            return true;
-        }
+GrGLContext* GrGLContext::Create(const GrGLInterface* interface, const GrContextOptions& options) {
+    // We haven't validated the GrGLInterface yet, so check for GetString function pointer
+    if (!interface->fFunctions.fGetString) {
+        return nullptr;
     }
-    return false;
-}
+    ConstructorArgs args;
+    args.fInterface = interface;
 
-bool GrGLContextInfo::isInitialized() const {
-    return kNone_GrGLBinding != fBindingInUse;
-}
+    const GrGLubyte* verUByte;
+    GR_GL_CALL_RET(interface, verUByte, GetString(GR_GL_VERSION));
+    const char* ver = reinterpret_cast<const char*>(verUByte);
 
-void GrGLContextInfo::reset() {
-    fBindingInUse = kNone_GrGLBinding;
-    fGLVersion = GR_GL_VER(0, 0);
-    fGLSLGeneration = static_cast<GrGLSLGeneration>(0);
-    fVendor = kOther_GrGLVendor;
-    fRenderer = kOther_GrGLRenderer;
-    fIsMesa = false;
-    fIsChromium = false;
-    fExtensions.reset();
-    fGLCaps->reset();
-}
+    const GrGLubyte* rendererUByte;
+    GR_GL_CALL_RET(interface, rendererUByte, GetString(GR_GL_RENDERER));
+    const char* renderer = reinterpret_cast<const char*>(rendererUByte);
 
-////////////////////////////////////////////////////////////////////////////////
-GrGLContext::GrGLContext(const GrGLInterface* interface) {
-    fInterface = NULL;
-    this->initialize(interface);
-}
-
-GrGLContext::GrGLContext(const GrGLContext& ctx) {
-    fInterface = NULL;
-    *this = ctx;
-}
-
-GrGLContext& GrGLContext::operator = (const GrGLContext& ctx) {
-    SkRefCnt_SafeAssign(fInterface, ctx.fInterface);
-    fInfo = ctx.fInfo;
-    return *this;
-}
-
-void GrGLContext::reset() {
-    SkSafeSetNull(fInterface);
-    fInfo.reset();
-}
-
-bool GrGLContext::initialize(const GrGLInterface* interface) {
-    if (fInfo.initialize(interface)) {
-        fInterface = interface;
-        interface->ref();
-        return true;
+    if (!interface->validate()) {
+        return nullptr;
     }
-    return false;
+
+    args.fGLVersion = GrGLGetVersionFromString(ver);
+    if (GR_GL_INVALID_VER == args.fGLVersion) {
+        return nullptr;
+    }
+
+    if (!GrGLGetGLSLGeneration(interface, &args.fGLSLGeneration)) {
+        return nullptr;
+    }
+
+    args.fVendor = GrGLGetVendor(interface);
+
+    args.fRenderer = GrGLGetRendererFromString(renderer);
+
+    /*
+     * Qualcomm drivers for the 3xx series have a horrendous bug with some drivers. Though they
+     * claim to support GLES 3.00, some perfectly valid GLSL300 shaders will only compile with
+     * #version 100, and will fail to compile with #version 300 es.  In the long term, we
+     * need to lock this down to a specific driver version.
+     * ?????/2015 - This bug is still present in Lollipop pre-mr1
+     * 06/18/2015 - This bug does not affect the nexus 6 (which has an Adreno 4xx).
+     */
+    if (kAdreno3xx_GrGLRenderer == args.fRenderer) {
+        args.fGLSLGeneration = k110_GrGLSLGeneration;
+    }
+
+    GrGLGetDriverInfo(interface->fStandard, args.fVendor, renderer, ver,
+                      &args.fDriver, &args.fDriverVersion);
+
+    args.fContextOptions = &options;
+
+    return new GrGLContext(args);
+}
+
+GrGLContext::~GrGLContext() {
+    delete fCompiler;
+}
+
+SkSL::Compiler* GrGLContext::compiler() const {
+    if (!fCompiler) {
+        fCompiler = new SkSL::Compiler();
+    }
+    return fCompiler;
+}
+
+GrGLContextInfo::GrGLContextInfo(const ConstructorArgs& args) {
+    fInterface.reset(SkRef(args.fInterface));
+    fGLVersion = args.fGLVersion;
+    fGLSLGeneration = args.fGLSLGeneration;
+    fVendor = args.fVendor;
+    fRenderer = args.fRenderer;
+    fDriver = args.fDriver;
+    fDriverVersion = args.fDriverVersion;
+
+    fGLCaps = sk_make_sp<GrGLCaps>(*args.fContextOptions, *this, fInterface.get());
 }

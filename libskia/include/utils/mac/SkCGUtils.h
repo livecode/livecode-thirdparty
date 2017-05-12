@@ -8,7 +8,10 @@
 #ifndef SkCGUtils_DEFINED
 #define SkCGUtils_DEFINED
 
-#include "SkTypes.h"
+#include "SkSize.h"
+#include "SkImageInfo.h"
+
+#if defined(SK_BUILD_FOR_MAC) || defined(SK_BUILD_FOR_IOS)
 
 #ifdef SK_BUILD_FOR_MAC
 #include <ApplicationServices/ApplicationServices.h>
@@ -20,7 +23,23 @@
 
 class SkBitmap;
 class SkData;
-class SkStream;
+class SkStreamRewindable;
+
+/**
+ *  Given a CGImage, allocate an SkBitmap and copy the image's pixels into it. If scaleToFit is not
+ *  null, use it to determine the size of the bitmap, and scale the image to fill the bitmap.
+ *  Otherwise use the image's width/height.
+ *
+ *  On failure, return false, and leave bitmap unchanged.
+ */
+SK_API bool SkCreateBitmapFromCGImage(SkBitmap* dst, CGImageRef src, SkISize* scaleToFit = NULL);
+
+/**
+ *  Copy the pixels from src into the memory specified by info/rowBytes/dstPixels. On failure,
+ *  return false (e.g. ImageInfo incompatible with src).
+ */
+SK_API bool SkCopyPixelsFromCGImage(const SkImageInfo& info, size_t rowBytes, void* dstPixels,
+                                    CGImageRef src);
 
 /**
  *  Create an imageref from the specified bitmap using the specified colorspace.
@@ -45,23 +64,13 @@ static inline CGImageRef SkCreateCGImageRef(const SkBitmap& bm) {
  */
 void SkCGDrawBitmap(CGContextRef, const SkBitmap&, float x, float y);
 
-bool SkPDFDocumentToBitmap(SkStream* stream, SkBitmap* output);
-
 /**
- *  Return a provider that wraps the specified stream. It will become an
- *  owner of the stream, so the caller must still manage its ownership.
- *
- *  To hand-off ownership of the stream to the provider, the caller must do
- *  something like the following:
- *
- *  SkStream* stream = new ...;
- *  CGDataProviderRef provider = SkStreamToDataProvider(stream);
- *  stream->unref();
- *
- *  Now when the provider is finally deleted, it will delete the stream.
+ *  Return a provider that wraps the specified stream.
+ *  When the provider is finally deleted, it will delete the stream.
  */
-CGDataProviderRef SkCreateDataProviderFromStream(SkStream*);
+CGDataProviderRef SkCreateDataProviderFromStream(std::unique_ptr<SkStreamRewindable>);
 
-CGDataProviderRef SkCreateDataProviderFromData(SkData*);
+CGDataProviderRef SkCreateDataProviderFromData(sk_sp<SkData>);
 
-#endif
+#endif  // defined(SK_BUILD_FOR_MAC) || defined(SK_BUILD_FOR_IOS)
+#endif  // SkCGUtils_DEFINED

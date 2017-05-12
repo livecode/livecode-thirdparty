@@ -11,21 +11,18 @@
 #include "SkDrawLooper.h"
 #include "SkPaint.h"
 #include "SkPoint.h"
-#include "SkXfermode.h"
+#include "SkBlendMode.h"
 
 class SK_API SkLayerDrawLooper : public SkDrawLooper {
 public:
-    SK_DECLARE_INST_COUNT(SkLayerDrawLooper)
-
-            SkLayerDrawLooper();
     virtual ~SkLayerDrawLooper();
 
     /**
      *  Bits specifies which aspects of the layer's paint should replace the
      *  corresponding aspects on the draw's paint.
      *  kEntirePaint_Bits means use the layer's paint completely.
-     *  0 means ignore the layer's paint... except that LayerInfo's fFlagsMask
-     *  and fColorMode are always applied.
+     *  0 means ignore the layer's paint... except for fColorMode, which is
+     *  always applied.
      */
     enum Bits {
         kStyle_Bit      = 1 << 0,   //!< use this layer's Style/stroke settings
@@ -40,8 +37,7 @@ public:
          *  Use the layer's paint entirely, with these exceptions:
          *  - We never override the draw's paint's text_encoding, since that is
          *    used to interpret the text/len parameters in draw[Pos]Text.
-         *  - Flags and Color are always computed using the LayerInfo's
-         *    fFlagsMask and fColorMode.
+         *  - Color is always computed using the LayerInfo's fColorMode.
          */
         kEntirePaint_Bits = -1
 
@@ -51,26 +47,19 @@ public:
     /**
      *  Info for how to apply the layer's paint and offset.
      *
-     *  fFlagsMask selects which flags in the layer's paint should be applied.
-     *      result = (draw-flags & ~fFlagsMask) | (layer-flags & fFlagsMask)
-     *  In the extreme:
-     *      If fFlagsMask is 0, we ignore all of the layer's flags
-     *      If fFlagsMask is -1, we use all of the layer's flags
-     *
      *  fColorMode controls how we compute the final color for the layer:
      *      The layer's paint's color is treated as the SRC
      *      The draw's paint's color is treated as the DST
      *      final-color = Mode(layers-color, draws-color);
-     *  Any SkXfermode::Mode will work. Two common choices are:
-     *      kSrc_Mode: to use the layer's color, ignoring the draw's
-     *      kDst_Mode: to just keep the draw's color, ignoring the layer's
+     *  Any SkBlendMode will work. Two common choices are:
+     *      kSrc: to use the layer's color, ignoring the draw's
+     *      kDst: to just keep the draw's color, ignoring the layer's
      */
     struct SK_API LayerInfo {
-        uint32_t            fFlagsMask; // SkPaint::Flags
-        BitFlags            fPaintBits;
-        SkXfermode::Mode    fColorMode;
-        SkVector            fOffset;
-        bool                fPostTranslate; //!< applies to fOffset
+        BitFlags    fPaintBits;
+        SkBlendMode fColorMode;
+        SkVector    fOffset;
+        bool        fPostTranslate; //!< applies to fOffset
 
         /**
          *  Initial the LayerInfo. Defaults to settings that will draw the
@@ -82,36 +71,21 @@ public:
         LayerInfo();
     };
 
-    /**
-     *  Call for each layer you want to add (from top to bottom).
-     *  This returns a paint you can modify, but that ptr is only valid until
-     *  the next call made to addLayer().
-     */
-    SkPaint* addLayer(const LayerInfo&);
+    SkDrawLooper::Context* createContext(SkCanvas*, void* storage) const override;
 
-    /**
-     *  This layer will draw with the original paint, at the specified offset
-     */
-    void addLayer(SkScalar dx, SkScalar dy);
+    size_t contextSize() const override { return sizeof(LayerDrawLooperContext); }
 
-    /**
-     *  This layer will with the original paint and no offset.
-     */
-    void addLayer() { this->addLayer(0, 0); }
+    bool asABlurShadow(BlurShadowRec* rec) const override;
 
-    /// Similar to addLayer, but adds a layer to the top.
-    SkPaint* addLayerOnTop(const LayerInfo&);
+    SK_TO_STRING_OVERRIDE()
 
-    // overrides from SkDrawLooper
-    virtual void init(SkCanvas*);
-    virtual bool next(SkCanvas*, SkPaint* paint);
-
-    SK_DEVELOPER_TO_STRING()
-    SK_DECLARE_PUBLIC_FLATTENABLE_DESERIALIZATION_PROCS(SkLayerDrawLooper)
+    Factory getFactory() const override { return CreateProc; }
+    static sk_sp<SkFlattenable> CreateProc(SkReadBuffer& buffer);
 
 protected:
-    SkLayerDrawLooper(SkFlattenableReadBuffer&);
-    virtual void flatten(SkFlattenableWriteBuffer&) const SK_OVERRIDE;
+    SkLayerDrawLooper();
+
+    void flatten(SkWriteBuffer&) const override;
 
 private:
     struct Rec {
@@ -120,20 +94,61 @@ private:
         LayerInfo fInfo;
     };
     Rec*    fRecs;
-    Rec*    fTopRec;
     int     fCount;
 
     // state-machine during the init/next cycle
-    Rec* fCurrRec;
-
-    static void ApplyInfo(SkPaint* dst, const SkPaint& src, const LayerInfo&);
-
-    class MyRegistrar : public SkFlattenable::Registrar {
+    class LayerDrawLooperContext : public SkDrawLooper::Context {
     public:
-        MyRegistrar();
+        explicit LayerDrawLooperContext(const SkLayerDrawLooper* looper);
+
+    protected:
+        bool next(SkCanvas*, SkPaint* paint) override;
+
+    private:
+        Rec* fCurrRec;
+
+        static void ApplyInfo(SkPaint* dst, const SkPaint& src, const LayerInfo&);
     };
 
     typedef SkDrawLooper INHERITED;
+
+public:
+    class SK_API Builder {
+    public:
+        Builder();
+        ~Builder();
+
+        /**
+         *  Call for each layer you want to add (from top to bottom).
+         *  This returns a paint you can modify, but that ptr is only valid until
+         *  the next call made to addLayer().
+         */
+        SkPaint* addLayer(const LayerInfo&);
+
+        /**
+         *  This layer will draw with the original paint, at the specified offset
+         */
+        void addLayer(SkScalar dx, SkScalar dy);
+
+        /**
+         *  This layer will with the original paint and no offset.
+         */
+        void addLayer() { this->addLayer(0, 0); }
+
+        /// Similar to addLayer, but adds a layer to the top.
+        SkPaint* addLayerOnTop(const LayerInfo&);
+
+        /**
+          * Pass list of layers on to newly built looper and return it. This will
+          * also reset the builder, so it can be used to build another looper.
+          */
+        sk_sp<SkDrawLooper> detach();
+
+    private:
+        Rec* fRecs;
+        Rec* fTopRec;
+        int  fCount;
+    };
 };
 
 #endif

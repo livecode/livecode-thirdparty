@@ -1689,12 +1689,22 @@
 					},
 				],
                 [
-                    'target_arch in ("armv7", "arm64")',
+                    'target_arch in ("armv7", "arm64", "armv7 arm64")',
                     {
                         'sources/':
                         [
                             # Enable NEON optimisations
                             ['include', 'opts/.+_(arm|neon|NEON).*'],
+                        ],
+                    },
+                ],
+				[
+                    'target_arch in ("arm64", "armv7 arm64")',
+                    {
+                        'sources/':
+                        [
+                            # Enable crc32 optimisations
+                            ['include', 'opts/.+_crc32.*'],
                         ],
                     },
                 ],

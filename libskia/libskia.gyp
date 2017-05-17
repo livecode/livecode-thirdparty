@@ -1689,7 +1689,7 @@
 					},
 				],
                 [
-                    'target_arch in ("armv7", "arm64")',
+                    'target_arch in ("armv7", "arm64", "armv7 arm64")',
                     {
                         'sources/':
                         [

@@ -1699,6 +1699,16 @@
                     },
                 ],
 				[
+                    'target_arch in ("arm64", "armv7 arm64")',
+                    {
+                        'sources/':
+                        [
+                            # Enable crc32 optimisations
+                            ['include', 'opts/.+_crc32.*'],
+                        ],
+                    },
+                ],
+				[
 					'OS == "win"',
 					{
 						'include_dirs':

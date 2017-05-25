@@ -1764,7 +1764,7 @@
 						'sources/':
 						[
 							# Disable windows-specific code
-							['exclude', '_win(_dw)?.cpp$'],
+							['exclude', '_win(_dw)?.*\\.cpp$'],
 							['exclude', '^src/.*/win/.*$'],
                             ['exclude', 'WIC\\.cpp$'],
 						],
@@ -1802,6 +1802,7 @@
 						[
 							# Disable anything CoreGraphics related
 							['exclude', 'CG\\.'],
+							['exclude', '_mac\\.cpp$'],
 						],
 					},
 				],
@@ -1872,8 +1873,8 @@
                             # Don't build FreeType or FontConfig code
                             ['exclude', 'fontconfig'],
                             ['exclude', 'FontConfig'],
-                            ['exclude', 'SkFontMgr_custom'],
-                        ],
+                            ['exclude', 'SkFontMgr_custom_(embedded|empty)'],	
+						],
                     },
                 ],
 				[

@@ -2010,6 +2010,10 @@
                     
                     # Needed for some legacy methods
                     'src/core',
+					# Needed for directwrite text rendering on Windows
+					'src/ports',
+					'include/private',
+					'src/utils/win',
 				],
 			},
 		},

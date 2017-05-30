@@ -99,8 +99,7 @@ static inline float sk_float_pow(float base, float exp) {
 #define sk_double_round2int(x)      (int)floor((x) + 0.5f)
 #define sk_double_ceil2int(x)       (int)ceil(x)
 
-static const uint32_t kIEEENotANumber = 0x7fffffff;
-#define SK_FloatNaN                 (*SkTCast<const float*>(&kIEEENotANumber))
+#define SK_FloatNaN                 (NAN)
 #define SK_FloatInfinity            (+(float)INFINITY)
 #define SK_FloatNegativeInfinity    (-(float)INFINITY)
 

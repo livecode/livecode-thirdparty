@@ -47,7 +47,7 @@
     here.
  */
 //#define SK_DEBUG
-//#define SK_RELEASE
+#define SK_RELEASE
 
 /*  Skia has certain debug-only code that is extremely intensive even for debug
     builds.  This code is useful for diagnosing specific issues, but is not
@@ -129,7 +129,7 @@
    directories from your include search path when you're not building the GPU
    backend. Defaults to 1 (build the GPU code).
  */
-//#define SK_SUPPORT_GPU 1
+#define SK_SUPPORT_GPU 0
 
 /* Skia makes use of histogram logging macros to trace the frequency of
  * events. By default, Skia provides no-op versions of these macros.

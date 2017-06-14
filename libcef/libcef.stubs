@@ -1,4 +1,4 @@
-cef ./Externals/CEF/libcef ./CEF/libcef ./CEF/libcef
+cef ./Externals/CEF/libcef ./Externals/CEF/libcef ./Externals/CEF/libcef
 	cef_add_cross_origin_whitelist_entry: (pointer,pointer,pointer,integer) -> (integer)
 	cef_api_hash: (integer) -> (pointer)
 	cef_base64decode: (pointer) -> (pointer)

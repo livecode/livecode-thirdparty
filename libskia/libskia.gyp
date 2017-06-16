@@ -4,8 +4,547 @@
 		'../../common.gypi',
 	],
 	
+	'variables':
+	{
+		'skia_include_dirs':
+		[
+			'include/android',
+			'include/animator',
+			'include/c',
+			'include/codec',
+			'include/config',
+			'include/core',
+			'include/effects',
+			'include/images',
+			'include/pathops',
+			'include/ports',
+			'include/private',
+			'include/svg',
+			'include/utils',
+            'include/utils/ios',
+            'include/utils/mac',
+            'include/utils/win',
+			'include/views',
+			'include/xml',
+			'src/android',
+			'src/animator',
+			'src/c',
+			'src/codec',
+			'src/core',
+			'src/effects',
+			'src/fonts',
+			'src/image',
+			'src/images',
+			'src/lazy',
+			'src/opts',
+			'src/pathops',
+			'src/pdf',
+			'src/pipe',
+			'src/ports',
+			'src/sfnt',
+			'src/svg',
+			'src/utils',
+			'src/views',
+			'src/xml',
+			'src/xps',
+		],
+
+		'skia_defines':
+		[
+			# Disable Skia debugging
+			'SK_RELEASE',
+			
+			# Don't try to link against libetc1 for ETC1 texture compression support
+			'SK_IGNORE_ETC1_SUPPORT',
+			
+			# Some Skia source files need this to build
+			# TODO: see if those files can be removed from the build
+			'SK_SUPPORT_LEGACY_IMAGE_ENCODER_CLASS',
+			
+			# We use deprecated Skia features
+			'SK_SUPPORT_LEGACY_CANVAS_IS_REFCNT',
+			'SK_SUPPORT_LEGACY_GETTOPDEVICE',
+			'SK_SUPPORT_LEGACY_ACCESSBITMAP',
+			'SK_SUPPORT_LEGACY_CLIP_REGIONOPS',
+			'SK_SUPPORT_LEGACY_GETDEVICE',
+            
+            # Disable GPU support
+            'SK_SUPPORT_GPU=0',
+		],
+
+		'opts_none_srcs':
+		[
+  			"src/opts/SkBitmapProcState_opts_none.cpp",
+  			"src/opts/SkBlitMask_opts_none.cpp",
+  			"src/opts/SkBlitRow_opts_none.cpp",
+		],
+
+		'opts_armv7_arm64_srcs':
+		[
+			"src/opts/SkBitmapProcState_opts_none.cpp",
+			"src/opts/SkBlitMask_opts_arm.cpp",
+			"src/opts/SkBlitRow_opts_arm.cpp",
+			"src/opts/SkBitmapProcState_arm_neon.cpp",
+			"src/opts/SkBitmapProcState_matrixProcs_neon.cpp",
+			"src/opts/SkBlitMask_opts_arm_neon.cpp",
+			"src/opts/SkBlitRow_opts_arm_neon.cpp",
+		],
+
+		# TODO: This seems specific to ARM64 when SK_ARM_HAS_CRC32 is defined
+		# so we ignore for now.
+		'opts_crc32_srcs':
+		[
+			"src/opts/SkOpts_crc32.cpp",
+		],
+
+		'opts_sse2_srcs':
+		[
+			"src/opts/SkBitmapProcState_opts_SSE2.cpp",
+			"src/opts/SkBlitRow_opts_SSE2.cpp",
+			"src/opts/opts_check_x86.cpp",
+		],
+
+		'opts_sse3_srcs':
+		[ 
+			"src/opts/SkBitmapProcState_opts_SSSE3.cpp",
+  			"src/opts/SkOpts_ssse3.cpp",
+  		],
+
+  		'opts_sse41_srcs':
+  		[
+  			"src/opts/SkOpts_sse41.cpp",
+  		],
+
+  		'opts_sse42_srcs':
+  		[
+  			"src/opts/SkOpts_sse42.cpp",
+  		],
+
+  		'opts_avx_srcs':
+  		[
+  			"src/opts/SkOpts_avx.cpp",
+  		],
+
+  		'opts_hsw_srcs':
+  		[
+  			"src/opts/SkOpts_hsw.cpp",
+  		],
+	},
+
 	'targets':
 	[
+		# We define separate targets for each set of optimizations as they need
+		# specific compiler flags which must not use generally.
+		#
+		# Each opt target contains 'opts_dummy.cpp' in the sources to ensure
+		# that we don't get no .a file for them, making it easier to include
+		# in the main skia target.
+
+		{
+			'target_name': 'libskia_opt_none',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch not in ("i386", "x86", "x86_64", "i386 x86_64", "x64", "armv7", "arm64", "armv7 arm64")',
+					{
+						'sources':
+						[
+							'<@(opts_none_srcs)',
+						],
+					},
+				],
+			],
+		},
+
+		{
+			'target_name': 'libskia_opt_arm',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("armv7", "arm64", "armv7 arm64")',
+					{
+						'sources':
+						[
+							'<@(opts_armv7_arm64_srcs)',
+						],
+					},
+				],
+			],
+		},
+
+		{
+			'target_name': 'libskia_opt_sse2',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+			
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64")',
+					{
+						'sources':
+						[
+							'<@(opts_sse2_srcs)',
+						],
+					},
+				],
+
+				[
+					'OS == "win"',
+					{
+						'defines':
+						[
+							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE2',
+						],
+					},
+					{
+						'cflags':
+						[
+							'-msse2',
+						],
+					},
+				],
+			],
+		},
+
+		{
+			'target_name': 'libskia_opt_sse3',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64")',
+					{
+						'sources':
+						[
+							'<@(opts_sse3_srcs)',
+						],
+					},
+				],
+
+				[
+					'OS == "win"',
+					{
+						'defines':
+						[
+							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE3',
+						],
+					},
+					{
+						'cflags':
+						[
+							'-msse3',
+						],
+					},
+				],
+			],
+		},
+
+		{
+			'target_name': 'libskia_opt_sse41',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+			
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64")',
+					{
+						'sources':
+						[
+							'<@(opts_sse41_srcs)',
+						],
+					},
+				],
+
+				[
+					'OS == "win"',
+					{
+						'defines':
+						[
+							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE41',
+						],
+					},
+					{
+						'cflags':
+						[
+							'-msse4.1',
+						],
+					},
+				],
+			],
+		},
+
+
+		{
+			'target_name': 'libskia_opt_sse42',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+			
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64")',
+					{
+						'sources':
+						[
+							'<@(opts_sse42_srcs)',
+						],
+					},
+				],
+
+				[
+					'OS == "win"',
+					{
+						'defines':
+						[
+							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE42',
+						],
+					},
+					{
+						'cflags':
+						[
+							'-msse4.2',
+						],
+					},
+				],
+			],
+		},
+
+		{
+			'target_name': 'libskia_opt_avx',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64")',
+					{
+						'sources':
+						[
+							'<@(opts_avx_srcs)',
+						],
+					},
+				],
+
+				[
+					'OS == "win"',
+					{
+						'cflags':
+						[
+							'/arch:AVX',
+						],
+					},
+					{
+						'cflags':
+						[
+							'-mavx',
+						],
+					},
+				],
+			],
+		},
+
+		{
+			'target_name': 'libskia_opt_hsw',
+			'type': 'static_library',
+
+			'include_dirs':
+			[
+				'<@(skia_include_dirs)',
+			],
+
+			'defines':
+			[
+				'<@(skia_defines)',
+			],
+			
+			'variables':
+			{
+				'silence_warnings': 1,
+			},
+
+			'sources':
+			[
+				'src/opts/opts_dummy.cpp',
+			],
+
+			'conditions':
+			[
+				[
+					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64")',
+					{
+						'sources':
+						[
+							'<@(opts_hsw_srcs)',
+						],
+					},
+				],
+
+				[
+					'OS == "win"',
+					{
+						'cflags':
+						[
+							'/arch:AVX2',
+						],
+					},
+					{
+						'cflags':
+						[
+							'-mavx2',
+							'-mbmi',
+							'-mbmi2',
+							'-mf16c',
+							'-mfma',
+						],
+					},
+				],
+			],
+		},
+
 		{
 			'target_name': 'libskia',
 			'type': 'static_library',
@@ -22,49 +561,20 @@
 				'../libjpeg/libjpeg.gyp:libjpeg',
 				'../libpng/libpng.gyp:libpng',
 				'../libz/libz.gyp:libz',
+
+				'libskia_opt_none',
+				'libskia_opt_arm',
+				'libskia_opt_sse2',
+				'libskia_opt_sse3',
+				'libskia_opt_sse41',
+				'libskia_opt_sse42',
+				'libskia_opt_avx',
+				'libskia_opt_hsw',
 			],
 			
 			'include_dirs':
 			[
-				'include/android',
-				'include/animator',
-				'include/c',
-				'include/codec',
-				'include/config',
-				'include/core',
-				'include/effects',
-				'include/images',
-				'include/pathops',
-				'include/ports',
-				'include/private',
-				'include/svg',
-				'include/utils',
-                'include/utils/ios',
-                'include/utils/mac',
-                'include/utils/win',
-				'include/views',
-				'include/xml',
-				'src/android',
-				'src/animator',
-				'src/c',
-				'src/codec',
-				'src/core',
-				'src/effects',
-				'src/fonts',
-				'src/image',
-				'src/images',
-				'src/lazy',
-				'src/opts',
-				'src/pathops',
-				'src/pdf',
-				'src/pipe',
-				'src/ports',
-				'src/sfnt',
-				'src/svg',
-				'src/utils',
-				'src/views',
-				'src/xml',
-				'src/xps',
+				'<@(skia_include_dirs)',
 			],
 			
 			'sources':
@@ -801,26 +1311,6 @@
 				'src/opts/SkSwizzler_opts.h',
 				'src/opts/SkTextureCompressor_opts.h',
 				'src/opts/SkXfermode_opts.h',
-				'src/opts/opts_check_x86.cpp',
-				'src/opts/SkBitmapProcState_arm_neon.cpp',
-				'src/opts/SkBitmapProcState_matrixProcs_neon.cpp',
-				'src/opts/SkBitmapProcState_opts_mips_dsp.cpp',
-				'src/opts/SkBitmapProcState_opts_none.cpp',
-				'src/opts/SkBitmapProcState_opts_SSSE3.cpp',
-				'src/opts/SkBlitMask_opts_arm.cpp',
-				'src/opts/SkBlitMask_opts_arm_neon.cpp',
-				'src/opts/SkBlitMask_opts_none.cpp',
-				'src/opts/SkBlitRow_opts_arm.cpp',
-				'src/opts/SkBlitRow_opts_arm_neon.cpp',
-				'src/opts/SkBlitRow_opts_mips_dsp.cpp',
-				'src/opts/SkBlitRow_opts_none.cpp',
-				'src/opts/SkBlitRow_opts_SSE2.cpp',
-				'src/opts/SkOpts_avx.cpp',
-				'src/opts/SkOpts_crc32.cpp',
-				'src/opts/SkOpts_hsw.cpp',
-				'src/opts/SkOpts_sse41.cpp',
-				'src/opts/SkOpts_sse42.cpp',
-				'src/opts/SkOpts_ssse3.cpp',
 				
 				'src/pathops/SkAddIntersections.h',
 				'src/pathops/SkIntersectionHelper.h',
@@ -1111,25 +1601,7 @@
 			
 			'defines':
 			[
-				# Disable Skia debugging
-				'SK_RELEASE',
-				
-				# Don't try to link against libetc1 for ETC1 texture compression support
-				'SK_IGNORE_ETC1_SUPPORT',
-				
-				# Some Skia source files need this to build
-				# TODO: see if those files can be removed from the build
-				'SK_SUPPORT_LEGACY_IMAGE_ENCODER_CLASS',
-				
-				# We use deprecated Skia features
-				'SK_SUPPORT_LEGACY_CANVAS_IS_REFCNT',
-				'SK_SUPPORT_LEGACY_GETTOPDEVICE',
-				'SK_SUPPORT_LEGACY_ACCESSBITMAP',
-				'SK_SUPPORT_LEGACY_CLIP_REGIONOPS',
-				'SK_SUPPORT_LEGACY_GETDEVICE',
-                
-                # Disable GPU support
-                'SK_SUPPORT_GPU=0',
+				'<@(skia_defines)',
 			],
 			
 			'all_dependent_settings':
@@ -1163,10 +1635,6 @@
 			
 			'sources/':
 			[
-				# Exclude all non-generic optimisations by default
-				['exclude', 'opts/.+\\.(cpp|S)$'],
-				['include', 'opts/.+_none\\.cpp$'],
-				
 				# Disable all image codecs (we don't use Skia for image encode/decode)
 				['exclude', 'KTX'],
 				['exclude', '(W|w)(E|e)(B|b)(P|p)'],
@@ -1185,37 +1653,6 @@
 			
 			'conditions':
 			[
-				[
-					'target_arch in ("i386", "x86", "x86_64", "i386 x86_64", "x64")',
-					{
-						'sources/':
-						[
-							# Enable all x86 optimisations
-                            # (These are gated by run-time feature checks so are safe)
-							['include', 'opts/.+_(((s?)sse)|((S?)SSE)|avx|crc32|hsw).*'],
-						],
-					},
-				],
-                [
-                    'target_arch in ("armv7", "arm64", "armv7 arm64")',
-                    {
-                        'sources/':
-                        [
-                            # Enable NEON optimisations
-                            ['include', 'opts/.+_(arm|neon|NEON).*'],
-                        ],
-                    },
-                ],
-				[
-                    'target_arch in ("arm64", "armv7 arm64")',
-                    {
-                        'sources/':
-                        [
-                            # Enable crc32 optimisations
-                            ['include', 'opts/.+_crc32.*'],
-                        ],
-                    },
-                ],
 				[
 					'OS == "win"',
 					{
@@ -1414,11 +1851,6 @@
                             ['exclude', 'SkFontMgr_custom'],
                         ],
 
-						'cflags':
-						[
-							'-msse4.1',
-						],
-						
                         'link_settings':
                         {
                             'libraries':

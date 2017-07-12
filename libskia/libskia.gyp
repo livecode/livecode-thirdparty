@@ -90,8 +90,6 @@
 			"src/opts/SkBlitRow_opts_arm_neon.cpp",
 		],
 
-		# TODO: This seems specific to ARM64 when SK_ARM_HAS_CRC32 is defined
-		# so we ignore for now.
 		'opts_crc32_srcs':
 		[
 			"src/opts/SkOpts_crc32.cpp",
@@ -211,6 +209,14 @@
 						[
 							'<@(opts_armv7_arm64_srcs)',
 						],
+					},
+					
+					'target_arch in ("arm64", "armv7 arm64")',
+					{
+						'sources':
+						[
+							'<@(opts_crc32_srcs)',
+						],					
 					},
 				],
 			],

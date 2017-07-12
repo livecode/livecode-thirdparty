@@ -207,16 +207,9 @@
 					{
 						'sources':
 						[
-							'<@(opts_armv7_arm64_srcs)',
+                            '<@(opts_armv7_arm64_srcs)',
+                            '<@(opts_crc32_srcs)',
 						],
-					},
-					
-					'target_arch in ("arm64", "armv7 arm64")',
-					{
-						'sources':
-						[
-							'<@(opts_crc32_srcs)',
-						],					
 					},
 				],
 			],

@@ -276,6 +276,7 @@
 							'variables':
 							{
 								'dist_files': [ '<(PRODUCT_DIR)/<(_product_name)>(ext_bundle_suffix)' ],
+								'dist_aux_files': [ '<(PRODUCT_DIR)/<(_product_name).lcext' ],
 							},
 						},
 					},

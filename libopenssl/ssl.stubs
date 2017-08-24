@@ -49,6 +49,7 @@ crypto ./revsecurity ./revsecurity ./revsecurity
 
 	PEM_read_bio_X509_AUX: (pointer, pointer, pointer, pointer) -> (pointer)
 	PEM_read_bio_PUBKEY: (pointer, pointer, pointer, pointer) -> (pointer)
+	PEM_read_bio_RSAPublicKey: (pointer, pointer, pointer, pointer) -> (pointer)
 	PEM_read_bio_PrivateKey: (pointer, pointer, pointer, pointer) -> (pointer)
 
 	OBJ_obj2nid: (pointer) -> (integer)

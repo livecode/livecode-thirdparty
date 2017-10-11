@@ -1688,6 +1688,10 @@
 						[
 							# Ensure we get the complete Windows Imaging Components headers
 							'_WIN7_PLATFORM_UPDATE',
+
+							# Disable Analytical AnitAliasing on Windows
+							# TODO: Recheck rounded-rectangle appearence after next Skia update.
+							'SK_NO_ANALYTIC_AA',
 						],
 						
 						'link_settings':

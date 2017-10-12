@@ -20,7 +20,7 @@
 			'conditions':
 			[
 				[
-					'OS != "mac" and OS != "win" and OS != "linux"',
+					'(OS != "mac" and OS != "win" and OS != "linux") or (OS == "linux" and target_arch != "x86" and target_arch != "x86_64")',
 					{
 						'type': 'none',
 					},
@@ -238,7 +238,7 @@
 			'conditions':
 			[
 				[
-					'OS != "mac" and OS != "win" and OS != "linux"',
+					'(OS != "mac" and OS != "win" and OS != "linux") or (OS == "linux" and target_arch != "x86" and target_arch != "x86_64")',
 					{
 						'type': 'none',
 					},

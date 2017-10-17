@@ -253,6 +253,12 @@
 						'type': 'none',
 					},
 				],
+				[
+					'toolset_os == "linux" and not toolset_arch in ("x86", "x86_64")',
+					{
+						'type': 'none',
+					},
+				],
 			],
 			
 			'sources':

@@ -9,6 +9,8 @@
 		{
 			'target_name': 'libcef_library_wrapper',
 			'type': 'static_library',
+
+			'toolsets': ['host', 'target'],
 			
 			'variables':
 			{
@@ -17,16 +19,22 @@
 			},
 			
 			# OSX, Windows and Linux only
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'OS != "mac" and OS != "win" and OS != "linux"',
+					'not toolset_os in ("mac", "win", "linux")',
 					{
 						'type': 'none',
 					},
 				],
 				[
-					'OS == "win"',
+					'toolset_os == "linux" and not toolset_arch in ("x86", "x86_64")',
+					{
+						'type': 'none',
+					},
+				],
+				[
+					'toolset_os == "win"',
 					{
 						'defines':
 						[
@@ -228,6 +236,8 @@
 			'target_name': 'libcef_stubs',
 			'type': 'static_library',
 			
+			'toolsets': ['host', 'target'],
+
 			'variables':
 			{
 				'library_for_module': 1,
@@ -235,10 +245,10 @@
 			},
 			
 			# OSX, Windows and Linux only
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'OS != "mac" and OS != "win" and OS != "linux"',
+					'not toolset_os in ("mac", "win", "linux")',
 					{
 						'type': 'none',
 					},

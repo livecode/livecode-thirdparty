@@ -284,7 +284,7 @@
 					},
 				],
 				[
-					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv6hf")',
+					'toolset_os in ("linux", "android") and toolset_arch in ("armv6", "armv6hf", "armv7")',
 					{
 						'platform_include_dirs':
 						[
@@ -297,11 +297,19 @@
 							'<@(libffi_generic_sources)'
 						],
 						
-						# Disable VFP
-						'cflags':
-						[
-							'-U__ARM_EABI__',
-						],
+						# Disable VFP for non-hard-float targets
+                        'conditions':
+                        [
+                            [
+                                'toolset_arch == "armv6"',
+                                {
+                                    'cflags':
+                                    [
+                                        '-U__ARM_EABI__',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 				[

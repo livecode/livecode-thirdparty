@@ -142,6 +142,8 @@
 			'target_name': 'libskia_opt_none',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -162,10 +164,10 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch not in ("i386", "x86", "x86_64", "i386 x86_64", "x64", "armv7", "arm64", "armv7 arm64")',
+					'toolset_arch not in ("i386", "x86", "x86_64", "i386 x86_64", "x64", "armv6", "armv6hf", "armv7", "arm64", "armv7 arm64")',
 					{
 						'sources':
 						[
@@ -180,6 +182,8 @@
 			'target_name': 'libskia_opt_arm',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -200,10 +204,10 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("armv7", "arm64", "armv7 arm64")',
+					'toolset_arch in ("armv7", "arm64", "armv7 arm64")',
 					{
 						'sources':
 						[
@@ -219,6 +223,8 @@
 			'target_name': 'libskia_opt_sse2',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -239,31 +245,34 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
+					'toolset_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
 					{
 						'sources':
 						[
 							'<@(opts_sse2_srcs)',
 						],
-					},
-				],
-
-				[
-					'OS == "win"',
-					{
-						'defines':
-						[
-							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE2',
-						],
-					},
-					{
-						'cflags':
-						[
-							'-msse2',
-						],
+                        
+                        'target_conditions':
+                        [
+                            [
+                                'toolset_os == "win"',
+                                {
+                                    'defines':
+                                    [
+                                        'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE2',
+                                    ],
+                                },
+                                {
+                                    'cflags':
+                                    [
+                                        '-msse2',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 			],
@@ -273,6 +282,8 @@
 			'target_name': 'libskia_opt_sse3',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -293,31 +304,34 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
+					'toolset_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
 					{
 						'sources':
 						[
 							'<@(opts_sse3_srcs)',
 						],
-					},
-				],
-
-				[
-					'OS == "win"',
-					{
-						'defines':
-						[
-							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE3',
-						],
-					},
-					{
-						'cflags':
-						[
-							'-msse3',
-						],
+                        
+                        'target_conditions':
+                        [
+                            [
+                                'toolset_os == "win"',
+                                {
+                                    'defines':
+                                    [
+                                        'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE3',
+                                    ],
+                                },
+                                {
+                                    'cflags':
+                                    [
+                                        '-msse3',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 			],
@@ -326,6 +340,8 @@
 		{
 			'target_name': 'libskia_opt_sse41',
 			'type': 'static_library',
+
+			'toolsets': ['host', 'target'],
 
 			'include_dirs':
 			[
@@ -347,31 +363,34 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
+					'toolset_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
 					{
 						'sources':
 						[
 							'<@(opts_sse41_srcs)',
 						],
-					},
-				],
-
-				[
-					'OS == "win"',
-					{
-						'defines':
-						[
-							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE41',
-						],
-					},
-					{
-						'cflags':
-						[
-							'-msse4.1',
-						],
+                        
+                        'target_conditions':
+                        [
+                            [
+                                'toolset_os == "win"',
+                                {
+                                    'defines':
+                                    [
+                                        'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE41',
+                                    ],
+                                },
+                                {
+                                    'cflags':
+                                    [
+                                        '-msse4.1',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 			],
@@ -382,6 +401,8 @@
 			'target_name': 'libskia_opt_sse42',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -402,31 +423,34 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
+					'toolset_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
 					{
 						'sources':
 						[
 							'<@(opts_sse42_srcs)',
 						],
-					},
-				],
-
-				[
-					'OS == "win"',
-					{
-						'defines':
-						[
-							'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE42',
-						],
-					},
-					{
-						'cflags':
-						[
-							'-msse4.2',
-						],
+                        
+                        'target_conditions':
+                        [
+                            [
+                                'toolset_os == "win"',
+                                {
+                                    'defines':
+                                    [
+                                        'SK_CPU_SSE_LEVEL=SK_CPU_SSE_LEVEL_SSE42',
+                                    ],
+                                },
+                                {
+                                    'cflags':
+                                    [
+                                        '-msse4.2',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 			],
@@ -436,6 +460,8 @@
 			'target_name': 'libskia_opt_avx',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -456,31 +482,34 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
+					'toolset_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
 					{
 						'sources':
 						[
 							'<@(opts_avx_srcs)',
 						],
-					},
-				],
-
-				[
-					'OS == "win"',
-					{
-						'cflags':
-						[
-							'/arch:AVX',
-						],
-					},
-					{
-						'cflags':
-						[
-							'-mavx',
-						],
+                        
+                        'target_conditions':
+                        [
+                            [
+                                'toolset_os == "win"',
+                                {
+                                    'cflags':
+                                    [
+                                        '/arch:AVX',
+                                    ],
+                                },
+                                {
+                                    'cflags':
+                                    [
+                                        '-mavx',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 			],
@@ -490,6 +519,8 @@
 			'target_name': 'libskia_opt_hsw',
 			'type': 'static_library',
 
+			'toolsets': ['host', 'target'],
+
 			'include_dirs':
 			[
 				'<@(skia_include_dirs)',
@@ -510,35 +541,38 @@
 				'src/opts/opts_dummy.cpp',
 			],
 
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'target_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
+					'toolset_arch in ("i386", "x86", "x64", "x86_64", "i386 x86_64")',
 					{
 						'sources':
 						[
 							'<@(opts_hsw_srcs)',
 						],
-					},
-				],
-
-				[
-					'OS == "win"',
-					{
-						'cflags':
-						[
-							'/arch:AVX2',
-						],
-					},
-					{
-						'cflags':
-						[
-							'-mavx2',
-							'-mbmi',
-							'-mbmi2',
-							'-mf16c',
-							'-mfma',
-						],
+                        
+                        'target_conditions':
+                        [
+                            [
+                                'toolset_os == "win"',
+                                {
+                                    'cflags':
+                                    [
+                                        '/arch:AVX2',
+                                    ],
+                                },
+                                {
+                                    'cflags':
+                                    [
+                                        '-mavx2',
+                                        '-mbmi',
+                                        '-mbmi2',
+                                        '-mf16c',
+                                        '-mfma',
+                                    ],
+                                },
+                            ],
+                        ],
 					},
 				],
 			],
@@ -548,6 +582,8 @@
 			'target_name': 'libskia',
 			'type': 'static_library',
 			
+			'toolsets': ['host', 'target'],
+
 			'variables':
 			{
 				'silence_warnings': 1,
@@ -1650,10 +1686,10 @@
 				['exclude', '/xps/'],
 			],
 			
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'OS == "win"',
+					'toolset_os == "win"',
 					{
 						'include_dirs':
 						[
@@ -1693,18 +1729,10 @@
 							# TODO: Recheck rounded-rectangle appearence after next Skia update.
 							'SK_NO_ANALYTIC_AA',
 						],
-						
-						'link_settings':
-						{
-							'libraries':
-							[
-								#'-lOpenGL32.lib',
-							],
-						},
 					},
 				],
 				[
-					'OS != "win"',
+					'toolset_os != "win"',
 					{
 						'sources/':
 						[
@@ -1716,7 +1744,7 @@
 					},
 				],
                 [
-                    'OS in ("mac", "ios")',
+                    'toolset_os in ("mac", "ios")',
                     {
                         'sources!':
                         [
@@ -1741,7 +1769,7 @@
                     },
                 ],
 				[
-					'OS not in ("mac","ios")',
+					'toolset_os not in ("mac","ios")',
 					{
 						'sources/':
 						[
@@ -1752,12 +1780,12 @@
 					},
 				],
                 [
-                    'OS != "emscripten"',
+                    'toolset_os != "emscripten"',
                     {
                     },
                 ],
 				[
-					'OS == "linux" or OS == "emscripten"',
+					'toolset_os in ("linux", "emscripten")',
 					{
 						# Work around unreliable platform detection in the Skia headers
 						'defines':
@@ -1767,7 +1795,7 @@
 					},
 				],
 				[
-					'OS != "android"',
+					'toolset_os != "android"',
 					{
 						'sources/':
 						[
@@ -1777,7 +1805,7 @@
 					},
 				],
 				[
-					'OS != "android"',
+					'toolset_os != "android"',
 					{
 						'sources!':
 						[
@@ -1787,7 +1815,7 @@
 					},
 				],
                 [
-                    'OS == "emscripten"',
+                    'toolset_os == "emscripten"',
                     {
                         'defines':
                         [
@@ -1820,7 +1848,7 @@
                     },
                 ],
 				[
-					'OS == "mac"',
+					'toolset_os == "mac"',
 					{
                         'sources/':
                         [
@@ -1828,7 +1856,7 @@
 					},
 				],
 				[
-					'OS == "ios"',
+					'toolset_os == "ios"',
 					{
 						'sources!':
 						[
@@ -1838,7 +1866,7 @@
 					},
 				],
                 [
-                    'OS == "linux"',
+                    'toolset_os == "linux"',
                     {
                         'sources!':
 						[
@@ -1853,20 +1881,10 @@
                         [
                             ['exclude', 'SkFontMgr_custom'],
                         ],
-
-                        'link_settings':
-                        {
-                            'libraries':
-                            [
-                                #'-lGL',
-								'-lfontconfig',
-								'-lfreetype',
-                            ],
-                        },
                     }
                 ],
 				[
-					'OS == "android"',
+					'toolset_os == "android"',
 					{
 						'dependencies':
 						[
@@ -1883,7 +1901,7 @@
                         # Need to include the cpufeatures module from the Android NDK
                         'include_dirs':
                         [
-                            '<(android_ndk_path)/sources/android/cpufeatures',
+                            '>(android_ndk_path)/sources/android/cpufeatures',
                         ],
                         'sources':
                         [
@@ -1907,18 +1925,46 @@
                             ['exclude', 'FontConfig'],
                             ['exclude', 'SkFontMgr_custom'],
                         ],
-                        
-                        'link_settings':
-                        {
-                            'libraries':
-                            [
-                                #'-lEGL',
-                                #'-lGLESv2',
-                            ],
-                        },
-                    },
+                    },                      
                 ],
 			],
+
+			'link_settings':
+			{
+				'target_conditions':
+				[
+					[
+						'toolset_os == "win"',
+						{
+							'libraries':
+							[
+								#'-lOpenGL32.lib'
+							],
+						},
+					],
+					[
+						'toolset_os == "linux"',
+						{
+							'libraries':
+							[
+								#'-lGL',
+								'-lfreetype',
+								'-lfontconfig',
+							],
+						},
+					],
+					[
+						'toolset_os == "android"',
+						{
+							'libraries':
+							[
+								#'-lEGL',
+								#'-lGLESv2',
+							],
+						},
+					],
+				],
+			},
 			
 			'direct_dependent_settings':
 			{

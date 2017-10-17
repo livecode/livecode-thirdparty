@@ -9,6 +9,8 @@
 		{
 			'target_name': 'libpcre',
 			
+			'toolsets': ['host', 'target'],
+
 			'conditions':
 			[
 				[

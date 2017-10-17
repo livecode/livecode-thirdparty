@@ -9,6 +9,8 @@
 		{
 			'target_name': 'libpng',
 			
+			'toolsets': ['host', 'target'],
+
 			'dependencies':
 			[
 				'../libz/libz.gyp:libz',

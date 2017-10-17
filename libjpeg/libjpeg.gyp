@@ -8,6 +8,8 @@
 	[
 		{
 			'target_name': 'libjpeg',
+
+			'toolsets': ['host', 'target'],
 			
 			'conditions':
 			[

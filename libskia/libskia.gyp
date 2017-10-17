@@ -79,11 +79,15 @@
   			"src/opts/SkBlitRow_opts_none.cpp",
 		],
 
-		'opts_armv7_arm64_srcs':
-		[
-			"src/opts/SkBitmapProcState_opts_none.cpp",
+        'opts_arm_srcs':
+        [
+            "src/opts/SkBitmapProcState_opts_none.cpp",
 			"src/opts/SkBlitMask_opts_arm.cpp",
 			"src/opts/SkBlitRow_opts_arm.cpp",
+        ],
+        
+		'opts_armv7_arm64_srcs':
+		[
 			"src/opts/SkBitmapProcState_arm_neon.cpp",
 			"src/opts/SkBitmapProcState_matrixProcs_neon.cpp",
 			"src/opts/SkBlitMask_opts_arm_neon.cpp",
@@ -211,11 +215,22 @@
 					{
 						'sources':
 						[
+                            '<@(opts_arm_srcs)',
                             '<@(opts_armv7_arm64_srcs)',
                             '<@(opts_crc32_srcs)',
 						],
 					},
 				],
+                [
+                    'toolset_arch in ("armv6", "armv6hf")',
+                    {
+                        'sources':
+                        [
+                            '<@(opts_arm_srcs)',
+                            '<@(opts_crc32_srcs)',
+                        ],
+                    },
+                ],
 			],
 		},
 

@@ -28,6 +28,7 @@ _s_type_table = {
 "cef_thread_id_t":"integer",
 "cef_uri_unescape_rule_t":"integer",
 "cef_xml_encoding_type_t":"integer",
+"cef_cert_status_t": "integer",
 }
 
 def log(pMsg):

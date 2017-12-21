@@ -6,20 +6,20 @@
 #define CEF_LIBCEF_DLL_CPPTOC_BASE_CPPTOC_H_
 #pragma once
 
-#include "include/cef_base.h"
 #include "include/capi/cef_base_capi.h"
-#include "libcef_dll/cpptoc/cpptoc.h"
+#include "include/cef_base.h"
+#include "libcef_dll/cpptoc/cpptoc_scoped.h"
 
-#ifndef USING_CEF_SHARED
-#pragma message("Warning: "__FILE__" may be accessed wrapper-side only")
-#else  // USING_CEF_SHARED
+#if !defined(WRAPPING_CEF_SHARED)
+#error This file can be included wrapper-side only
+#endif
 
 // Wrap a C++ class with a C structure.
-class CefBaseCppToC
-    : public CefCppToC<CefBaseCppToC, CefBase, cef_base_t> {
+class CefBaseScopedCppToC : public CefCppToCScoped<CefBaseScopedCppToC,
+                                                   CefBaseScoped,
+                                                   cef_base_scoped_t> {
  public:
-  CefBaseCppToC();
+  CefBaseScopedCppToC();
 };
 
-#endif  // USING_CEF_SHARED
 #endif  // CEF_LIBCEF_DLL_CPPTOC_BASE_CPPTOC_H_

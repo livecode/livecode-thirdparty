@@ -236,6 +236,20 @@
                             '<@(opts_armv7_arm64_srcs)',
                             '<@(opts_crc32_srcs)',
 						],
+
+						'target_conditions':
+						[
+							[
+								'toolset_os == "android" and toolset_arch == "armv7"',
+								{
+									'cflags':
+									[
+										# Needed in order to enable NEON instruction support
+										'-mfpu=neon',
+									],
+								},
+							],
+						],
 					},
 				],
                 [

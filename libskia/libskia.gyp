@@ -133,6 +133,23 @@
   		],
 	},
 
+	'target_defaults':
+	{
+		'target_conditions':
+		[
+			[
+				'toolset_os == "android" and toolset_arch == "armv6"',
+				{
+					'cflags':
+					[
+						# Skia won't compile to ARMv6 Thumb
+						'-marm',
+					],
+				},
+			],
+		],
+	},
+
 	'targets':
 	[
 		# We define separate targets for each set of optimizations as they need

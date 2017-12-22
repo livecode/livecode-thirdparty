@@ -10,6 +10,8 @@
 			'target_name': 'libfreetype',
 			'type': 'static_library',
 			
+			'toolsets': ['target', 'host'],
+
 			'variables':
 			{
 				'silence_warnings': 1,
@@ -167,11 +169,11 @@
 				],
 			},
 			
-			'conditions':
+			'target_conditions':
 			[
-				# This library is only required on Android
+				# This library is only required on Emscripten and Android
 				[
-                                        'OS != "android" and OS != "emscripten"',
+					'toolset_os not in ("emscripten", "android")',
 					{
 						'type': 'none',
 					},

@@ -1701,6 +1701,19 @@
 				['exclude', '/xps/'],
 			],
 			
+			'conditions':
+			[
+				[
+					'OS in ("emscripten", "android")',
+					{
+						'dependencies':
+						[
+							'../libfreetype/libfreetype.gyp:libfreetype',
+						],
+					}
+				],
+			],
+
 			'target_conditions':
 			[
 				[
@@ -1837,12 +1850,6 @@
                             'SK_FONT_FILE_PREFIX="/boot/standalone/"',
                         ],
 
-                        'dependencies':
-                        [
-                            '../libexpat/libexpat.gyp:libexpat',
-                            '../libfreetype/libfreetype.gyp:libfreetype',
-                        ],
-
                         'sources!':
 						[
                             'src/ports/SkDebug_stdio.cpp',
@@ -1901,12 +1908,6 @@
 				[
 					'toolset_os == "android"',
 					{
-						'dependencies':
-						[
-							'../libexpat/libexpat.gyp:libexpat',
-							'../libfreetype/libfreetype.gyp:libfreetype',
-						],
-
 						'defines':
 						[
                             'SK_BUILD_FOR_ANDROID',
@@ -1914,9 +1915,14 @@
 						],
                         
                         # Need to include the cpufeatures module from the Android NDK
+						'variables':
+						{
+							# Default value because only Android defines the <(android_ndk_path) variable.
+							'android_ndk_path%': '',
+						},
                         'include_dirs':
                         [
-                            '>(android_ndk_path)/sources/android/cpufeatures',
+                            '<(android_ndk_path)/sources/android/cpufeatures',
                         ],
                         'sources':
                         [

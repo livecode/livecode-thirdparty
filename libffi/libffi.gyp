@@ -36,6 +36,11 @@
 		[
 			'./include_linux/x86_64',
 		],
+
+		'libffi_public_headers_linux_arm64_dir':
+		[
+			'./include_linux/arm64',
+		],
 		
 		'libffi_public_headers_android_dir':
 		[
@@ -116,6 +121,12 @@
 			'src/arm/ffi.c',
 			'src/arm/sysv.S',
 			'src/arm/trampoline.S',
+		],
+
+		'libffi_linux_arm64_source_files':
+		[
+			'src/aarch64/ffi.c',
+			'src/aarch64/sysv.S',
 		],
 	},
 	
@@ -310,6 +321,21 @@
                                 },
                             ],
                         ],
+					},
+				],
+				[
+					'toolset_os in ("linux", "android") and toolset_arch == "arm64"',
+					{
+						'platform_include_dirs':
+						[
+							'<@(libffi_public_headers_linux_arm64_dir)',
+						],
+
+						'sources':
+						[
+							'<@(libffi_linux_arm64_source_files)',
+							'<@(libffi_generic_sources)',
+						],
 					},
 				],
 				[

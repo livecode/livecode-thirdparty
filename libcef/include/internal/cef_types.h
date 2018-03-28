@@ -95,6 +95,11 @@ typedef enum {
   LOGSEVERITY_VERBOSE,
 
   ///
+  // DEBUG logging.
+  ///
+  LOGSEVERITY_DEBUG = LOGSEVERITY_VERBOSE,
+
+  ///
   // INFO logging.
   ///
   LOGSEVERITY_INFO,
@@ -1222,15 +1227,26 @@ typedef enum {
   UR_FLAG_NONE = 0,
 
   ///
-  // If set the cache will be skipped when handling the request.
+  // If set the cache will be skipped when handling the request. Setting this
+  // value is equivalent to specifying the "Cache-Control: no-cache" request
+  // header. Setting this value in combination with UR_FLAG_ONLY_FROM_CACHE will
+  // cause the request to fail.
   ///
   UR_FLAG_SKIP_CACHE = 1 << 0,
+
+  ///
+  // If set the request will fail if it cannot be served from the cache (or some
+  // equivalent local store). Setting this value is equivalent to specifying the
+  // "Cache-Control: only-if-cached" request header. Setting this value in
+  // combination with UR_FLAG_SKIP_CACHE will cause the request to fail.
+  ///
+  UR_FLAG_ONLY_FROM_CACHE = 1 << 1,
 
   ///
   // If set user name, password, and cookies may be sent with the request, and
   // cookies may be saved from the response.
   ///
-  UR_FLAG_ALLOW_CACHED_CREDENTIALS = 1 << 1,
+  UR_FLAG_ALLOW_STORED_CREDENTIALS = 1 << 2,
 
   ///
   // If set upload progress events will be generated when a request has a body.
@@ -1240,14 +1256,14 @@ typedef enum {
   ///
   // If set the CefURLRequestClient::OnDownloadData method will not be called.
   ///
-  UR_FLAG_NO_DOWNLOAD_DATA = 1 << 6,
+  UR_FLAG_NO_DOWNLOAD_DATA = 1 << 4,
 
   ///
   // If set 5XX redirect errors will be propagated to the observer instead of
   // automatically re-tried. This currently only applies for requests
   // originated in the browser process.
   ///
-  UR_FLAG_NO_RETRY_ON_5XX = 1 << 7,
+  UR_FLAG_NO_RETRY_ON_5XX = 1 << 5,
 } cef_urlrequest_flags_t;
 
 ///
@@ -2029,74 +2045,6 @@ typedef enum {
   ///
   FILE_DIALOG_HIDEREADONLY_FLAG = 0x02000000,
 } cef_file_dialog_mode_t;
-
-///
-// Geoposition error codes.
-///
-typedef enum {
-  GEOPOSITON_ERROR_NONE = 0,
-  GEOPOSITON_ERROR_PERMISSION_DENIED,
-  GEOPOSITON_ERROR_POSITION_UNAVAILABLE,
-  GEOPOSITON_ERROR_TIMEOUT,
-} cef_geoposition_error_code_t;
-
-///
-// Structure representing geoposition information. The properties of this
-// structure correspond to those of the JavaScript Position object although
-// their types may differ.
-///
-typedef struct _cef_geoposition_t {
-  ///
-  // Latitude in decimal degrees north (WGS84 coordinate frame).
-  ///
-  double latitude;
-
-  ///
-  // Longitude in decimal degrees west (WGS84 coordinate frame).
-  ///
-  double longitude;
-
-  ///
-  // Altitude in meters (above WGS84 datum).
-  ///
-  double altitude;
-
-  ///
-  // Accuracy of horizontal position in meters.
-  ///
-  double accuracy;
-
-  ///
-  // Accuracy of altitude in meters.
-  ///
-  double altitude_accuracy;
-
-  ///
-  // Heading in decimal degrees clockwise from true north.
-  ///
-  double heading;
-
-  ///
-  // Horizontal component of device velocity in meters per second.
-  ///
-  double speed;
-
-  ///
-  // Time of position measurement in milliseconds since Epoch in UTC time. This
-  // is taken from the host computer's system clock.
-  ///
-  cef_time_t timestamp;
-
-  ///
-  // Error code, see enum above.
-  ///
-  cef_geoposition_error_code_t error_code;
-
-  ///
-  // Human-readable error message.
-  ///
-  cef_string_t error_message;
-} cef_geoposition_t;
 
 ///
 // Print job color mode values.

@@ -7,6 +7,7 @@ import sys
 
 _s_type_table = {
 "int":"integer",
+"uint16":"integer",
 "int32":"integer",
 "uint32":"integer",
 "int64":"integer64",
@@ -26,6 +27,9 @@ _s_type_table = {
 "cef_string_userfree_utf8_t":"pointer",
 "cef_string_userfree_utf16_t":"pointer",
 "cef_thread_id_t":"integer",
+"cef_thread_priority_t":"integer",
+"cef_message_loop_type_t":"integer",
+"cef_com_init_mode_t":"integer",
 "cef_uri_unescape_rule_t":"integer",
 "cef_xml_encoding_type_t":"integer",
 "cef_cert_status_t": "integer",
@@ -122,7 +126,7 @@ def gen_stubs_file(pPaths):
 
 	tSignatureList.sort()
 	
-	print "cef ./CEF/libcef ./CEF/libcef ./CEF/libcef"
+	print "cef ./Externals/CEF/libcef ./Externals/CEF/libcef ./Externals/CEF/libcef"
 	print "\n".join(tSignatureList)
 
 #get include folder from the command line

@@ -84,10 +84,6 @@ set(LIBCEF_CPPTOC_SRCS
   cpptoc/find_handler_cpptoc.h
   cpptoc/focus_handler_cpptoc.cc
   cpptoc/focus_handler_cpptoc.h
-  cpptoc/geolocation_handler_cpptoc.cc
-  cpptoc/geolocation_handler_cpptoc.h
-  cpptoc/get_geolocation_callback_cpptoc.cc
-  cpptoc/get_geolocation_callback_cpptoc.h
   cpptoc/jsdialog_handler_cpptoc.cc
   cpptoc/jsdialog_handler_cpptoc.h
   cpptoc/keyboard_handler_cpptoc.cc
@@ -128,6 +124,8 @@ set(LIBCEF_CPPTOC_SRCS
   cpptoc/run_file_dialog_callback_cpptoc.h
   cpptoc/scheme_handler_factory_cpptoc.cc
   cpptoc/scheme_handler_factory_cpptoc.h
+  cpptoc/server_handler_cpptoc.cc
+  cpptoc/server_handler_cpptoc.h
   cpptoc/set_cookie_callback_cpptoc.cc
   cpptoc/set_cookie_callback_cpptoc.h
   cpptoc/string_visitor_cpptoc.cc
@@ -220,8 +218,6 @@ set(LIBCEF_CTOCPP_SRCS
   ctocpp/file_dialog_callback_ctocpp.h
   ctocpp/frame_ctocpp.cc
   ctocpp/frame_ctocpp.h
-  ctocpp/geolocation_callback_ctocpp.cc
-  ctocpp/geolocation_callback_ctocpp.h
   ctocpp/get_extension_resource_callback_ctocpp.cc
   ctocpp/get_extension_resource_callback_ctocpp.h
   ctocpp/image_ctocpp.cc
@@ -262,6 +258,8 @@ set(LIBCEF_CTOCPP_SRCS
   ctocpp/scheme_registrar_ctocpp.h
   ctocpp/select_client_certificate_callback_ctocpp.cc
   ctocpp/select_client_certificate_callback_ctocpp.h
+  ctocpp/server_ctocpp.cc
+  ctocpp/server_ctocpp.h
   ctocpp/sslinfo_ctocpp.cc
   ctocpp/sslinfo_ctocpp.h
   ctocpp/sslstatus_ctocpp.cc
@@ -379,8 +377,6 @@ set(LIBCEF_INCLUDE_SRCS
   ../include/cef_find_handler.h
   ../include/cef_focus_handler.h
   ../include/cef_frame.h
-  ../include/cef_geolocation.h
-  ../include/cef_geolocation_handler.h
   ../include/cef_image.h
   ../include/cef_jsdialog_handler.h
   ../include/cef_keyboard_handler.h
@@ -408,6 +404,7 @@ set(LIBCEF_INCLUDE_SRCS
   ../include/cef_response.h
   ../include/cef_response_filter.h
   ../include/cef_scheme.h
+  ../include/cef_server.h
   ../include/cef_ssl_info.h
   ../include/cef_ssl_status.h
   ../include/cef_stream.h
@@ -512,8 +509,6 @@ set(LIBCEF_INCLUDE_CAPI_SRCS
   ../include/capi/cef_find_handler_capi.h
   ../include/capi/cef_focus_handler_capi.h
   ../include/capi/cef_frame_capi.h
-  ../include/capi/cef_geolocation_capi.h
-  ../include/capi/cef_geolocation_handler_capi.h
   ../include/capi/cef_image_capi.h
   ../include/capi/cef_jsdialog_handler_capi.h
   ../include/capi/cef_keyboard_handler_capi.h
@@ -541,6 +536,7 @@ set(LIBCEF_INCLUDE_CAPI_SRCS
   ../include/capi/cef_response_capi.h
   ../include/capi/cef_response_filter_capi.h
   ../include/capi/cef_scheme_capi.h
+  ../include/capi/cef_server_capi.h
   ../include/capi/cef_ssl_info_capi.h
   ../include/capi/cef_ssl_status_capi.h
   ../include/capi/cef_stream_capi.h

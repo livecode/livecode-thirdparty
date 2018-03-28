@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2018 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=979968e494e9d7c4d5117a1753acade5d0e79215$
+// $hash=ab31ef5d72b4b1c9809698e5fbbdae21918af713$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_DISPLAY_HANDLER_CAPI_H_
@@ -118,6 +118,7 @@ typedef struct _cef_display_handler_t {
   ///
   int(CEF_CALLBACK* on_console_message)(struct _cef_display_handler_t* self,
                                         struct _cef_browser_t* browser,
+                                        cef_log_severity_t level,
                                         const cef_string_t* message,
                                         const cef_string_t* source,
                                         int line);

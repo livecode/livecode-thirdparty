@@ -9,6 +9,8 @@
 		{
 			'target_name': 'libgif',
 			
+			'toolsets': ['host', 'target'],
+
 			'conditions':
 			[
 				[

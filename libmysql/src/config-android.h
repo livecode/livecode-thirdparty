@@ -35,7 +35,7 @@
 #define HAVE_SYS_SOCKET_H 1
 #define HAVE_SYS_STAT_H 1
 /* #undef HAVE_SYS_STREAM_H */
-#define HAVE_SYS_TIMEB_H 1
+/* #undef HAVE_SYS_TIMEB_H */
 #define HAVE_SYS_TYPES_H 1
 #define HAVE_SYS_UN_H 1
 #define HAVE_TERMIOS_H 1

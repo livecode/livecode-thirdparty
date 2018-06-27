@@ -36,6 +36,11 @@
 		[
 			'./include_linux/x86_64',
 		],
+
+		'libffi_public_headers_linux_arm64_dir':
+		[
+			'./include_linux/arm64',
+		],
 		
 		'libffi_public_headers_android_dir':
 		[
@@ -116,6 +121,12 @@
 			'src/arm/ffi.c',
 			'src/arm/sysv.S',
 			'src/arm/trampoline.S',
+		],
+
+		'libffi_linux_arm64_source_files':
+		[
+			'src/aarch64/ffi.c',
+			'src/aarch64/sysv.S',
 		],
 	},
 	
@@ -284,7 +295,7 @@
 					},
 				],
 				[
-					'(toolset_os == "linux" or toolset_os == "android") and (toolset_arch == "armv6" or toolset_arch == "armv6hf")',
+					'toolset_os in ("linux", "android") and toolset_arch in ("armv6", "armv6hf", "armv7")',
 					{
 						'platform_include_dirs':
 						[
@@ -297,10 +308,33 @@
 							'<@(libffi_generic_sources)'
 						],
 						
-						# Disable VFP
-						'cflags':
+						# Disable VFP for non-hard-float targets
+                        'conditions':
+                        [
+                            [
+                                'toolset_arch == "armv6"',
+                                {
+                                    'cflags':
+                                    [
+                                        '-U__ARM_EABI__',
+                                    ],
+                                },
+                            ],
+                        ],
+					},
+				],
+				[
+					'toolset_os in ("linux", "android") and toolset_arch == "arm64"',
+					{
+						'platform_include_dirs':
 						[
-							'-U__ARM_EABI__',
+							'<@(libffi_public_headers_linux_arm64_dir)',
+						],
+
+						'sources':
+						[
+							'<@(libffi_linux_arm64_source_files)',
+							'<@(libffi_generic_sources)',
 						],
 					},
 				],

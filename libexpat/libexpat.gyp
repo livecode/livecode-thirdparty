@@ -9,6 +9,8 @@
 		{
 			'target_name': 'libexpat',
 			'type': 'static_library',
+
+			'toolsets': ['host', 'target'],
 			
 			'variables':
 			{
@@ -58,10 +60,10 @@
 				],
 			},
 			
-			'conditions':
+			'target_conditions':
 			[
 				[
-					'OS != "android"',
+					'toolset_os != "android"',
 					{
 						'type': 'none',
 					},

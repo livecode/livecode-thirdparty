@@ -10,6 +10,8 @@
 			'target_name': 'libharfbuzz',
 			'type': 'static_library',
 
+			'toolsets': ['target', 'host'],
+
 			'variables':
 			{
 				'silence_warnings': 1,
@@ -78,6 +80,17 @@
 					'../../prebuilt/include',
 				],
 			},
+
+			'target_conditions':
+			[
+				# This library is only required on Emscripten and Android
+				[
+					'toolset_os not in ("emscripten", "android")',
+					{
+						'type': 'none',
+					},
+				],
+			],
 		},
 	],
 }

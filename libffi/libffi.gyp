@@ -172,11 +172,6 @@
 			
 			'direct_dependent_settings':
 			{
-				'include_dirs':
-				[
-					'<@(_platform_include_dirs)',
-				],
-
 				'defines':
 				[
 					# Ensures we don't try to DLLImport symbols from a static lib
@@ -186,6 +181,12 @@
 			
 			'all_dependent_settings':
 			{
+			
+				'include_dirs':
+				[
+					'<@(_platform_include_dirs)',
+				],
+
 				'msvs_settings':
 				{
 					'VCLinkerTool':

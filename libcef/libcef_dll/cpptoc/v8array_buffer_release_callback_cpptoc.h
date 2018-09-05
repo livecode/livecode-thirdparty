@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2018 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,29 +9,29 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=4e745a9adbce154512e5d81ce5f481e606a31551$
+// $hash=61fe643dbdefcacb37612d6611d5b3cd0d0f731a$
 //
 
-#ifndef CEF_LIBCEF_DLL_CPPTOC_GET_GEOLOCATION_CALLBACK_CPPTOC_H_
-#define CEF_LIBCEF_DLL_CPPTOC_GET_GEOLOCATION_CALLBACK_CPPTOC_H_
+#ifndef CEF_LIBCEF_DLL_CPPTOC_V8ARRAY_BUFFER_RELEASE_CALLBACK_CPPTOC_H_
+#define CEF_LIBCEF_DLL_CPPTOC_V8ARRAY_BUFFER_RELEASE_CALLBACK_CPPTOC_H_
 #pragma once
 
 #if !defined(WRAPPING_CEF_SHARED)
 #error This file can be included wrapper-side only
 #endif
 
-#include "include/capi/cef_geolocation_capi.h"
-#include "include/cef_geolocation.h"
+#include "include/capi/cef_v8_capi.h"
+#include "include/cef_v8.h"
 #include "libcef_dll/cpptoc/cpptoc_ref_counted.h"
 
 // Wrap a C++ class with a C structure.
 // This class may be instantiated and accessed wrapper-side only.
-class CefGetGeolocationCallbackCppToC
-    : public CefCppToCRefCounted<CefGetGeolocationCallbackCppToC,
-                                 CefGetGeolocationCallback,
-                                 cef_get_geolocation_callback_t> {
+class CefV8ArrayBufferReleaseCallbackCppToC
+    : public CefCppToCRefCounted<CefV8ArrayBufferReleaseCallbackCppToC,
+                                 CefV8ArrayBufferReleaseCallback,
+                                 cef_v8array_buffer_release_callback_t> {
  public:
-  CefGetGeolocationCallbackCppToC();
+  CefV8ArrayBufferReleaseCallbackCppToC();
 };
 
-#endif  // CEF_LIBCEF_DLL_CPPTOC_GET_GEOLOCATION_CALLBACK_CPPTOC_H_
+#endif  // CEF_LIBCEF_DLL_CPPTOC_V8ARRAY_BUFFER_RELEASE_CALLBACK_CPPTOC_H_

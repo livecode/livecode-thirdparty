@@ -397,10 +397,14 @@ const char *SqliteDatabase::getErrorMsg() {
    return error.c_str();
 }
 
-int SqliteDatabase::connect()
+int SqliteDatabase::connect(bool p_use_uri)
 {
   disconnect();
-  int result = setErr(sqlite3_open(db.c_str(),&conn), NULL);
+  int result;
+  if (p_use_uri)
+    result = setErr(sqlite3_open_v2(db.c_str(),&conn, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_URI, 0), NULL);
+  else
+    result = setErr(sqlite3_open(db.c_str(),&conn), NULL);
   if (!result)
   {
     char* err=NULL;

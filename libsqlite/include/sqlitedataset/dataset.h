@@ -114,7 +114,7 @@ public:
   virtual const char *getErrorMsg(void) { return error.c_str(); }
   virtual void setErrDirect(const char *p_error) { error = p_error; }
 	
-  virtual int connect(void) { return DB_COMMAND_OK; }
+  virtual int connect(bool p_use_uri=false) { return DB_COMMAND_OK; }
   virtual int connectFull( const char *newDb, const char *newHost=NULL,
                       const char *newLogin=NULL, const char *newPasswd=NULL,const char *newPort=NULL);
   virtual void disconnect(void) { active = false; }

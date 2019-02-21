@@ -64,7 +64,7 @@ public:
   virtual const char *getErrorMsg();
   
 /* func. connects to database-server */
-  virtual int connect();
+  virtual int connect(bool p_use_uri=false);
 /* func. disconnects from database-server */
   virtual void disconnect();
 /* func. creates new database */

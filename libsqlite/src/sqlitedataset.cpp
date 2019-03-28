@@ -737,6 +737,8 @@ static int sqlite3_query_exec(sqlite3 *db, const char *zSql, int (*xCallback)(vo
 			}
 		}
 
+        free(azVals);
+        azVals = 0;
 		free(azCols);
 		azCols = 0;
 	}

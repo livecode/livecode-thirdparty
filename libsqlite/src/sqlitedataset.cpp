@@ -426,7 +426,17 @@ int SqliteDatabase::connect(bool p_use_uri)
     return DB_CONNECTION_OK;
   }
   else
+  {
+      /* sqlite3_open will still create a connection object even if there is an
+       * error - unless it runs out of memory, in which case the connection
+       * pointer will be nullptr. */
+      if (conn != nullptr)
+      {
+          sqlite3_close(conn);
+          conn = nullptr;
+      }
 	  throw DbErrors(getErrorMsg());
+  }
 
   return DB_CONNECTION_NONE;
 };

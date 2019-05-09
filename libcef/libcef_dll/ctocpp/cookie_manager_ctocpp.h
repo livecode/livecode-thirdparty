@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=7dcafc3a29b97d8c330e4590e9970bc3949739a4$
+// $hash=2363533e3c6b78e16b93dd428121cd45b797ce6a$
 //
 
 #ifndef CEF_LIBCEF_DLL_CTOCPP_COOKIE_MANAGER_CTOCPP_H_
@@ -33,6 +33,7 @@ class CefCookieManagerCToCpp
                                  cef_cookie_manager_t> {
  public:
   CefCookieManagerCToCpp();
+  virtual ~CefCookieManagerCToCpp();
 
   // CefCookieManager methods.
   void SetSupportedSchemes(const std::vector<CefString>& schemes,

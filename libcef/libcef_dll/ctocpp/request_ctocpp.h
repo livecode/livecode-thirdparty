@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=1719a5ddf35f1269ee759b2b0cd5682bef6ed2e1$
+// $hash=98cf46c3682e03594e72a7304dfa0ddd8b8cf3d8$
 //
 
 #ifndef CEF_LIBCEF_DLL_CTOCPP_REQUEST_CTOCPP_H_
@@ -30,6 +30,7 @@ class CefRequestCToCpp
     : public CefCToCppRefCounted<CefRequestCToCpp, CefRequest, cef_request_t> {
  public:
   CefRequestCToCpp();
+  virtual ~CefRequestCToCpp();
 
   // CefRequest methods.
   bool IsReadOnly() OVERRIDE;

@@ -19,7 +19,7 @@
 			
 			'dependencies':
 			[
-				'../../prebuilt/libicu.gyp:libicu',
+				'../../prebuilt/libicu.gyp:libicu_include',
 			],
 			
 			'defines':

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=30e3a8e0af1a46f48c8dee5cc94d056c856b23d3$
+// $hash=11c730dca41c86a9a29ba6f32a59f55040c177b6$
 //
 
 #ifndef CEF_LIBCEF_DLL_CTOCPP_REQUEST_CALLBACK_CTOCPP_H_
@@ -32,6 +32,7 @@ class CefRequestCallbackCToCpp
                                  cef_request_callback_t> {
  public:
   CefRequestCallbackCToCpp();
+  virtual ~CefRequestCallbackCToCpp();
 
   // CefRequestCallback methods.
   void Continue(bool allow) OVERRIDE;

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,13 +9,14 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=5ce784d1e871c1bde0423c97c8ad5d8d06a2686b$
+// $hash=90eb7cfa5e3f294b4b732e705ebe53072f22e8e2$
 //
 
 #include "libcef_dll/cpptoc/life_span_handler_cpptoc.h"
 #include "libcef_dll/cpptoc/client_cpptoc.h"
 #include "libcef_dll/ctocpp/browser_ctocpp.h"
 #include "libcef_dll/ctocpp/frame_ctocpp.h"
+#include "libcef_dll/shutdown_checker.h"
 
 namespace {
 
@@ -34,6 +35,8 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
     cef_client_t** client,
     struct _cef_browser_settings_t* settings,
     int* no_javascript_access) {
+  shutdown_checker::AssertNotShutdown();
+
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -124,6 +127,8 @@ int CEF_CALLBACK life_span_handler_on_before_popup(
 void CEF_CALLBACK
 life_span_handler_on_after_created(struct _cef_life_span_handler_t* self,
                                    cef_browser_t* browser) {
+  shutdown_checker::AssertNotShutdown();
+
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -142,6 +147,8 @@ life_span_handler_on_after_created(struct _cef_life_span_handler_t* self,
 int CEF_CALLBACK
 life_span_handler_do_close(struct _cef_life_span_handler_t* self,
                            cef_browser_t* browser) {
+  shutdown_checker::AssertNotShutdown();
+
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -163,6 +170,8 @@ life_span_handler_do_close(struct _cef_life_span_handler_t* self,
 void CEF_CALLBACK
 life_span_handler_on_before_close(struct _cef_life_span_handler_t* self,
                                   cef_browser_t* browser) {
+  shutdown_checker::AssertNotShutdown();
+
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -189,6 +198,12 @@ CefLifeSpanHandlerCppToC::CefLifeSpanHandlerCppToC() {
   GetStruct()->on_before_close = life_span_handler_on_before_close;
 }
 
+// DESTRUCTOR - Do not edit by hand.
+
+CefLifeSpanHandlerCppToC::~CefLifeSpanHandlerCppToC() {
+  shutdown_checker::AssertNotShutdown();
+}
+
 template <>
 CefRefPtr<CefLifeSpanHandler> CefCppToCRefCounted<
     CefLifeSpanHandlerCppToC,
@@ -198,14 +213,6 @@ CefRefPtr<CefLifeSpanHandler> CefCppToCRefCounted<
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
-
-#if DCHECK_IS_ON()
-template <>
-base::AtomicRefCount CefCppToCRefCounted<CefLifeSpanHandlerCppToC,
-                                         CefLifeSpanHandler,
-                                         cef_life_span_handler_t>::DebugObjCt
-    ATOMIC_DECLARATION;
-#endif
 
 template <>
 CefWrapperType CefCppToCRefCounted<CefLifeSpanHandlerCppToC,

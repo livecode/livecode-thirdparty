@@ -65,6 +65,17 @@ class CefCookieManager : public virtual CefBaseRefCounted {
       CefRefPtr<CefCompletionCallback> callback);
 
   ///
+  // Returns a cookie manager that neither stores nor retrieves cookies. All
+  // usage of cookies will be blocked including cookies accessed via the network
+  // (request/response headers), via JavaScript (document.cookie), and via
+  // CefCookieManager methods. No cookies will be displayed in DevTools. If you
+  // wish to only block cookies sent via the network use the CefRequestHandler
+  // CanGetCookies and CanSetCookie methods instead.
+  ///
+  /*--cef()--*/
+  static CefRefPtr<CefCookieManager> GetBlockingManager();
+
+  ///
   // Creates a new cookie manager. If |path| is empty data will be stored in
   // memory only. Otherwise, data will be stored at the specified |path|. To
   // persist session cookies (cookies without an expiry date or validity
@@ -210,7 +221,7 @@ class CefDeleteCookiesCallback : public virtual CefBaseRefCounted {
  public:
   ///
   // Method that will be called upon completion. |num_deleted| will be the
-  // number of cookies that were deleted or -1 if unknown.
+  // number of cookies that were deleted.
   ///
   /*--cef()--*/
   virtual void OnComplete(int num_deleted) = 0;

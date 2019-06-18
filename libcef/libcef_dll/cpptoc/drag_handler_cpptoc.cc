@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,12 +9,13 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=8b77d3c2c5f135905b2623b9b931e5fbbdc2533a$
+// $hash=c85e942b6518aa3951dbd47b3ff1097f4a6f88fa$
 //
 
 #include "libcef_dll/cpptoc/drag_handler_cpptoc.h"
 #include "libcef_dll/ctocpp/browser_ctocpp.h"
 #include "libcef_dll/ctocpp/drag_data_ctocpp.h"
+#include "libcef_dll/shutdown_checker.h"
 
 namespace {
 
@@ -24,6 +25,8 @@ int CEF_CALLBACK drag_handler_on_drag_enter(struct _cef_drag_handler_t* self,
                                             cef_browser_t* browser,
                                             cef_drag_data_t* dragData,
                                             cef_drag_operations_mask_t mask) {
+  shutdown_checker::AssertNotShutdown();
+
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -51,6 +54,8 @@ void CEF_CALLBACK drag_handler_on_draggable_regions_changed(
     cef_browser_t* browser,
     size_t regionsCount,
     cef_draggable_region_t const* regions) {
+  shutdown_checker::AssertNotShutdown();
+
   // AUTO-GENERATED CONTENT - DELETE THIS COMMENT BEFORE MODIFYING
 
   DCHECK(self);
@@ -89,6 +94,12 @@ CefDragHandlerCppToC::CefDragHandlerCppToC() {
       drag_handler_on_draggable_regions_changed;
 }
 
+// DESTRUCTOR - Do not edit by hand.
+
+CefDragHandlerCppToC::~CefDragHandlerCppToC() {
+  shutdown_checker::AssertNotShutdown();
+}
+
 template <>
 CefRefPtr<CefDragHandler>
 CefCppToCRefCounted<CefDragHandlerCppToC, CefDragHandler, cef_drag_handler_t>::
@@ -96,14 +107,6 @@ CefCppToCRefCounted<CefDragHandlerCppToC, CefDragHandler, cef_drag_handler_t>::
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
-
-#if DCHECK_IS_ON()
-template <>
-base::AtomicRefCount CefCppToCRefCounted<CefDragHandlerCppToC,
-                                         CefDragHandler,
-                                         cef_drag_handler_t>::DebugObjCt
-    ATOMIC_DECLARATION;
-#endif
 
 template <>
 CefWrapperType CefCppToCRefCounted<CefDragHandlerCppToC,

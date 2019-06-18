@@ -481,6 +481,25 @@ struct CefMouseEventTraits {
 ///
 typedef CefStructBase<CefMouseEventTraits> CefMouseEvent;
 
+struct CefTouchEventTraits {
+  typedef cef_touch_event_t struct_type;
+
+  static inline void init(struct_type* s) {}
+
+  static inline void clear(struct_type* s) {}
+
+  static inline void set(const struct_type* src,
+                         struct_type* target,
+                         bool copy) {
+    *target = *src;
+  }
+};
+
+///
+// Class representing a touch event.
+///
+typedef CefStructBase<CefTouchEventTraits> CefTouchEvent;
+
 struct CefPopupFeaturesTraits {
   typedef cef_popup_features_t struct_type;
 
@@ -539,7 +558,6 @@ struct CefSettingsTraits {
   static inline void set(const struct_type* src,
                          struct_type* target,
                          bool copy) {
-    target->single_process = src->single_process;
     target->no_sandbox = src->no_sandbox;
     cef_string_set(src->browser_subprocess_path.str,
                    src->browser_subprocess_path.length,
@@ -831,37 +849,6 @@ struct CefCookieTraits {
 // Class representing a cookie.
 ///
 typedef CefStructBase<CefCookieTraits> CefCookie;
-
-struct CefGeopositionTraits {
-  typedef cef_geoposition_t struct_type;
-
-  static inline void init(struct_type* s) {}
-
-  static inline void clear(struct_type* s) {
-    cef_string_clear(&s->error_message);
-  }
-
-  static inline void set(const struct_type* src,
-                         struct_type* target,
-                         bool copy) {
-    target->latitude = src->latitude;
-    target->longitude = src->longitude;
-    target->altitude = src->altitude;
-    target->accuracy = src->accuracy;
-    target->altitude_accuracy = src->altitude_accuracy;
-    target->heading = src->heading;
-    target->speed = src->speed;
-    target->timestamp = src->timestamp;
-    target->error_code = src->error_code;
-    cef_string_set(src->error_message.str, src->error_message.length,
-                   &target->error_message, copy);
-  }
-};
-
-///
-// Class representing a geoposition.
-///
-typedef CefStructBase<CefGeopositionTraits> CefGeoposition;
 
 struct CefCursorInfoTraits {
   typedef cef_cursor_info_t struct_type;

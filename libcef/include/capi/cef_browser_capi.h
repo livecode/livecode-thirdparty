@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2019 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=a4831deeb05bc0a022c1a0ee6f1c484b338c741c$
+// $hash=15f23de47af54fa690b6c5810e3049f97ae2aabd$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_BROWSER_CAPI_H_
@@ -572,6 +572,13 @@ typedef struct _cef_browser_host_t {
                                  cef_paint_element_type_t type);
 
   ///
+  // Issue a BeginFrame request to Chromium.  Only valid when
+  // cef_window_tInfo::external_begin_frame_enabled is set to true (1).
+  ///
+  void(CEF_CALLBACK* send_external_begin_frame)(
+      struct _cef_browser_host_t* self);
+
+  ///
   // Send a key event to the browser.
   ///
   void(CEF_CALLBACK* send_key_event)(struct _cef_browser_host_t* self,
@@ -609,6 +616,12 @@ typedef struct _cef_browser_host_t {
       const struct _cef_mouse_event_t* event,
       int deltaX,
       int deltaY);
+
+  ///
+  // Send a touch event to the browser for a windowless browser.
+  ///
+  void(CEF_CALLBACK* send_touch_event)(struct _cef_browser_host_t* self,
+                                       const struct _cef_touch_event_t* event);
 
   ///
   // Send a focus event to the browser.
@@ -837,6 +850,18 @@ typedef struct _cef_browser_host_t {
   // cef_request_tContext::LoadExtension for details.
   ///
   int(CEF_CALLBACK* is_background_host)(struct _cef_browser_host_t* self);
+
+  ///
+  //  Set whether the browser's audio is muted.
+  ///
+  void(CEF_CALLBACK* set_audio_muted)(struct _cef_browser_host_t* self,
+                                      int mute);
+
+  ///
+  // Returns true (1) if the browser's audio is muted.  This function can only
+  // be called on the UI thread.
+  ///
+  int(CEF_CALLBACK* is_audio_muted)(struct _cef_browser_host_t* self);
 } cef_browser_host_t;
 
 ///

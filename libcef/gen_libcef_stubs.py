@@ -7,6 +7,10 @@ import sys
 
 _s_type_table = {
 "int":"integer",
+"int16":"integer",
+"uint16":"integer",
+"cef_platform_thread_id_t":"integer",
+"cef_platform_thread_handle_t":"integer",
 "int32":"integer",
 "uint32":"integer",
 "int64":"integer64",
@@ -17,6 +21,9 @@ _s_type_table = {
 "time_t":"integer64",
 "cef_json_parser_options_t":"integer",
 "cef_json_writer_options_t":"integer",
+"cef_thread_priority_t":"integer",
+"cef_message_loop_type_t":"integer",
+"cef_com_init_mode_t":"integer",
 "cef_path_key_t":"integer",
 "cef_string_list_t":"pointer",
 "cef_string_map_t":"pointer",
@@ -73,7 +80,9 @@ def conv_to_stub(pSig):
 	tStubParams = []
 
 	tStubTypesKnown, tStubReturnType = cef_type_to_stub_type(tReturnType)
-
+	if not tStubTypesKnown:
+		log("unknown type: " + tStubReturnType)
+		
 	if len(tParams) > 0:
 		tSplit = tParams.split(",")
 
@@ -122,7 +131,7 @@ def gen_stubs_file(pPaths):
 
 	tSignatureList.sort()
 	
-	print "cef ./CEF/libcef ./CEF/libcef ./CEF/libcef"
+	print "cef ./Externals/CEF/libcef ./Externals/CEF/libcef ./Externals/CEF/libcef"
 	print "\n".join(tSignatureList)
 
 #get include folder from the command line

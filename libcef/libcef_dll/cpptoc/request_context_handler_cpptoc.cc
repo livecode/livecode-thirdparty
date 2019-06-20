@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=fef1959b9f8b96573de134769406f9eed4eeefc5$
+// $hash=2decd7941020bd2b96ebfa736624d1729a82fa55$
 //
 
 #include "libcef_dll/cpptoc/request_context_handler_cpptoc.h"
@@ -104,6 +104,10 @@ CefRequestContextHandlerCppToC::CefRequestContextHandlerCppToC() {
       request_context_handler_on_before_plugin_load;
 }
 
+// DESTRUCTOR - Do not edit by hand.
+
+CefRequestContextHandlerCppToC::~CefRequestContextHandlerCppToC() {}
+
 template <>
 CefRefPtr<CefRequestContextHandler> CefCppToCRefCounted<
     CefRequestContextHandlerCppToC,
@@ -114,14 +118,6 @@ CefRefPtr<CefRequestContextHandler> CefCppToCRefCounted<
   NOTREACHED() << "Unexpected class type: " << type;
   return NULL;
 }
-
-#if DCHECK_IS_ON()
-template <>
-base::AtomicRefCount CefCppToCRefCounted<
-    CefRequestContextHandlerCppToC,
-    CefRequestContextHandler,
-    cef_request_context_handler_t>::DebugObjCt ATOMIC_DECLARATION;
-#endif
 
 template <>
 CefWrapperType

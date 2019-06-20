@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=0e103b8e82d15405eb5fdb2efc48992dae1e9656$
+// $hash=babd63d2abc0812c13f7228094f601851ea0679f$
 //
 
 #ifndef CEF_LIBCEF_DLL_WRAPPER_TYPES_H_
@@ -21,6 +21,7 @@ enum CefWrapperType {
   WT_BASE_SCOPED,
   WT_ACCESSIBILITY_HANDLER,
   WT_APP,
+  WT_AUDIO_HANDLER,
   WT_AUTH_CALLBACK,
   WT_BEFORE_DOWNLOAD_CALLBACK,
   WT_BINARY_VALUE,
@@ -62,10 +63,7 @@ enum CefWrapperType {
   WT_FIND_HANDLER,
   WT_FOCUS_HANDLER,
   WT_FRAME,
-  WT_GEOLOCATION_CALLBACK,
-  WT_GEOLOCATION_HANDLER,
   WT_GET_EXTENSION_RESOURCE_CALLBACK,
-  WT_GET_GEOLOCATION_CALLBACK,
   WT_IMAGE,
   WT_JSDIALOG_CALLBACK,
   WT_JSDIALOG_HANDLER,
@@ -115,6 +113,8 @@ enum CefWrapperType {
   WT_SCHEME_REGISTRAR,
   WT_SCROLL_VIEW,
   WT_SELECT_CLIENT_CERTIFICATE_CALLBACK,
+  WT_SERVER,
+  WT_SERVER_HANDLER,
   WT_SET_COOKIE_CALLBACK,
   WT_STREAM_READER,
   WT_STREAM_WRITER,
@@ -138,6 +138,7 @@ enum CefWrapperType {
   WT_URLREQUEST,
   WT_URLREQUEST_CLIENT,
   WT_V8ACCESSOR,
+  WT_V8ARRAY_BUFFER_RELEASE_CALLBACK,
   WT_V8CONTEXT,
   WT_V8EXCEPTION,
   WT_V8HANDLER,

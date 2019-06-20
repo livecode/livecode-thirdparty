@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Chromium Embedded Framework Authors. All rights
+// Copyright (c) 2019 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 //
@@ -9,7 +9,7 @@
 // implementations. See the translator.README.txt file in the tools directory
 // for more information.
 //
-// $hash=d2930fdc22bf9f6281d2bf797dd27f749b5e512a$
+// $hash=756629986a078c1403693255503cc6307215126b$
 //
 
 #ifndef CEF_LIBCEF_DLL_CTOCPP_FRAME_CTOCPP_H_
@@ -34,6 +34,7 @@ class CefFrameCToCpp
     : public CefCToCppRefCounted<CefFrameCToCpp, CefFrame, cef_frame_t> {
  public:
   CefFrameCToCpp();
+  virtual ~CefFrameCToCpp();
 
   // CefFrame methods.
   bool IsValid() OVERRIDE;

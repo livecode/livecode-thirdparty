@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Marshall A. Greenblatt. All rights reserved.
+// Copyright (c) 2019 Marshall A. Greenblatt. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -33,7 +33,7 @@
 // by hand. See the translator.README.txt file in the tools directory for
 // more information.
 //
-// $hash=81e857497b1f5e1732af7fca2250edf78c0e5415$
+// $hash=f7f1ec971c726a6a74bcc7f5cee7a8eb1911078d$
 //
 
 #ifndef CEF_INCLUDE_CAPI_CEF_REQUEST_CONTEXT_CAPI_H_
@@ -244,7 +244,7 @@ typedef struct _cef_request_context_t {
   ///
   // Clears all active and idle connections that Chromium currently has. This is
   // only recommended if you have released all other CEF objects but don't yet
-  // want to call cef_shutdown(). If |callback| is non-NULL it will be executed
+  // want to call Cefshutdown(). If |callback| is non-NULL it will be executed
   // on the UI thread after completion.
   ///
   void(CEF_CALLBACK* close_all_connections)(
@@ -258,17 +258,6 @@ typedef struct _cef_request_context_t {
   void(CEF_CALLBACK* resolve_host)(struct _cef_request_context_t* self,
                                    const cef_string_t* origin,
                                    struct _cef_resolve_callback_t* callback);
-
-  ///
-  // Attempts to resolve |origin| to a list of associated IP addresses using
-  // cached data. |resolved_ips| will be populated with the list of resolved IP
-  // addresses or NULL if no cached data is available. Returns ERR_NONE on
-  // success. This function must be called on the browser process IO thread.
-  ///
-  cef_errorcode_t(CEF_CALLBACK* resolve_host_cached)(
-      struct _cef_request_context_t* self,
-      const cef_string_t* origin,
-      cef_string_list_t resolved_ips);
 
   ///
   // Load an extension.

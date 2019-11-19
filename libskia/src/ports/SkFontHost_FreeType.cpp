@@ -418,6 +418,20 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////
 
+extern FT_Face SkTypeface_GetFTFace(const SkTypeface* face);
+FT_Face SkTypeface_GetFTFace(const SkTypeface* face)
+{
+	FT_Face t_face;
+	gFTMutex.acquire();
+	t_face = ref_ft_face(face);
+	FT_Reference_Face(t_face);
+	unref_ft_face(t_face);
+	gFTMutex.release();
+	return t_face;
+}
+
+///////////////////////////////////////////////////////////////////////////
+
 static bool canEmbed(FT_Face face) {
     FT_UShort fsType = FT_Get_FSType_Flags(face);
     return (fsType & (FT_FSTYPE_RESTRICTED_LICENSE_EMBEDDING |

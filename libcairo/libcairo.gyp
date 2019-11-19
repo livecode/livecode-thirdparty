@@ -460,10 +460,24 @@
 						'conditions':
 						[
 							[
-								# Not supported on Android
-								'OS == "android" or OS == "emscripten"',
+								# Not supported on Emscripten
+								'OS == "emscripten"',
 								{
 									'type': 'none',
+								},
+							],
+							[
+								'OS == "android"',
+								{
+									'dependencies':
+									[
+										'../libfreetype/libfreetype.gyp:libfreetype',
+									],
+									# Use the FreeType support on Android
+									'sources/':
+									[
+										['include', '^src/cairo-ft.*\\.c$'],
+									],
 								},
 							],
 							[

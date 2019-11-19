@@ -20,6 +20,7 @@
 			'dependencies':
 			[
 				'../../prebuilt/libicu.gyp:libicu_include',
+				'../libfreetype/libfreetype.gyp:libfreetype',
 			],
 			
 			'defines':
@@ -45,6 +46,7 @@
 				'src/hb-fallback-shape.cc',
 				'src/hb-face.cc',
 				'src/hb-font.cc',
+				'src/hb-ft.cc',
 				'src/hb-icu.cc',
 				'src/hb-ot-layout.cc',
 				'src/hb-ot-map.cc',

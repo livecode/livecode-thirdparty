@@ -409,10 +409,10 @@ int SqliteDatabase::connect(bool p_use_uri)
   {
     char* err=NULL;
     if (setErr(sqlite3_exec(getHandle(),"PRAGMA empty_result_callbacks=ON",NULL,NULL,&err),"PRAGMA empty_result_callbacks=ON") != SQLITE_OK)
-      throw DbErrors(getErrorMsg());
+      throw DbErrors("%s", getErrorMsg());
 
 	if (setErr(sqlite3_exec(getHandle(),"PRAGMA SHOW_DATATYPES=ON",NULL,NULL,&err),"PRAGMA SHOW_DATATYPES=ON") != SQLITE_OK)
-      throw DbErrors(getErrorMsg());
+      throw DbErrors("%s", getErrorMsg());
 
 	//load any  collations
 #ifdef CUSTOM_COLLATION
@@ -435,7 +435,7 @@ int SqliteDatabase::connect(bool p_use_uri)
           sqlite3_close(conn);
           conn = nullptr;
       }
-	  throw DbErrors(getErrorMsg());
+	  throw DbErrors("%s", getErrorMsg());
   }
 
   return DB_CONNECTION_NONE;
@@ -558,7 +558,7 @@ void SqliteDataset::make_query(StringList &_sql) {
 	char* err=NULL; 
 	Dataset::parse_sql(query);
 	if (db->setErr(sqlite3_exec(this->handle(),query.c_str(),NULL,NULL,&err),query.c_str())!=SQLITE_OK) {
-	  throw DbErrors(db->getErrorMsg());
+	  throw DbErrors("%s", db->getErrorMsg());
 	}
   } // end of for
 
@@ -889,7 +889,7 @@ int SqliteDataset::exec(const string &sql) {
     return res;
   else
     {
-      throw DbErrors(db->getErrorMsg());
+      throw DbErrors("%s", db->getErrorMsg());
     }
 }
 
@@ -935,7 +935,7 @@ bool SqliteDataset::query(const char *query)
 		if (t_query_result == SQLITE_ERROR)
 			db -> setErrDirect(errmsg);
 		
-		throw DbErrors(db->getErrorMsg());
+		throw DbErrors("%s", db->getErrorMsg());
 	}
 }
 

@@ -1503,6 +1503,7 @@
 				'src/ports/SkOSLibrary.h',
 				'src/ports/SkScalerContext_win_dw.h',
 				'src/ports/SkTypeface_win_dw.h',
+				'src/ports/SkTypeface_FreeType.h',
 				'src/ports/SkDebug_android.cpp',
 				'src/ports/SkDebug_stdio.cpp',
 				'src/ports/SkDebug_win.cpp',

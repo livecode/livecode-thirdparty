@@ -12,8 +12,9 @@
 			'conditions':
 			[
 				[
-					'use_system_libxml == 0',
+					'use_system_libxml == 0 and use_prebuilt_thirdparty == 0',
 					{
+						# build static library
 						'type': 'static_library',
 						
 						'variables':
@@ -181,7 +182,28 @@
 							],
 						},
 					},
+				],
+				[
+					'use_system_libxml == 0 and use_prebuilt_thirdparty != 0',
 					{
+						# use prebuilt library
+						'type': 'none',
+
+						'dependencies':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_xml',
+						],
+
+						'export_dependent_settings':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_xml',
+						],
+					},
+				],
+				[
+					'use_system_libxml != 0',
+					{
+						# use system library
 						'type': 'none',
 						
 						'link_settings':

@@ -12,8 +12,9 @@
 			'conditions':
 			[
 				[
-					'use_system_libiodbc == 0',
+					'use_system_libiodbc == 0 and use_prebuilt_thirdparty == 0',
 					{
+						# build static library
 						'type': 'static_library',
 						
 						'variables':
@@ -215,7 +216,28 @@
 							],
 						],
 					},
+				],
+				[
+					'use_system_libiodbc == 0 and use_prebuilt_thirdparty != 0',
 					{
+						# use prebuilt library
+						'type': 'none',
+
+						'dependencies':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_iodbc',
+						],
+
+						'export_dependent_settings':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_iodbc',
+						],
+					},
+				],
+				[
+					'use_system_libiodbc != 0',
+					{
+						# use system library
 						'type': 'none',
 						
 						'link_settings':

@@ -4,18 +4,20 @@
 		'../../common.gypi',
 	],
 	
-	'conditions':
+	'targets':
 	[
-		[
-			'use_system_libz == 0',
-			{
-				'targets':
+		{
+			'target_name': 'libz',
+
+			'toolsets': ['host', 'target'],
+			
+			'conditions':
+			[
 				[
+					'use_system_libz == 0 and use_prebuilt_thirdparty == 0',
 					{
-						'target_name': 'libz',
+						# build static library
 						'type': 'static_library',
-						
-						'toolsets': ['host','target'],
 						
 						'product_prefix': '',
 						'product_name': 'libz',
@@ -83,12 +85,27 @@
 						],
 					},
 				],
-			},
-			{
-				'targets':
 				[
+					'use_system_libz == 0 and use_prebuilt_thirdparty != 0',
 					{
-						'target_name': 'libz',
+						# use prebuilt library
+						'type': 'none',
+
+						'dependencies':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_z',
+						],
+
+						'export_dependent_settings':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_z',
+						],
+					},
+				],
+				[
+					'use_system_libz != 0',
+					{
+						# use system library
 						'type': 'none',
 						
 						'link_settings':
@@ -100,7 +117,7 @@
 						},
 					},
 				],
-			},
-		],
+			],
+		},
 	],
 }

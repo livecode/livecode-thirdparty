@@ -134,226 +134,8 @@
 	[
 		{
 			'target_name': 'libffi',
-			'type': 'static_library',
-			
+
 			'toolsets': ['host','target'],
-			
-			'product_prefix': '',
-			'product_name': 'libffi',
-			
-			'variables':
-			{
-				'conditions':
-				[
-					[
-						'_toolset == "host"',
-						{
-							'toolset_os': '<(host_os)',
-							'toolset_arch': '<(host_arch)',
-						},
-						{
-							'toolset_os': '<(OS)',
-							'toolset_arch': '<(target_arch)',
-						},
-					],
-				],
-
-				'silence_warnings': 1,
-			},
-			
-			'sources':
-			[
-			],
-			
-			'include_dirs':
-			[
-				'<@(_platform_include_dirs)',
-			],
-			
-			'direct_dependent_settings':
-			{
-				'include_dirs':
-				[
-					'<@(_platform_include_dirs)',
-				],
-
-				'defines':
-				[
-					# Ensures we don't try to DLLImport symbols from a static lib
-					'FFI_BUILDING',
-				],
-			},
-			
-			'all_dependent_settings':
-			{
-				'msvs_settings':
-				{
-					'VCLinkerTool':
-					{
-						# libffi is not safe exception handler compatible therefore nothing
-						# linked to it is compatible either
-						'ImageHasSafeExceptionHandlers': 'false',
-					},
-				},
-			},
-			
-			'conditions':
-			[
-				[
-					'toolset_os == "mac"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_darwin_osx_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_mac_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-					},
-				],
-				[
-					'toolset_os == "ios"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_darwin_ios_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_ios_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-
-						'include_dirs':
-						[
-							'git_master/src',
-						],
-					},
-				],
-				[
-					'toolset_os == "win" and toolset_arch == "x86"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_win32_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_win32_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-					},
-				],
-				[
-					'toolset_os == "win" and toolset_arch == "x64"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_win64_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_win64_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-					},
-				],
-				[
-					'(toolset_os == "linux" or toolset_os == "android") and toolset_arch == "x86"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_linux_x86_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_linux_x86_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-					},
-				],
-				[
-					'(toolset_os == "linux" or toolset_os == "android") and toolset_arch == "x86_64"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_linux_x86_64_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_linux_x86_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-					},
-				],
-				[
-					'toolset_os in ("linux", "android") and toolset_arch in ("armv6", "armv6hf", "armv7")',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_android_dir)',
-						],
-						
-						'sources':
-						[
-							'<@(libffi_linux_arm_source_files)',
-							'<@(libffi_generic_sources)'
-						],
-						
-						# Disable VFP for non-hard-float targets
-                        'conditions':
-                        [
-                            [
-                                'toolset_arch == "armv6"',
-                                {
-                                    'cflags':
-                                    [
-                                        '-U__ARM_EABI__',
-                                    ],
-                                },
-                            ],
-                        ],
-					},
-				],
-				[
-					'toolset_os in ("linux", "android") and toolset_arch == "arm64"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_linux_arm64_dir)',
-						],
-
-						'sources':
-						[
-							'<@(libffi_linux_arm64_source_files)',
-							'<@(libffi_generic_sources)',
-						],
-					},
-				],
-				[
-					'toolset_os == "emscripten"',
-					{
-						'platform_include_dirs':
-						[
-							'<@(libffi_public_headers_linux_x86_dir)',
-						],
-
-						'sources':
-						[
-							'<@(libffi_emscripten_source_files)',
-							'<@(libffi_generic_sources)'
-						]
-					},
-				],
-			],
 			
 			'target_conditions':
 			[
@@ -361,6 +143,251 @@
 					'_toolset != "target"',
 					{
 						'product_name': 'libffi->(_toolset)',
+					},
+				],
+			],
+			
+			'conditions':
+			[
+				[
+					'use_prebuilt_thirdparty == 0',
+					{
+						# build static library
+						'type': 'static_library',
+						
+						'product_prefix': '',
+						'product_name': 'libffi',
+						
+						'variables':
+						{
+							'conditions':
+							[
+								[
+									'_toolset == "host"',
+									{
+										'toolset_os': '<(host_os)',
+										'toolset_arch': '<(host_arch)',
+									},
+									{
+										'toolset_os': '<(OS)',
+										'toolset_arch': '<(target_arch)',
+									},
+								],
+							],
+
+							'silence_warnings': 1,
+						},
+						
+						'sources':
+						[
+						],
+						
+						'include_dirs':
+						[
+							'<@(_platform_include_dirs)',
+						],
+						
+						'direct_dependent_settings':
+						{
+							'include_dirs':
+							[
+								'<@(_platform_include_dirs)',
+							],
+
+							'defines':
+							[
+								# Ensures we don't try to DLLImport symbols from a static lib
+								'FFI_BUILDING',
+							],
+						},
+						
+						'all_dependent_settings':
+						{
+							'msvs_settings':
+							{
+								'VCLinkerTool':
+								{
+									# libffi is not safe exception handler compatible therefore nothing
+									# linked to it is compatible either
+									'ImageHasSafeExceptionHandlers': 'false',
+								},
+							},
+						},
+						
+						'conditions':
+						[
+							[
+								'toolset_os == "mac"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_darwin_osx_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_mac_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+								},
+							],
+							[
+								'toolset_os == "ios"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_darwin_ios_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_ios_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+
+									'include_dirs':
+									[
+										'git_master/src',
+									],
+								},
+							],
+							[
+								'toolset_os == "win" and toolset_arch == "x86"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_win32_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_win32_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+								},
+							],
+							[
+								'toolset_os == "win" and toolset_arch == "x64"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_win64_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_win64_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+								},
+							],
+							[
+								'(toolset_os == "linux" or toolset_os == "android") and toolset_arch == "x86"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_linux_x86_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_linux_x86_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+								},
+							],
+							[
+								'(toolset_os == "linux" or toolset_os == "android") and toolset_arch == "x86_64"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_linux_x86_64_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_linux_x86_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+								},
+							],
+							[
+								'toolset_os in ("linux", "android") and toolset_arch in ("armv6", "armv6hf", "armv7")',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_android_dir)',
+									],
+									
+									'sources':
+									[
+										'<@(libffi_linux_arm_source_files)',
+										'<@(libffi_generic_sources)'
+									],
+									
+									# Disable VFP for non-hard-float targets
+			                        'conditions':
+			                        [
+			                            [
+			                                'toolset_arch == "armv6"',
+			                                {
+			                                    'cflags':
+			                                    [
+			                                        '-U__ARM_EABI__',
+			                                    ],
+			                                },
+			                            ],
+			                        ],
+								},
+							],
+							[
+								'toolset_os in ("linux", "android") and toolset_arch == "arm64"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_linux_arm64_dir)',
+									],
+
+									'sources':
+									[
+										'<@(libffi_linux_arm64_source_files)',
+										'<@(libffi_generic_sources)',
+									],
+								},
+							],
+							[
+								'toolset_os == "emscripten"',
+								{
+									'platform_include_dirs':
+									[
+										'<@(libffi_public_headers_linux_x86_dir)',
+									],
+
+									'sources':
+									[
+										'<@(libffi_emscripten_source_files)',
+										'<@(libffi_generic_sources)'
+									]
+								},
+							],
+						],
+					},
+				],
+				[
+					'use_prebuilt_thirdparty != 0',
+					{
+						# use prebuilt library
+						'type': 'none',
+
+						'dependencies':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_ffi',
+						],
+
+						'export_dependent_settings':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_ffi',
+						],
 					},
 				],
 			],

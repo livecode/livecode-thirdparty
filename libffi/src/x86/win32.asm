@@ -1283,7 +1283,8 @@ ffi_closure_raw_SYSV ENDP
 
 
 ffi_closure_STDCALL PROC NEAR FORCEFRAME
-        mov  eax, [esp] ;; the ffi_closure ctx passed by the trampoline.
+		;; FORCEFRAME pushes onto the stack, so the ctx ptr is one word above
+        mov  eax, [esp + 4] ;; the ffi_closure ctx passed by the trampoline.
 
         sub  esp, 40
         lea  edx, [ebp - 24]

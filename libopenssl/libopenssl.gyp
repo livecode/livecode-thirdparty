@@ -4,6 +4,31 @@
 		'../../common.gypi',
 	],
 	
+	'target_defaults':
+	{
+		'conditions':
+		[
+			[
+				'OS != "ios"',
+				{
+					'variables':
+					{
+						'ssl_stubs_file': 'ssl.stubs',
+					},
+				}
+			],
+			[
+				'OS == "ios"',
+				{
+					'variables':
+					{
+						'ssl_stubs_file': 'ssl_ios.stubs',
+					},
+				}
+			],
+		],
+	},
+
 	'targets':
 	[
 		{
@@ -32,7 +57,7 @@
 					'inputs':
 					[
 						'../../util/weak_stub_maker.pl',
-						'ssl.stubs',
+						'>(ssl_stubs_file)',
 					],
 					'outputs':
 					[
@@ -43,7 +68,7 @@
 					[
 						'<@(perl)',
 						'../../util/weak_stub_maker.pl',
-						'ssl.stubs',
+						'>(ssl_stubs_file)',
 						'<@(_outputs)',
 					],
 				},
@@ -147,7 +172,7 @@
 								'inputs':
 								[
 									'../../util/list_stub_symbols.pl',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 								],
 								'outputs':
 								[
@@ -159,7 +184,7 @@
 									'<@(perl)',
 									'../../util/list_stub_symbols.pl',
 									'_',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 									'<@(_outputs)',
 								],
 							},
@@ -280,7 +305,7 @@
 								'inputs':
 								[
 									'../../util/list_stub_symbols.pl',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 								],
 								'outputs':
 								[
@@ -292,7 +317,7 @@
 									'<@(perl)',
 									'../../util/list_stub_symbols.pl',
 									'',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 									'<@(_outputs)',
 									'--exportdef=REVSECURITY',
 								],
@@ -355,7 +380,7 @@
 								'inputs':
 								[
 									'../../util/list_stub_symbols.pl',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 								],
 								'outputs':
 								[
@@ -367,7 +392,7 @@
 									'<@(perl)',
 									'../../util/list_stub_symbols.pl',
 									'_',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 									'<@(_outputs)',
 								],
 							},
@@ -376,7 +401,7 @@
 								'inputs':
 								[
 									'../../util/build_libinfo.pl',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 								],
 								'outputs':
 								[
@@ -388,7 +413,7 @@
 									'<@(perl)',
 									'../../util/build_libinfo.pl',
 									'revsecurity',
-									'ssl.stubs',
+									'>(ssl_stubs_file)',
 									'<@(_outputs)',
 								],
 							},

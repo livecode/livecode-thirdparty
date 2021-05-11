@@ -19,8 +19,9 @@
 			'conditions':
 			[
 				[
-					'use_system_libpng == 0',
+					'use_system_libpng == 0 and use_prebuilt_thirdparty == 0',
 					{
+						# build static library
 						'type': 'static_library',
 						
 						'variables':
@@ -74,7 +75,28 @@
                             'PNG_ARM_NEON_OPT=0',
                         ],
 					},
+				],
+				[
+					'use_system_libpng == 0 and use_prebuilt_thirdparty != 0',
 					{
+						# use prebuilt library
+						'type': 'none',
+
+						'dependencies':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_png',
+						],
+
+						'export_dependent_settings':
+						[
+							'../../prebuilt/thirdparty.gyp:thirdparty_prebuilt_png',
+						],
+					},
+				],
+				[
+					'use_system_libpng != 0',
+					{
+						# use system library
 						'type': 'none',
 					
 						'link_settings':
